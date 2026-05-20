@@ -21,6 +21,8 @@ class Insumo extends Model
         'nombre',
         'unidad_medida_id',
         'stock_minimo',
+        'stock_actual',
+        'precio_costo',
         'ubicacion',
         'observaciones',
         'activo',
@@ -28,6 +30,8 @@ class Insumo extends Model
 
     protected $casts = [
         'stock_minimo' => 'float',
+        'stock_actual' => 'float',
+        'precio_costo' => 'float',
         'activo'       => 'boolean',
     ];
 
@@ -56,5 +60,25 @@ class Insumo extends Model
     public function composiciones(): HasMany
     {
         return $this->hasMany(ComposicionTecnica::class, 'insumo_id');
+    }
+
+    public function reservasActivas(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ReservaStock::class)->where('estado', 'activa');
+    }
+
+    public function getStockReservadoAttribute(): float
+    {
+        return (float) $this->reservasActivas()->sum('cantidad_reservada');
+    }
+
+    public function getStockDisponibleAttribute(): float
+    {
+        return max(0, ($this->stock_actual ?? 0) - $this->stock_reservado);
+    }
+
+    public function getEsCriticoAttribute(): bool
+    {
+        return $this->stock_disponible <= ($this->stock_minimo ?? 0);
     }
 }

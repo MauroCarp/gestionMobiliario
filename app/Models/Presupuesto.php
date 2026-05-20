@@ -17,6 +17,8 @@ class Presupuesto extends Model
         'borrador'    => 'Borrador',
         'en_revision' => 'En Revisión',
         'aprobado'    => 'Aprobado',
+        'confirmado'  => 'Confirmado',
+        'pagado'      => 'Pagado',
         'rechazado'   => 'Rechazado',
         'cancelado'   => 'Cancelado',
     ];
@@ -25,6 +27,8 @@ class Presupuesto extends Model
         'borrador'    => 'gray',
         'en_revision' => 'warning',
         'aprobado'    => 'success',
+        'confirmado'  => 'info',
+        'pagado'      => 'success',
         'rechazado'   => 'danger',
         'cancelado'   => 'gray',
     ];
@@ -126,7 +130,7 @@ class Presupuesto extends Model
 
     public function puedeCancelar(): bool
     {
-        return in_array($this->estado, ['borrador', 'en_revision']);
+        return in_array($this->estado, ['borrador', 'en_revision', 'aprobado', 'confirmado']);
     }
 
     public function puedeEditar(): bool
@@ -164,5 +168,20 @@ class Presupuesto extends Model
     public function historial(): HasMany
     {
         return $this->hasMany(PresupuestoHistorial::class)->latest();
+    }
+
+    public function reservasStock(): HasMany
+    {
+        return $this->hasMany(ReservaStock::class);
+    }
+
+    public function ordenesCompra(): HasMany
+    {
+        return $this->hasMany(OrdenCompra::class);
+    }
+
+    public function esConfirmado(): bool
+    {
+        return in_array($this->estado, ['confirmado', 'pagado']);
     }
 }

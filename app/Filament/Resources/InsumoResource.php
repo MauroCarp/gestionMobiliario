@@ -40,6 +40,12 @@ class InsumoResource extends Resource
                 Forms\Components\TextInput::make('stock_minimo')
                     ->label('Stock mínimo')
                     ->numeric()->minValue(0)->default(0),
+                Forms\Components\TextInput::make('stock_actual')
+                    ->label('Stock actual')
+                    ->numeric()->minValue(0)->default(0),
+                Forms\Components\TextInput::make('precio_costo')
+                    ->label('Precio de costo')
+                    ->numeric()->minValue(0)->prefix('$')->nullable(),
                 Forms\Components\TextInput::make('ubicacion')
                     ->label('Ubicación')->maxLength(255),
                 Forms\Components\Toggle::make('activo')->default(true),

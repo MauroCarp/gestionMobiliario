@@ -293,6 +293,32 @@ class PresupuestoResource extends Resource
                             Notification::make()->warning()->title('Presupuesto rechazado')->send();
                         }),
 
+                    Tables\Actions\Action::make('confirmar')
+                        ->label('Confirmar')
+                        ->icon('heroicon-o-hand-thumb-up')
+                        ->color('info')
+                        ->visible(fn (Presupuesto $record): bool => $record->estado === 'aprobado')
+                        ->requiresConfirmation()
+                        ->modalHeading('Confirmar presupuesto')
+                        ->modalDescription('Se reservará el stock de insumos y se generará una orden de compra si hay faltantes.')
+                        ->action(function (Presupuesto $record): void {
+                            $record->cambiarEstado('confirmado');
+                            Notification::make()->success()->title('Presupuesto confirmado. Stock reservado.')->send();
+                        }),
+
+                    Tables\Actions\Action::make('marcarPagado')
+                        ->label('Marcar pagado')
+                        ->icon('heroicon-o-banknotes')
+                        ->color('success')
+                        ->visible(fn (Presupuesto $record): bool => $record->estado === 'confirmado')
+                        ->requiresConfirmation()
+                        ->modalHeading('Registrar pago')
+                        ->modalDescription('El stock de insumos será descontado definitivamente.')
+                        ->action(function (Presupuesto $record): void {
+                            $record->cambiarEstado('pagado');
+                            Notification::make()->success()->title('Presupuesto pagado. Stock descontado.')->send();
+                        }),
+
                     Tables\Actions\Action::make('cancelar')
                         ->label('Cancelar')
                         ->icon('heroicon-o-archive-box-x-mark')

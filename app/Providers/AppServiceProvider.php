@@ -8,6 +8,7 @@ use App\Models\Marca;
 use App\Models\Mobiliario;
 use App\Models\Presupuesto;
 use App\Models\User;
+use App\Observers\PresupuestoObserver;
 use App\Policies\AgenciaPolicy;
 use App\Policies\InsumoPolicy;
 use App\Policies\MarcaPolicy;
@@ -43,6 +44,9 @@ class AppServiceProvider extends AuthServiceProvider
                 return true;
             }
         });
+
+        // Observers
+        Presupuesto::observe(PresupuestoObserver::class);
     }
 }
 

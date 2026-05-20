@@ -38,7 +38,7 @@
         .fecha-row .val { font-weight: bold; }
 
         /* ── TABLA DE ITEMS ───────────────────────────────────── */
-        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; border: 1px solid #9CA3AF; }
         .items-table thead tr { background: #1E3A8A; color: #FFFFFF; }
         .items-table thead th {
             padding: 7px 8px;
@@ -46,12 +46,12 @@
             font-size: 9px;
             text-transform: uppercase;
             letter-spacing: 0.4px;
+            border: 1px solid #4B6CB7;
         }
         .items-table thead th.center { text-align: center; }
         .items-table thead th.right  { text-align: right; }
-        .items-table tbody tr { border-bottom: 1px solid #E5E7EB; }
         .items-table tbody tr.even { background: #F9FAFB; }
-        .items-table tbody td { padding: 7px 8px; vertical-align: top; font-size: 10px; }
+        .items-table tbody td { padding: 7px 8px; vertical-align: top; font-size: 10px; border: 1px solid #D1D5DB; }
         .items-table tbody td.center { text-align: center; }
         .items-table tbody td.right  { text-align: right; }
 
