@@ -26,7 +26,11 @@ class InsumoResource extends Resource
         return $form->schema([
             Forms\Components\Section::make()->schema([
                 Forms\Components\TextInput::make('codigo')
-                    ->required()->maxLength(50)->unique(ignoreRecord: true),
+                    ->label('Código')
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->hiddenOn('create')
+                    ->placeholder('Se asigna automáticamente'),
                 Forms\Components\TextInput::make('nombre')
                     ->required()->maxLength(255),
                 Forms\Components\Select::make('unidad_medida_id')

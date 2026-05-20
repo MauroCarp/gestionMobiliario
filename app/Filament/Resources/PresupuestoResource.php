@@ -86,12 +86,6 @@ class PresupuestoResource extends Resource
                         ->required()
                         ->default(now())
                         ->columnSpan(1),
-
-                    Forms\Components\DatePicker::make('fecha_vencimiento')
-                        ->label('Fecha de Vencimiento')
-                        ->nullable()
-                        ->after('fecha_emision')
-                        ->columnSpan(1),
                 ])
                 ->columns(3),
 
@@ -231,12 +225,6 @@ class PresupuestoResource extends Resource
                     ->label('Emisión')
                     ->date('d/m/Y')
                     ->sortable(),
-
-                Tables\Columns\TextColumn::make('fecha_vencimiento')
-                    ->label('Vencimiento')
-                    ->date('d/m/Y')
-                    ->sortable()
-                    ->toggleable(),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([

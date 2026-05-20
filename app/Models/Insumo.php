@@ -31,6 +31,18 @@ class Insumo extends Model
         'activo'       => 'boolean',
     ];
 
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function (Insumo $insumo): void {
+            if (empty($insumo->codigo)) {
+                $next = (static::withTrashed()->max('id') ?? 0) + 1;
+                $insumo->codigo = 'INS-' . str_pad($next, 4, '0', STR_PAD_LEFT);
+            }
+        });
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()->logFillable()->logOnlyDirty()->dontSubmitEmptyLogs();

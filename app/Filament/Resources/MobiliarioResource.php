@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\MobiliarioResource\Pages;
 use App\Filament\Resources\MobiliarioResource\RelationManagers;
+use App\Models\Insumo;
 use App\Models\Mobiliario;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -62,6 +63,48 @@ class MobiliarioResource extends Resource
                     ])
                     ->columns(2)
                     ->addActionLabel('Agregar atributo'),
+            ]),
+
+            Forms\Components\Section::make('Composición técnica (Insumos)')->schema([
+                Forms\Components\Repeater::make('composicionTecnica')
+                    ->relationship()
+                    ->schema([
+                        Forms\Components\Select::make('insumo_id')
+                            ->label('Insumo')
+                            ->options(
+                                fn () => Insumo::where('activo', true)
+                                    ->orderBy('nombre')
+                                    ->get()
+                                    ->mapWithKeys(fn ($i) => [$i->id => $i->nombre])
+                            )
+                            ->searchable()
+                            ->required()
+                            ->live()
+                            ->columnSpan(2),
+
+                        Forms\Components\TextInput::make('cantidad')
+                            ->label('Cantidad')
+                            ->numeric()
+                            ->minValue(0)
+                            ->step(0.01)
+                            ->required()
+                            ->columnSpan(1),
+
+                        Forms\Components\Placeholder::make('unidad')
+                            ->label('Unidad de Medida')
+                            ->content(function (Forms\Get $get): string {
+                                $id = $get('insumo_id');
+                                if (! $id) return '—';
+                                return Insumo::with('unidadMedida')
+                                    ->find($id)?->unidadMedida?->nombre ?? '—';
+                            })
+                            ->columnSpan(1),
+                    ])
+                    ->columns(4)
+                    ->addActionLabel('Agregar insumo')
+                    ->defaultItems(0)
+                    ->reorderable()
+                    ->collapsible(),
             ]),
 
             Forms\Components\Section::make('Documentos técnicos')->schema([
