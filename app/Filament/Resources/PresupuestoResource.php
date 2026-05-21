@@ -337,7 +337,7 @@ class PresupuestoResource extends Resource
                         ->label('Exportar PDF')
                         ->icon('heroicon-o-document-text')
                         ->color('danger')
-                        ->url(fn (Presupuesto $record) => route('presupuesto.pdf', $record->id))
+                        ->url(fn (Presupuesto $record) => route('presupuesto.pdf.viewer', $record->id))
                         ->openUrlInNewTab(),
 
                     Tables\Actions\Action::make('excel')

@@ -5,23 +5,25 @@ namespace App\Http\Controllers;
 use App\Exports\PresupuestoExport;
 use App\Models\Presupuesto;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
 class PresupuestoPdfController extends Controller
 {
-    public function show(Request $request, Presupuesto $presupuesto)
+    public function show(Presupuesto $presupuesto)
     {
         $presupuesto->load([
-            'proyecto.agencia.marca',
+            'proyecto.marca',      // Proyecto ahora tiene marca_id directo
+            'agencia.marca',       // Presupuesto tiene agencia_id directo
             'responsable',
             'aprobadoPor',
             'items' => fn ($q) => $q->orderBy('orden')->with('mobiliario'),
         ]);
 
         $proyecto = $presupuesto->proyecto;
-        $agencia  = $proyecto?->agencia;
-        $marca    = $agencia?->marca;
+        // La agencia se elige por presupuesto; si no tiene una asignada se cae al proyecto
+        $agencia  = $presupuesto->agencia ?? $proyecto?->agencia;
+        // La marca viene del proyecto directamente; si no, del agencia
+        $marca    = $proyecto?->marca ?? $agencia?->marca;
 
         // Logo de la marca (se mantiene para uso secundario si fuera necesario)
         $logoBase64 = null;
@@ -75,16 +77,25 @@ class PresupuestoPdfController extends Controller
 
         $filename = "presupuesto-{$presupuesto->codigo}.pdf";
 
-        if ($request->boolean('print')) {
-            return $pdf->stream($filename);
-        }
-
         return $pdf->stream($filename);
+    }
+
+    /**
+     * Visor HTML que embebe el PDF para que se muestre inline en el navegador
+     * sin depender de la configuración "descargar PDFs" del navegador.
+     */
+    public function viewer(Presupuesto $presupuesto)
+    {
+        $codigo   = $presupuesto->codigo;
+        $pdfUrl   = route('presupuesto.pdf', $presupuesto);
+        $filename = "presupuesto-{$codigo}.pdf";
+
+        return view('pdf.viewer', compact('codigo', 'pdfUrl', 'filename'));
     }
 
     public function excel(Presupuesto $presupuesto)
     {
-        $presupuesto->load(['proyecto.agencia', 'responsable', 'items.mobiliario']);
+        $presupuesto->load(['proyecto.marca', 'agencia', 'responsable', 'items.mobiliario']);
         $filename = "presupuesto-{$presupuesto->codigo}.xlsx";
 
         return Excel::download(new PresupuestoExport($presupuesto), $filename);

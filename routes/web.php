@@ -11,6 +11,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/presupuesto/{presupuesto}/pdf', [PresupuestoPdfController::class, 'show'])
         ->name('presupuesto.pdf');
 
+    Route::get('/presupuesto/{presupuesto}/pdf/ver', [PresupuestoPdfController::class, 'viewer'])
+        ->name('presupuesto.pdf.viewer');
+
     Route::get('/presupuesto/{presupuesto}/excel', [PresupuestoPdfController::class, 'excel'])
         ->name('presupuesto.excel');
 });

@@ -20,7 +20,7 @@ class EditPresupuesto extends EditRecord
                 ->label('PDF')
                 ->icon('heroicon-o-document-text')
                 ->color('danger')
-                ->url(fn () => route('presupuesto.pdf', $this->record->id))
+                ->url(fn () => route('presupuesto.pdf.viewer', $this->record->id))
                 ->openUrlInNewTab(),
 
             Actions\Action::make('excel')
@@ -34,7 +34,7 @@ class EditPresupuesto extends EditRecord
                 ->label('Imprimir')
                 ->icon('heroicon-o-printer')
                 ->color('gray')
-                ->url(fn () => route('presupuesto.pdf', $this->record->id) . '?print=1')
+                ->url(fn () => route('presupuesto.pdf.viewer', $this->record->id))
                 ->openUrlInNewTab(),
 
             Actions\Action::make('enviarRevision')

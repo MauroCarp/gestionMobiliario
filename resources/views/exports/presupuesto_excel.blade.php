@@ -19,7 +19,7 @@
     </tr>
     <tr>
         <td style="font-weight: bold;">Agencia</td>
-        <td colspan="8">{{ $presupuesto->proyecto->agencia->nombre ?? '—' }}</td>
+        <td colspan="8">{{ ($presupuesto->agencia ?? $presupuesto->proyecto?->agencia)?->nombre ?? '—' }}</td>
     </tr>
     <tr>
         <td style="font-weight: bold;">Responsable</td>
