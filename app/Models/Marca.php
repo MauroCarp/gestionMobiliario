@@ -18,6 +18,7 @@ class Marca extends Model
     protected $fillable = [
         'nombre',
         'logo',
+        'manual_pdf',
         'colores',
         'activo',
     ];
@@ -38,5 +39,10 @@ class Marca extends Model
     public function agencias(): HasMany
     {
         return $this->hasMany(Agencia::class, 'marca_id');
+    }
+
+    public function proyectos(): HasMany
+    {
+        return $this->hasMany(Proyecto::class, 'marca_id');
     }
 }

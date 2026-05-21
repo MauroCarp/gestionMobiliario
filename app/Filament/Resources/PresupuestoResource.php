@@ -4,9 +4,13 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\PresupuestoResource\Pages;
 use App\Filament\Resources\PresupuestoResource\RelationManagers;
+use App\Models\Agencia;
 use App\Models\Presupuesto;
+use App\Models\Proyecto;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -59,17 +63,48 @@ class PresupuestoResource extends Resource
 
                     Forms\Components\Select::make('proyecto_id')
                         ->label('Proyecto')
-                        ->relationship(
-                            'proyecto',
-                            'codigo_interno',
-                            fn (Builder $query) => $query->with('agencia')->orderBy('codigo_interno')
-                        )
-                        ->getOptionLabelFromRecordUsing(
-                            fn ($record) => $record->codigo_interno . ' — ' . ($record->agencia->nombre ?? '—')
-                        )
+                        ->options(function () {
+                            return Proyecto::with('marca')
+                                ->orderBy('codigo_interno')
+                                ->get()
+                                ->mapWithKeys(fn ($p) => [
+                                    $p->id => $p->codigo_interno . ' — ' . ($p->marca->nombre ?? '—'),
+                                ]);
+                        })
                         ->searchable()
                         ->preload()
                         ->required()
+                        ->live()
+                        ->afterStateUpdated(function (Set $set) {
+                            $set('agencia_id', null);
+                        })
+                        ->columnSpan(2),
+
+                    Forms\Components\Select::make('agencia_id')
+                        ->label('Agencia')
+                        ->options(function (Get $get) {
+                            $proyectoId = $get('proyecto_id');
+                            if (!$proyectoId) {
+                                return Agencia::where('activo', true)
+                                    ->orderBy('nombre')
+                                    ->pluck('nombre', 'id');
+                            }
+                            $proyecto = Proyecto::find($proyectoId);
+                            if (!$proyecto?->marca_id) {
+                                return Agencia::where('activo', true)
+                                    ->orderBy('nombre')
+                                    ->pluck('nombre', 'id');
+                            }
+                            return Agencia::where('marca_id', $proyecto->marca_id)
+                                ->where('activo', true)
+                                ->orderBy('nombre')
+                                ->pluck('nombre', 'id');
+                        })
+                        ->searchable()
+                        ->required()
+                        ->helperText(fn (Get $get) => $get('proyecto_id')
+                            ? 'Mostrando agencias de la marca del proyecto seleccionado'
+                            : 'Seleccione un proyecto primero para filtrar agencias')
                         ->columnSpan(2),
 
                     Forms\Components\Select::make('responsable_id')
@@ -96,13 +131,27 @@ class PresupuestoResource extends Resource
                         ->schema([
                             Forms\Components\Select::make('mobiliario_id')
                                 ->label('Mobiliario')
-                                ->options(
-                                    fn () => \App\Models\Mobiliario::orderBy('nombre')
+                                ->options(function (Get $get) {
+                                    $proyectoId = $get('../../proyecto_id');
+                                    if ($proyectoId) {
+                                        $proyecto = Proyecto::find($proyectoId);
+                                        if ($proyecto) {
+                                            return $proyecto->mobiliarios()
+                                                ->where('estado', 'activo')
+                                                ->orderBy('nombre')
+                                                ->get()
+                                                ->mapWithKeys(fn ($m) => [
+                                                    $m->id => "[{$m->codigo_interno}] {$m->nombre}",
+                                                ]);
+                                        }
+                                    }
+                                    return \App\Models\Mobiliario::where('estado', 'activo')
+                                        ->orderBy('nombre')
                                         ->get()
                                         ->mapWithKeys(fn ($m) => [
                                             $m->id => "[{$m->codigo_interno}] {$m->nombre}",
-                                        ])
-                                )
+                                        ]);
+                                })
                                 ->searchable()
                                 ->required()
                                 ->columnSpan(2),
@@ -191,7 +240,14 @@ class PresupuestoResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('proyecto.agencia.nombre')
+                Tables\Columns\TextColumn::make('proyecto.marca.nombre')
+                    ->label('Marca')
+                    ->badge()
+                    ->color('primary')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('agencia.nombre')
                     ->label('Agencia')
                     ->searchable()
                     ->sortable()
@@ -235,9 +291,45 @@ class PresupuestoResource extends Resource
                     ->label('Proyecto')
                     ->relationship('proyecto', 'codigo_interno'),
 
+                Tables\Filters\SelectFilter::make('agencia_id')
+                    ->label('Agencia')
+                    ->relationship('agencia', 'nombre')
+                    ->searchable()
+                    ->preload(),
+
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
+                // ── Botones de estado visibles directamente en la fila ──────
+                Tables\Actions\Action::make('aprobar')
+                    ->label('Aprobar')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->button()
+                    ->visible(fn (Presupuesto $record): bool => $record->puedeAprobar())
+                    ->requiresConfirmation()
+                    ->modalHeading('Aprobar presupuesto')
+                    ->modalDescription('Se reservará el stock de insumos y se generará una orden de compra si hay faltantes.')
+                    ->action(function (Presupuesto $record): void {
+                        $record->cambiarEstado('confirmado');
+                        Notification::make()->success()->title('Presupuesto aprobado y confirmado. Stock reservado.')->send();
+                    }),
+
+                Tables\Actions\Action::make('marcarPagado')
+                    ->label('Marcar pagado')
+                    ->icon('heroicon-o-banknotes')
+                    ->color('warning')
+                    ->button()
+                    ->visible(fn (Presupuesto $record): bool => $record->estado === 'confirmado')
+                    ->requiresConfirmation()
+                    ->modalHeading('Registrar pago')
+                    ->modalDescription('El stock de insumos será descontado definitivamente.')
+                    ->action(function (Presupuesto $record): void {
+                        $record->cambiarEstado('pagado');
+                        Notification::make()->success()->title('Presupuesto pagado. Stock descontado.')->send();
+                    }),
+
+                // ── Resto de acciones en el menú desplegable ────────────────
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\EditAction::make(),
 
@@ -266,17 +358,6 @@ class PresupuestoResource extends Resource
                             Notification::make()->success()->title('Enviado a revisión')->send();
                         }),
 
-                    Tables\Actions\Action::make('aprobar')
-                        ->label('Aprobar')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->visible(fn (Presupuesto $record): bool => $record->puedeAprobar())
-                        ->requiresConfirmation()
-                        ->action(function (Presupuesto $record): void {
-                            $record->cambiarEstado('aprobado');
-                            Notification::make()->success()->title('Presupuesto aprobado')->send();
-                        }),
-
                     Tables\Actions\Action::make('rechazar')
                         ->label('Rechazar')
                         ->icon('heroicon-o-x-circle')
@@ -291,32 +372,6 @@ class PresupuestoResource extends Resource
                         ->action(function (Presupuesto $record, array $data): void {
                             $record->cambiarEstado('rechazado', $data['comentario']);
                             Notification::make()->warning()->title('Presupuesto rechazado')->send();
-                        }),
-
-                    Tables\Actions\Action::make('confirmar')
-                        ->label('Confirmar')
-                        ->icon('heroicon-o-hand-thumb-up')
-                        ->color('info')
-                        ->visible(fn (Presupuesto $record): bool => $record->estado === 'aprobado')
-                        ->requiresConfirmation()
-                        ->modalHeading('Confirmar presupuesto')
-                        ->modalDescription('Se reservará el stock de insumos y se generará una orden de compra si hay faltantes.')
-                        ->action(function (Presupuesto $record): void {
-                            $record->cambiarEstado('confirmado');
-                            Notification::make()->success()->title('Presupuesto confirmado. Stock reservado.')->send();
-                        }),
-
-                    Tables\Actions\Action::make('marcarPagado')
-                        ->label('Marcar pagado')
-                        ->icon('heroicon-o-banknotes')
-                        ->color('success')
-                        ->visible(fn (Presupuesto $record): bool => $record->estado === 'confirmado')
-                        ->requiresConfirmation()
-                        ->modalHeading('Registrar pago')
-                        ->modalDescription('El stock de insumos será descontado definitivamente.')
-                        ->action(function (Presupuesto $record): void {
-                            $record->cambiarEstado('pagado');
-                            Notification::make()->success()->title('Presupuesto pagado. Stock descontado.')->send();
                         }),
 
                     Tables\Actions\Action::make('cancelar')
@@ -335,7 +390,7 @@ class PresupuestoResource extends Resource
                         ->icon('heroicon-o-document-duplicate')
                         ->color('info')
                         ->visible(fn (Presupuesto $record): bool =>
-                            in_array($record->estado, ['aprobado', 'rechazado'])
+                            in_array($record->estado, ['confirmado', 'rechazado'])
                         )
                         ->form([
                             Forms\Components\Textarea::make('motivo')

@@ -27,6 +27,8 @@ class Proyecto extends Model
 
     protected $fillable = [
         'codigo_interno',
+        'marca_id',
+        'manual_pdf',
         'agencia_id',
         'estado',
         'fecha_inicio',
@@ -63,6 +65,11 @@ class Proyecto extends Model
                 ]);
             }
         });
+    }
+
+    public function marca(): BelongsTo
+    {
+        return $this->belongsTo(Marca::class, 'marca_id');
     }
 
     public function agencia(): BelongsTo

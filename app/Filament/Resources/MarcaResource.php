@@ -71,6 +71,9 @@ class MarcaResource extends Resource
                 Tables\Columns\TextColumn::make('agencias_count')
                     ->label('Agencias')
                     ->counts('agencias'),
+                Tables\Columns\TextColumn::make('proyectos_count')
+                    ->label('Proyectos')
+                    ->counts('proyectos'),
                 Tables\Columns\IconColumn::make('activo')
                     ->boolean()
                     ->label('Activa'),

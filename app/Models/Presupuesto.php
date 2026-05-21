@@ -36,6 +36,7 @@ class Presupuesto extends Model
     protected $fillable = [
         'codigo',
         'proyecto_id',
+        'agencia_id',
         'responsable_id',
         'estado',
         'version',
@@ -143,6 +144,11 @@ class Presupuesto extends Model
     public function proyecto(): BelongsTo
     {
         return $this->belongsTo(Proyecto::class);
+    }
+
+    public function agencia(): BelongsTo
+    {
+        return $this->belongsTo(Agencia::class, 'agencia_id');
     }
 
     public function responsable(): BelongsTo
