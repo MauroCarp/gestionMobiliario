@@ -163,18 +163,28 @@ class MobiliarioResource extends Resource
                     ->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('categoria.nombre')
                     ->label('Categoría')->badge()->color('primary'),
-                Tables\Columns\BadgeColumn::make('estado')
-                    ->formatStateUsing(fn ($state) => Mobiliario::ESTADOS[$state] ?? $state)
-                    ->color(fn ($state) => match ($state) {
-                        'activo'        => 'success',
-                        'inactivo'      => 'warning',
-                        'discontinuado' => 'danger',
-                        default         => 'gray',
-                    }),
-                Tables\Columns\TextColumn::make('version_actual')
-                    ->label('Versión')->badge()->color('info'),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime('d/m/Y')->sortable()->label('Modificado'),
+                Tables\Columns\TextColumn::make('atributos_resumen')
+                    ->label('Atributos')
+                    ->getStateUsing(fn ($record) =>
+                        $record->atributos->isNotEmpty()
+                            ? $record->atributos->map(fn ($a) => $a->clave . ': ' . $a->valor)->join('  ·  ')
+                            : '—'
+                    )
+                    ->wrap()
+                    ->searchable(false)
+                    ->sortable(false),
+                // Tables\Columns\BadgeColumn::make('estado')
+                //     ->formatStateUsing(fn ($state) => Mobiliario::ESTADOS[$state] ?? $state)
+                //     ->color(fn ($state) => match ($state) {
+                //         'activo'        => 'success',
+                //         'inactivo'      => 'warning',
+                //         'discontinuado' => 'danger',
+                //         default         => 'gray',
+                //     }),
+                // Tables\Columns\TextColumn::make('version_actual')
+                //     ->label('Versión')->badge()->color('info'),
+                // Tables\Columns\TextColumn::make('updated_at')
+                //     ->dateTime('d/m/Y')->sortable()->label('Modificado'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('categoria_id')
@@ -208,7 +218,8 @@ class MobiliarioResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->withoutGlobalScopes([SoftDeletingScope::class]);
+            ->withoutGlobalScopes([SoftDeletingScope::class])
+            ->with('atributos');
     }
 
     public static function getPages(): array
