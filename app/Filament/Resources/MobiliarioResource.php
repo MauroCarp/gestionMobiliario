@@ -4,8 +4,10 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\MobiliarioResource\Pages;
 use App\Filament\Resources\MobiliarioResource\RelationManagers;
+use App\Models\CategoriaMobiliario;
 use App\Models\Insumo;
 use App\Models\Mobiliario;
+use App\Models\UnidadMedida;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -34,7 +36,34 @@ class MobiliarioResource extends Resource
                 Forms\Components\Select::make('categoria_id')
                     ->label('Categoría')
                     ->relationship('categoria', 'nombre')
-                    ->searchable()->preload()->required(),
+                    ->searchable()->preload()->required()
+                    ->createOptionForm([
+                        Forms\Components\TextInput::make('nombre')
+                            ->label('Nombre')
+                            ->required()->maxLength(255),
+                        Forms\Components\Textarea::make('descripcion')
+                            ->label('Descripción')
+                            ->rows(2),
+                        Forms\Components\Toggle::make('activo')
+                            ->label('Activa')
+                            ->default(true),
+                    ])
+                    ->createOptionUsing(fn (array $data) => CategoriaMobiliario::create($data)->getKey())
+                    ->editOptionForm([
+                        Forms\Components\TextInput::make('nombre')
+                            ->label('Nombre')
+                            ->required()->maxLength(255),
+                        Forms\Components\Textarea::make('descripcion')
+                            ->label('Descripción')
+                            ->rows(2),
+                        Forms\Components\Toggle::make('activo')
+                            ->label('Activa'),
+                    ])
+                    ->getSelectedRecordUsing(fn ($state): ?CategoriaMobiliario => CategoriaMobiliario::find($state))
+                    ->fillEditOptionActionFormUsing(fn ($component): array => $component->getSelectedRecord()?->only('nombre', 'descripcion', 'activo') ?? [])
+                    ->updateOptionUsing(function (array $data, $form): void {
+                        $form->getRecord()?->update($data);
+                    }),
                 Forms\Components\Select::make('estado')
                     ->options(Mobiliario::ESTADOS)
                     ->default('activo')->required(),
@@ -102,16 +131,61 @@ class MobiliarioResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('insumo_id')
                             ->label('Insumo')
-                            ->options(
-                                fn () => Insumo::where('activo', true)
-                                    ->orderBy('nombre')
-                                    ->get()
-                                    ->mapWithKeys(fn ($i) => [$i->id => $i->nombre])
+                            ->relationship(
+                                'insumo',
+                                'nombre',
+                                fn ($query) => $query->where('activo', true)->orderBy('nombre'),
                             )
                             ->searchable()
+                            ->preload()
                             ->required()
                             ->live()
-                            ->columnSpan(2),
+                            ->columnSpan(2)
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('nombre')
+                                    ->label('Nombre')
+                                    ->required()->maxLength(255),
+                                Forms\Components\Select::make('unidad_medida_id')
+                                    ->label('Unidad de Medida')
+                                    ->options(fn () => UnidadMedida::orderBy('nombre')->pluck('nombre', 'id'))
+                                    ->searchable()
+                                    ->required(),
+                                Forms\Components\TextInput::make('precio_costo')
+                                    ->label('Precio de Costo')
+                                    ->numeric()->minValue(0)->step(0.01)->prefix('$'),
+                                Forms\Components\TextInput::make('stock_minimo')
+                                    ->label('Stock Mínimo')
+                                    ->numeric()->minValue(0)->step(0.01),
+                                Forms\Components\Toggle::make('activo')
+                                    ->label('Activo')
+                                    ->default(true),
+                            ])
+                            ->createOptionUsing(fn (array $data) => Insumo::create($data)->getKey())
+                            ->editOptionForm([
+                                Forms\Components\TextInput::make('nombre')
+                                    ->label('Nombre')
+                                    ->required()->maxLength(255),
+                                Forms\Components\Select::make('unidad_medida_id')
+                                    ->label('Unidad de Medida')
+                                    ->options(fn () => UnidadMedida::orderBy('nombre')->pluck('nombre', 'id'))
+                                    ->searchable()
+                                    ->required(),
+                                Forms\Components\TextInput::make('precio_costo')
+                                    ->label('Precio de Costo')
+                                    ->numeric()->minValue(0)->step(0.01)->prefix('$'),
+                                Forms\Components\TextInput::make('stock_minimo')
+                                    ->label('Stock Mínimo')
+                                    ->numeric()->minValue(0)->step(0.01),
+                                Forms\Components\Toggle::make('activo')
+                                    ->label('Activo'),
+                            ])
+                            ->getSelectedRecordUsing(fn ($state): ?Insumo => Insumo::find($state))
+                            ->fillEditOptionActionFormUsing(fn ($component): array =>
+                                $component->getSelectedRecord()?->only('nombre', 'unidad_medida_id', 'precio_costo', 'stock_minimo', 'activo') ?? []
+                            )
+                            ->updateOptionUsing(function (array $data, $form): void {
+                                $form->getRecord()?->update($data);
+                            }),
 
                         Forms\Components\TextInput::make('cantidad')
                             ->label('Cantidad')

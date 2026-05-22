@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\InsumoResource\Pages;
 use App\Models\Insumo;
+use App\Models\UnidadMedida;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -19,7 +20,9 @@ class InsumoResource extends Resource
     protected static ?string $navigationGroup = 'Mobiliario';
     protected static ?string $modelLabel = 'Insumo';
     protected static ?string $pluralModelLabel = 'Insumos';
-    protected static ?int $navigationSort = 4;
+    // protected static ?int $navigationSort = 4;
+    protected static bool $shouldRegisterNavigation = false;
+
 
     public static function form(Form $form): Form
     {
@@ -36,7 +39,36 @@ class InsumoResource extends Resource
                 Forms\Components\Select::make('unidad_medida_id')
                     ->label('Unidad de medida')
                     ->relationship('unidadMedida', 'nombre')
-                    ->searchable()->preload()->required(),
+                    ->searchable()->preload()->required()
+                    ->createOptionForm([
+                        Forms\Components\TextInput::make('nombre')
+                            ->label('Nombre')
+                            ->required()->maxLength(255),
+                        Forms\Components\TextInput::make('abreviatura')
+                            ->label('Abreviatura')
+                            ->required()->maxLength(20),
+                        Forms\Components\Toggle::make('activo')
+                            ->label('Activa')
+                            ->default(true),
+                    ])
+                    ->createOptionUsing(fn (array $data) => UnidadMedida::create($data)->getKey())
+                    ->editOptionForm([
+                        Forms\Components\TextInput::make('nombre')
+                            ->label('Nombre')
+                            ->required()->maxLength(255),
+                        Forms\Components\TextInput::make('abreviatura')
+                            ->label('Abreviatura')
+                            ->required()->maxLength(20),
+                        Forms\Components\Toggle::make('activo')
+                            ->label('Activa'),
+                    ])
+                    ->getSelectedRecordUsing(fn ($state): ?UnidadMedida => UnidadMedida::find($state))
+                    ->fillEditOptionActionFormUsing(fn ($component): array =>
+                        $component->getSelectedRecord()?->only('nombre', 'abreviatura', 'activo') ?? []
+                    )
+                    ->updateOptionUsing(function (array $data, $form): void {
+                        $form->getRecord()?->update($data);
+                    }),
                 Forms\Components\TextInput::make('stock_minimo')
                     ->label('Stock mínimo')
                     ->numeric()->minValue(0)->default(0),

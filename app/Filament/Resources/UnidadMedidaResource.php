@@ -17,7 +17,9 @@ class UnidadMedidaResource extends Resource
     protected static ?string $navigationGroup = 'Mobiliario';
     protected static ?string $modelLabel = 'Unidad de medida';
     protected static ?string $pluralModelLabel = 'Unidades de medida';
-    protected static ?int $navigationSort = 5;
+    // protected static ?int $navigationSort = 5;
+    protected static bool $shouldRegisterNavigation = false;
+
 
     public static function form(Form $form): Form
     {
