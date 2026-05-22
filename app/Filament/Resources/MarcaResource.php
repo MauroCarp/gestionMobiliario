@@ -20,6 +20,7 @@ class MarcaResource extends Resource
     protected static ?string $modelLabel = 'Marca';
     protected static ?string $pluralModelLabel = 'Marcas';
     protected static ?int $navigationSort = 1;
+    protected static bool $shouldRegisterNavigation = false;
 
     public static function form(Form $form): Form
     {
@@ -45,17 +46,6 @@ class MarcaResource extends Resource
                     ->imageResizeTargetWidth(400)
                     ->imageResizeTargetHeight(225)
                     ->helperText('Podés editar la imagen antes de guardar. Se ajustará sin recortar.')
-                    ->columnSpan(2),
-
-                Forms\Components\Repeater::make('colores')
-                    ->schema([
-                        Forms\Components\ColorPicker::make('color')
-                            ->required()
-                            ->label('Color'),
-                    ])
-                    ->label('Paleta de colores')
-                    ->addActionLabel('Agregar color')
-                    ->columns(1)
                     ->columnSpan(2),
 
                 Forms\Components\Toggle::make('activo')

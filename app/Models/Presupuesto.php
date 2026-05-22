@@ -35,7 +35,6 @@ class Presupuesto extends Model
 
     protected $fillable = [
         'codigo',
-        'proyecto_id',
         'agencia_id',
         'responsable_id',
         'estado',
@@ -141,9 +140,10 @@ class Presupuesto extends Model
 
     // ─── Relations ────────────────────────────────────────────────────────────
 
-    public function proyecto(): BelongsTo
+    /** El proyecto se obtiene a través de la agencia asignada. */
+    public function getProyectoAttribute(): ?Proyecto
     {
-        return $this->belongsTo(Proyecto::class);
+        return $this->agencia?->proyecto;
     }
 
     public function agencia(): BelongsTo

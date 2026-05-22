@@ -47,6 +47,25 @@ class ProyectoResource extends Resource
                         ->preload()
                         ->required()
                         ->live()
+                        ->createOptionForm([
+                            Forms\Components\TextInput::make('nombre')
+                                ->label('Nombre de la marca')
+                                ->required()
+                                ->maxLength(255),
+                            Forms\Components\FileUpload::make('logo')
+                                ->label('Logo')
+                                ->image()
+                                ->directory('marcas/logos')
+                                ->disk('public')
+                                ->imageResizeMode('cover')
+                                ->imageCropAspectRatio('16:9')
+                                ->imageResizeTargetWidth(400)
+                                ->imageResizeTargetHeight(225),
+                            Forms\Components\Toggle::make('activo')
+                                ->label('Activa')
+                                ->default(true),
+                        ])
+                        ->createOptionUsing(fn (array $data) => Marca::create($data)->getKey())
                         ->columnSpan(1),
 
                     Forms\Components\Textarea::make('observaciones')
@@ -167,6 +186,7 @@ class ProyectoResource extends Resource
     public static function getRelationManagers(): array
     {
         return [
+            RelationManagers\AgenciasRelationManager::class,
             RelationManagers\HistorialRelationManager::class,
         ];
     }

@@ -11,6 +11,9 @@ use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
+use App\Models\Marca;
+use App\Models\Presupuesto;
+use App\Models\Proyecto;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
@@ -22,8 +25,7 @@ class Agencia extends Model implements HasMedia
 
     protected $fillable = [
         'nombre',
-        'codigo_interno',
-        'marca_id',
+        'proyecto_id',
         'direccion',
         'responsable',
         'observaciones',
@@ -63,14 +65,20 @@ class Agencia extends Model implements HasMedia
             ->sharpen(10);
     }
 
-    public function marca(): BelongsTo
+    public function proyecto(): BelongsTo
     {
-        return $this->belongsTo(Marca::class, 'marca_id');
+        return $this->belongsTo(Proyecto::class, 'proyecto_id');
     }
 
-    public function proyectos(): HasMany
+    public function presupuestos(): HasMany
     {
-        return $this->hasMany(Proyecto::class, 'agencia_id');
+        return $this->hasMany(Presupuesto::class, 'agencia_id');
+    }
+
+    /** Marca heredada del proyecto al que pertenece la agencia. */
+    public function getMarcaAttribute(): ?Marca
+    {
+        return $this->proyecto?->marca;
     }
 
     public function getPrioridadLabelAttribute(): string

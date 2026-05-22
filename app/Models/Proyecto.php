@@ -29,7 +29,6 @@ class Proyecto extends Model
         'codigo_interno',
         'marca_id',
         'manual_pdf',
-        'agencia_id',
         'estado',
         'fecha_inicio',
         'fecha_entrega_estimada',
@@ -72,9 +71,9 @@ class Proyecto extends Model
         return $this->belongsTo(Marca::class, 'marca_id');
     }
 
-    public function agencia(): BelongsTo
+    public function agencias(): HasMany
     {
-        return $this->belongsTo(Agencia::class, 'agencia_id');
+        return $this->hasMany(Agencia::class, 'proyecto_id');
     }
 
     public function historial(): HasMany

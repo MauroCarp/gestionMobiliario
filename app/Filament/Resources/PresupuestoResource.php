@@ -6,11 +6,9 @@ use App\Filament\Resources\PresupuestoResource\Pages;
 use App\Filament\Resources\PresupuestoResource\RelationManagers;
 use App\Models\Agencia;
 use App\Models\Presupuesto;
-use App\Models\Proyecto;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
-use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -61,50 +59,24 @@ class PresupuestoResource extends Resource
                         ->visibleOn('edit')
                         ->columnSpan(1),
 
-                    Forms\Components\Select::make('proyecto_id')
-                        ->label('Proyecto')
+                    Forms\Components\Select::make('agencia_id')
+                        ->label('Agencia')
                         ->options(function () {
-                            return Proyecto::with('marca')
-                                ->orderBy('codigo_interno')
+                            return Agencia::with('proyecto.marca')
+                                ->where('activo', true)
+                                ->orderBy('nombre')
                                 ->get()
-                                ->mapWithKeys(fn ($p) => [
-                                    $p->id => $p->codigo_interno . ' — ' . ($p->marca->nombre ?? '—'),
+                                ->mapWithKeys(fn ($a) => [
+                                    $a->id => $a->nombre
+                                        . ' — ' . ($a->proyecto?->codigo_interno ?? '—')
+                                        . ' (' . ($a->proyecto?->marca?->nombre ?? '—') . ')',
                                 ]);
                         })
                         ->searchable()
                         ->preload()
                         ->required()
                         ->live()
-                        ->afterStateUpdated(function (Set $set) {
-                            $set('agencia_id', null);
-                        })
-                        ->columnSpan(2),
-
-                    Forms\Components\Select::make('agencia_id')
-                        ->label('Agencia')
-                        ->options(function (Get $get) {
-                            $proyectoId = $get('proyecto_id');
-                            if (!$proyectoId) {
-                                return Agencia::where('activo', true)
-                                    ->orderBy('nombre')
-                                    ->pluck('nombre', 'id');
-                            }
-                            $proyecto = Proyecto::find($proyectoId);
-                            if (!$proyecto?->marca_id) {
-                                return Agencia::where('activo', true)
-                                    ->orderBy('nombre')
-                                    ->pluck('nombre', 'id');
-                            }
-                            return Agencia::where('marca_id', $proyecto->marca_id)
-                                ->where('activo', true)
-                                ->orderBy('nombre')
-                                ->pluck('nombre', 'id');
-                        })
-                        ->searchable()
-                        ->required()
-                        ->helperText(fn (Get $get) => $get('proyecto_id')
-                            ? 'Mostrando agencias de la marca del proyecto seleccionado'
-                            : 'Seleccione un proyecto primero para filtrar agencias')
+                        ->helperText('La marca y el listado de mobiliarios se obtienen del proyecto asignado a la agencia.')
                         ->columnSpan(2),
 
                     Forms\Components\Select::make('responsable_id')
@@ -132,9 +104,10 @@ class PresupuestoResource extends Resource
                             Forms\Components\Select::make('mobiliario_id')
                                 ->label('Mobiliario')
                                 ->options(function (Get $get) {
-                                    $proyectoId = $get('../../proyecto_id');
-                                    if ($proyectoId) {
-                                        $proyecto = Proyecto::find($proyectoId);
+                                    $agenciaId = $get('../../agencia_id');
+                                    if ($agenciaId) {
+                                        $agencia = Agencia::find($agenciaId);
+                                        $proyecto = $agencia?->proyecto;
                                         if ($proyecto) {
                                             return $proyecto->mobiliarios()
                                                 ->where('estado', 'activo')
@@ -286,10 +259,6 @@ class PresupuestoResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('estado')
                     ->options(Presupuesto::ESTADOS),
-
-                Tables\Filters\SelectFilter::make('proyecto_id')
-                    ->label('Proyecto')
-                    ->relationship('proyecto', 'codigo_interno'),
 
                 Tables\Filters\SelectFilter::make('agencia_id')
                     ->label('Agencia')
