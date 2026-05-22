@@ -81,7 +81,24 @@ class ProyectoResource extends Resource
                                 ->imageResizeMode('cover')
                                 ->imageCropAspectRatio('16:9')
                                 ->imageResizeTargetWidth(400)
-                                ->imageResizeTargetHeight(225),
+                                ->imageResizeTargetHeight(225)
+                                ->getUploadedFileUsing(function ($component, string $file): ?array {
+                                    $storage = $component->getDisk();
+                                    if (!$storage->exists($file)) {
+                                        return null;
+                                    }
+                                    $mimeType = $storage->mimeType($file);
+                                    $content = $storage->get($file);
+                                    if ($content === false || $content === null) {
+                                        return null;
+                                    }
+                                    return [
+                                        'name' => basename($file),
+                                        'size' => $storage->size($file),
+                                        'type' => $mimeType,
+                                        'url'  => 'data:' . $mimeType . ';base64,' . base64_encode($content),
+                                    ];
+                                }),
                             Forms\Components\Toggle::make('activo')
                                 ->label('Activa')
                                 ->default(true),

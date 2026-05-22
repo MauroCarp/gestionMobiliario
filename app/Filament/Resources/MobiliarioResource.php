@@ -56,7 +56,31 @@ class MobiliarioResource extends Resource
                         '1:1',
                         '16:9',
                     ])
-                    ->helperText('Podés editar/recortar la imagen antes de guardar. Solo se permite una imagen.'),
+                    ->helperText('Podés editar/recortar la imagen antes de guardar. Solo se permite una imagen.')
+                    ->getUploadedFileUsing(function ($component, string $file): ?array {
+                        if (!$component->getRecord()) {
+                            return null;
+                        }
+                        $media = $component->getRecord()->getRelationValue('media')->firstWhere('uuid', $file);
+                        if (!$media) {
+                            return null;
+                        }
+                        $mimeType = $media->getAttributeValue('mime_type');
+                        $filePath = $media->getPath();
+                        if (!file_exists($filePath)) {
+                            return null;
+                        }
+                        $content = file_get_contents($filePath);
+                        if ($content === false) {
+                            return null;
+                        }
+                        return [
+                            'name' => $media->getAttributeValue('name') ?? $media->getAttributeValue('file_name'),
+                            'size' => $media->getAttributeValue('size'),
+                            'type' => $mimeType,
+                            'url'  => 'data:' . $mimeType . ';base64,' . base64_encode($content),
+                        ];
+                    }),
             ]),
 
             Forms\Components\Section::make('Atributos configurables')->schema([
