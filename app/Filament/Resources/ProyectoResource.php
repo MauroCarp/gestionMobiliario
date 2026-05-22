@@ -167,6 +167,7 @@ class ProyectoResource extends Resource
     public static function getRelationManagers(): array
     {
         return [
+            RelationManagers\AgenciasRelationManager::class,
             RelationManagers\HistorialRelationManager::class,
         ];
     }

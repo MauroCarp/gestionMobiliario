@@ -12,18 +12,16 @@ class PresupuestoPdfController extends Controller
     public function show(Presupuesto $presupuesto)
     {
         $presupuesto->load([
-            'proyecto.marca',      // Proyecto ahora tiene marca_id directo
-            'agencia.marca',       // Presupuesto tiene agencia_id directo
+            'agencia.proyecto.marca',
             'responsable',
             'aprobadoPor',
             'items' => fn ($q) => $q->orderBy('orden')->with('mobiliario'),
         ]);
 
-        $proyecto = $presupuesto->proyecto;
-        // La agencia se elige por presupuesto; si no tiene una asignada se cae al proyecto
-        $agencia  = $presupuesto->agencia ?? $proyecto?->agencia;
-        // La marca viene del proyecto directamente; si no, del agencia
-        $marca    = $proyecto?->marca ?? $agencia?->marca;
+        // El proyecto y la marca se obtienen a través de la agencia
+        $agencia  = $presupuesto->agencia;
+        $proyecto = $agencia?->proyecto;
+        $marca    = $proyecto?->marca;
 
         // Logo de la marca (se mantiene para uso secundario si fuera necesario)
         $logoBase64 = null;

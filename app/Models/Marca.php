@@ -36,13 +36,14 @@ class Marca extends Model
             ->dontSubmitEmptyLogs();
     }
 
-    public function agencias(): HasMany
-    {
-        return $this->hasMany(Agencia::class, 'marca_id');
-    }
-
     public function proyectos(): HasMany
     {
         return $this->hasMany(Proyecto::class, 'marca_id');
+    }
+
+    /** Agencias alcanzables a través de los proyectos de esta marca. */
+    public function agencias(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    {
+        return $this->hasManyThrough(Agencia::class, Proyecto::class, 'marca_id', 'proyecto_id');
     }
 }
