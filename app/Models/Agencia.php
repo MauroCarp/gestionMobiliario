@@ -24,7 +24,6 @@ class Agencia extends Model implements HasMedia
 
     protected $fillable = [
         'nombre',
-        'codigo_interno',
         'proyecto_id',
         'direccion',
         'responsable',

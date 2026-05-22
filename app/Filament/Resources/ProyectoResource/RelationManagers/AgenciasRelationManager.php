@@ -18,12 +18,8 @@ class AgenciasRelationManager extends RelationManager
         return $form->schema([
             Forms\Components\TextInput::make('nombre')
                 ->required()
-                ->maxLength(255),
-            Forms\Components\TextInput::make('codigo_interno')
-                ->label('Código interno')
-                ->required()
-                ->maxLength(50)
-                ->unique(ignoreRecord: true),
+                ->maxLength(255)
+                ->columnSpanFull(),
             Forms\Components\Select::make('prioridad')
                 ->options([1 => 'Alta', 2 => 'Media', 3 => 'Baja'])
                 ->default(3)
@@ -51,11 +47,6 @@ class AgenciasRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('nombre')
             ->columns([
-                Tables\Columns\TextColumn::make('codigo_interno')
-                    ->label('Código')
-                    ->badge()
-                    ->sortable()
-                    ->searchable(),
                 Tables\Columns\TextColumn::make('nombre')
                     ->sortable()
                     ->searchable(),

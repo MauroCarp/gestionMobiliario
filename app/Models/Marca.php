@@ -19,12 +19,10 @@ class Marca extends Model
         'nombre',
         'logo',
         'manual_pdf',
-        'colores',
         'activo',
     ];
 
     protected $casts = [
-        'colores' => 'array',
         'activo' => 'boolean',
     ];
 

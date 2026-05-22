@@ -27,9 +27,7 @@ class AgenciaResource extends Resource
         return $form->schema([
             Forms\Components\Section::make('Datos principales')->schema([
                 Forms\Components\TextInput::make('nombre')
-                    ->required()->maxLength(255),
-                Forms\Components\TextInput::make('codigo_interno')
-                    ->required()->maxLength(50)->unique(ignoreRecord: true),
+                    ->required()->maxLength(255)->columnSpanFull(),
                 Forms\Components\Select::make('proyecto_id')
                     ->label('Proyecto')
                     ->options(fn () => Proyecto::with('marca')
@@ -80,8 +78,6 @@ class AgenciaResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('codigo_interno')
-                    ->searchable()->sortable()->badge(),
                 Tables\Columns\TextColumn::make('nombre')
                     ->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('proyecto.codigo_interno')
