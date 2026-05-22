@@ -14,7 +14,9 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 
 class ProyectoResource extends Resource
 {
@@ -66,6 +68,31 @@ class ProyectoResource extends Resource
                                 ->default(true),
                         ])
                         ->createOptionUsing(fn (array $data) => Marca::create($data)->getKey())
+                        ->editOptionForm([
+                            Forms\Components\TextInput::make('nombre')
+                                ->label('Nombre de la marca')
+                                ->required()
+                                ->maxLength(255),
+                            Forms\Components\FileUpload::make('logo')
+                                ->label('Logo')
+                                ->image()
+                                ->directory('marcas/logos')
+                                ->disk('public')
+                                ->imageResizeMode('cover')
+                                ->imageCropAspectRatio('16:9')
+                                ->imageResizeTargetWidth(400)
+                                ->imageResizeTargetHeight(225),
+                            Forms\Components\Toggle::make('activo')
+                                ->label('Activa')
+                                ->default(true),
+                        ])
+                        ->getSelectedRecordUsing(fn ($state): ?Marca => Marca::find($state))
+                        ->fillEditOptionActionFormUsing(fn ($component): array =>
+                            $component->getSelectedRecord()?->attributesToArray() ?? []
+                        )
+                        ->updateOptionUsing(function (array $data, $form): void {
+                            $form->getRecord()?->update($data);
+                        })
                         ->columnSpan(1),
 
                     Forms\Components\Textarea::make('observaciones')
@@ -96,11 +123,16 @@ class ProyectoResource extends Resource
                         ->columnSpan(1),
 
                     Forms\Components\FileUpload::make('manual_pdf')
-                        ->label('Manual de marca del proyecto (PDF)')
-                        ->helperText('Puede variar según el proyecto aunque sea la misma marca')
+                        ->label('Manuales de marca (PDF)')
+                        ->helperText('Puede subir varios archivos. Pueden variar según el proyecto aunque sea la misma marca.')
                         ->directory('proyectos/manuales')
                         ->disk('public')
-                        ->acceptedFileTypes(['application/pdf'])
+                        ->multiple()
+                        ->reorderable()
+                        ->getUploadedFileNameForStorageUsing(
+                            fn ($file): string => Str::uuid() . '_' . $file->getClientOriginalName()
+                        )
+                        ->rules(['mimes:pdf', 'max:30720'])
                         ->downloadable()
                         ->openable()
                         ->columnSpan(1),
@@ -146,20 +178,21 @@ class ProyectoResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ImageColumn::make('marca.logo')
+                    ->label('Logo')
+                    ->disk('public')
+                    ->height(56)
+                    ->extraImgAttributes(['style' => 'width: auto; max-width: 140px; object-fit: contain;'])
+                    ->defaultImageUrl(fn () => 'https://ui-avatars.com/api/?name=M&background=e5e7eb&color=6b7280&size=64'),
                 Tables\Columns\TextColumn::make('codigo_interno')
-                    ->searchable()->sortable()->badge(),
+                    ->label('Código interno')
+                    ->searchable()
+                    ->sortable()
+                    ->badge(),
                 Tables\Columns\TextColumn::make('marca.nombre')
                     ->label('Marca')
-                    ->badge()
-                    ->color('primary')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('mobiliarios_count')
-                    ->label('Mobiliarios')
-                    ->counts('mobiliarios')
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime('d/m/Y H:i')->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
@@ -171,6 +204,34 @@ class ProyectoResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
+                Tables\Actions\Action::make('ver_manuales')
+                    ->label('Ver manuales')
+                    ->icon('heroicon-o-document-text')
+                    ->color('info')
+                    ->visible(fn (Proyecto $record): bool => !empty($record->manual_pdf))
+                    ->modalHeading(fn (Proyecto $record): string => 'Manuales — ' . ($record->marca?->nombre ?? $record->codigo_interno))
+                    ->modalContent(fn (Proyecto $record): HtmlString => new HtmlString(
+                        '<div class="space-y-2 py-2">' .
+                        collect((array) $record->manual_pdf)
+                            ->map(function (string $file): string {
+                                $base = basename($file);
+                                // El archivo se guarda como "{uuid}_{nombre_original}"
+                                // UUID = 36 chars + 1 guión bajo = saltar 37 chars
+                                $displayName = strlen($base) > 37 ? substr($base, 37) : $base;
+                                return '<a href="' . e(Storage::disk('public')->url($file)) . '" '
+                                    . 'target="_blank" rel="noopener noreferrer" '
+                                    . 'class="flex items-center gap-2 p-3 rounded-lg border border-gray-200 '
+                                    . 'hover:bg-gray-50 text-sm font-medium text-blue-600 hover:text-blue-800">'
+                                    . '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>'
+                                    . '<span>' . e($displayName) . '</span>'
+                                    . '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-auto shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>'
+                                    . '</a>';
+                            })
+                            ->implode('')
+                        . '</div>'
+                    ))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar'),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
                 Tables\Actions\RestoreAction::make(),

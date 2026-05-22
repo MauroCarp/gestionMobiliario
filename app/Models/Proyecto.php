@@ -42,6 +42,7 @@ class Proyecto extends Model
         'fecha_entrega_estimada'   => 'date',
         'fecha_entrega_real'       => 'date',
         'timeline'                 => 'array',
+        'manual_pdf'               => 'array',
     ];
 
     public function getActivitylogOptions(): LogOptions
