@@ -34,19 +34,22 @@ class OrdenCompraResource extends Resource
 
                 Forms\Components\Select::make('estado')
                     ->options(OrdenCompra::ESTADOS)
-                    ->default('sugerida')
-                    ->required(),
+                    ->default('pendiente')
+                    ->required()
+                    ->hiddenOn('create'),
 
                 Forms\Components\Select::make('prioridad')
                     ->options(OrdenCompra::PRIORIDADES)
                     ->default('media')
-                    ->required(),
+                    ->required()
+                    ->hiddenOn('create'),
 
                 Forms\Components\Select::make('presupuesto_id')
                     ->label('Presupuesto')
                     ->relationship('presupuesto', 'codigo')
                     ->searchable()
-                    ->nullable(),
+                    ->nullable()
+                    ->hiddenOn('create'),
 
                 Forms\Components\Textarea::make('observaciones')
                     ->rows(2)
