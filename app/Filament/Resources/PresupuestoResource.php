@@ -208,10 +208,11 @@ class PresupuestoResource extends Resource
                     ->badge()
                     ->color('primary'),
 
-                Tables\Columns\TextColumn::make('proyecto.codigo_interno')
-                    ->label('Proyecto')
-                    ->searchable()
-                    ->sortable(),
+                Tables\Columns\ImageColumn::make('proyecto.marca.logo')
+                    ->label('Logo')
+                    ->disk('public')
+                    ->square()
+                    ->extraImgAttributes(['style' => 'object-fit:contain; background:#f3f4f6;']),
 
                 Tables\Columns\TextColumn::make('proyecto.marca.nombre')
                     ->label('Marca')
@@ -236,12 +237,6 @@ class PresupuestoResource extends Resource
                     ->badge()
                     ->color(fn (string $state): string => Presupuesto::ESTADO_COLORS[$state] ?? 'gray')
                     ->formatStateUsing(fn (string $state): string => Presupuesto::ESTADOS[$state] ?? $state)
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('version')
-                    ->label('Ver.')
-                    ->badge()
-                    ->color('info')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('items_count')
