@@ -47,9 +47,16 @@ class MobiliarioResource extends Resource
             Forms\Components\Section::make('Imagen principal')->schema([
                 Forms\Components\SpatieMediaLibraryFileUpload::make('imagenes')
                     ->collection('imagenes')
-                    ->multiple()
                     ->image()
-                    ->helperText('Solo se permite una imagen. Subir una nueva reemplaza la anterior.'),
+                    ->imageEditor()
+                    ->imageEditorAspectRatios([
+                        null,    // libre
+                        '4:3',
+                        '3:4',
+                        '1:1',
+                        '16:9',
+                    ])
+                    ->helperText('Podés editar/recortar la imagen antes de guardar. Solo se permite una imagen.'),
             ]),
 
             Forms\Components\Section::make('Atributos configurables')->schema([
@@ -124,7 +131,8 @@ class MobiliarioResource extends Resource
                 Tables\Columns\SpatieMediaLibraryImageColumn::make('imagenes')
                     ->collection('imagenes')
                     ->conversion('thumb')
-                    ->circular(),
+                    ->square()
+                    ->extraImgAttributes(['style' => 'object-fit:contain; background:#f3f4f6;']),
                 Tables\Columns\TextColumn::make('codigo_interno')
                     ->searchable()->sortable()->badge(),
                 Tables\Columns\TextColumn::make('nombre')

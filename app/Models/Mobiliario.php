@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -59,11 +60,15 @@ class Mobiliario extends Model implements HasMedia
 
     public function registerMediaConversions(?Media $media = null): void
     {
+        // Fit::Contain redimensiona respetando el aspecto sin recortar.
+        // Si la imagen no es cuadrada aparecerán márgenes blancos en lugar de cortar.
         $this->addMediaConversion('thumb')
-            ->width(300)->height(300)->sharpen(10);
+            ->fit(Fit::Contain, 300, 300)
+            ->sharpen(10);
 
+        // Fit::Max escala hacia abajo para caber en 800×600 sin recortar ni agrandar.
         $this->addMediaConversion('medium')
-            ->width(800)->height(600);
+            ->fit(Fit::Max, 800, 600);
     }
 
     public function categoria(): BelongsTo

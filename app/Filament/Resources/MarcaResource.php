@@ -34,10 +34,17 @@ class MarcaResource extends Resource
                     ->image()
                     ->directory('marcas/logos')
                     ->disk('public')
-                    ->imageResizeMode('cover')
-                    ->imageCropAspectRatio('16:9')
+                    ->imageEditor()
+                    ->imageEditorAspectRatios([
+                        null,
+                        '16:9',
+                        '4:3',
+                        '1:1',
+                    ])
+                    ->imageResizeMode('contain')
                     ->imageResizeTargetWidth(400)
                     ->imageResizeTargetHeight(225)
+                    ->helperText('Podés editar la imagen antes de guardar. Se ajustará sin recortar.')
                     ->columnSpan(2),
 
                 Forms\Components\Repeater::make('colores')
