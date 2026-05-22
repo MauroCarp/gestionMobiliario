@@ -9,10 +9,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class Insumo extends Model
+class Insumo extends Model implements HasMedia
 {
-    use HasFactory, SoftDeletes, LogsActivity;
+    use HasFactory, SoftDeletes, LogsActivity, InteractsWithMedia;
 
     protected $table = 'insumos';
 
@@ -24,11 +27,13 @@ class Insumo extends Model
         'stock_actual',
         'precio_costo',
         'ubicacion',
+        'tag',
         'observaciones',
         'activo',
     ];
 
     protected $casts = [
+        'tag'          => 'array',
         'stock_minimo' => 'float',
         'stock_actual' => 'float',
         'precio_costo' => 'float',
@@ -45,6 +50,17 @@ class Insumo extends Model
                 $insumo->codigo = 'INS-' . str_pad($next, 4, '0', STR_PAD_LEFT);
             }
         });
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('imagen')->singleFile();
+        $this->addMediaCollection('plano')->singleFile();
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')->width(200)->height(200)->nonQueued();
     }
 
     public function getActivitylogOptions(): LogOptions
