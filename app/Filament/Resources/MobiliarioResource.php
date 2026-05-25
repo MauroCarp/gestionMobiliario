@@ -6,6 +6,7 @@ use App\Filament\Resources\MobiliarioResource\Pages;
 use App\Filament\Resources\MobiliarioResource\RelationManagers;
 use App\Models\CategoriaMobiliario;
 use App\Models\Insumo;
+use App\Models\Marca;
 use App\Models\Mobiliario;
 use App\Models\UnidadMedida;
 use Filament\Forms;
@@ -64,13 +65,19 @@ class MobiliarioResource extends Resource
                     ->updateOptionUsing(function (array $data, $form): void {
                         $form->getRecord()?->update($data);
                     }),
-                Forms\Components\Select::make('estado')
-                    ->options(Mobiliario::ESTADOS)
-                    ->default('activo')->required(),
+                Forms\Components\Select::make('marca_id')
+                    ->label('Marca')
+                    ->options(fn () => Marca::where('activo', true)->orderBy('nombre')->pluck('nombre', 'id'))
+                    ->searchable()
+                    ->preload()
+                    ->nullable()
+                    ->placeholder('Sin marca específica'),
                 Forms\Components\Textarea::make('descripcion')
-                    ->rows(3)->columnSpanFull(),
+                    ->label('Descripción')
+                    ->rows(3),
                 Forms\Components\Textarea::make('observaciones')
-                    ->rows(3)->columnSpanFull(),
+                    ->label('Descripción')
+                    ->rows(3),
             ])->columns(2),
 
             Forms\Components\Section::make('Imagen principal')->schema([
@@ -237,6 +244,11 @@ class MobiliarioResource extends Resource
                     ->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('categoria.nombre')
                     ->label('Categoría')->badge()->color('primary'),
+                Tables\Columns\TextColumn::make('marca.nombre')
+                    ->label('Marca')
+                    ->badge()
+                    ->color('gray')
+                    ->placeholder('—'),
                 Tables\Columns\TextColumn::make('atributos_resumen')
                     ->label('Atributos')
                     ->getStateUsing(fn ($record) =>
@@ -264,6 +276,11 @@ class MobiliarioResource extends Resource
                 Tables\Filters\SelectFilter::make('categoria_id')
                     ->label('Categoría')
                     ->relationship('categoria', 'nombre'),
+                Tables\Filters\SelectFilter::make('marca_id')
+                    ->label('Marca')
+                    ->relationship('marca', 'nombre')
+                    ->searchable()
+                    ->preload(),
                 Tables\Filters\SelectFilter::make('estado')
                     ->options(Mobiliario::ESTADOS),
                 Tables\Filters\TrashedFilter::make(),

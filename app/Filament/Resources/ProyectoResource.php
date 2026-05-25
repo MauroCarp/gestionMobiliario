@@ -150,12 +150,21 @@ class ProyectoResource extends Resource
                         ->schema([
                             Forms\Components\Select::make('mobiliario_id')
                                 ->label('Mobiliario')
-                                ->relationship('mobiliario', 'nombre')
-                                ->getOptionLabelFromRecordUsing(
-                                    fn ($record) => "[{$record->codigo_interno}] {$record->nombre}"
-                                )
+                                ->options(function (Forms\Get $get) {
+                                    $marcaId = $get('../../marca_id');
+                                    $query = \App\Models\Mobiliario::query()->orderBy('nombre');
+                                    if ($marcaId) {
+                                        $query->where('marca_id', $marcaId);
+                                    }
+                                    return $query->get()->mapWithKeys(
+                                        fn ($m) => [$m->id => "[{$m->codigo_interno}] {$m->nombre}"]
+                                    );
+                                })
+                                ->getOptionLabelUsing(function ($value): ?string {
+                                    $m = \App\Models\Mobiliario::find($value);
+                                    return $m ? "[{$m->codigo_interno}] {$m->nombre}" : null;
+                                })
                                 ->searchable()
-                                ->preload()
                                 ->required()
                                 ->columnSpanFull(),
                         ])

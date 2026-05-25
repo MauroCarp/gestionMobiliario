@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Models\Marca;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Image\Enums\Fit;
@@ -31,6 +32,7 @@ class Mobiliario extends Model implements HasMedia
         'codigo_interno',
         'nombre',
         'categoria_id',
+        'marca_id',
         'imagen',
         'descripcion',
         'observaciones',
@@ -74,6 +76,11 @@ class Mobiliario extends Model implements HasMedia
     public function categoria(): BelongsTo
     {
         return $this->belongsTo(CategoriaMobiliario::class, 'categoria_id');
+    }
+
+    public function marca(): BelongsTo
+    {
+        return $this->belongsTo(Marca::class, 'marca_id');
     }
 
     public function atributos(): HasMany
