@@ -10,9 +10,13 @@ return new class extends Migration
     {
         Schema::table('proyectos', function (Blueprint $table) {
             // Direct brand reference on the project
-            $table->unsignedBigInteger('marca_id')->nullable()->after('codigo_interno');
+            if (! Schema::hasColumn('proyectos', 'marca_id')) {
+                $table->unsignedBigInteger('marca_id')->nullable()->after('codigo_interno');
+            }
             // Make agencia_id optional — agencia is now chosen at presupuesto level
-            $table->unsignedBigInteger('agencia_id')->nullable()->change();
+            if (Schema::hasColumn('proyectos', 'agencia_id')) {
+                $table->unsignedBigInteger('agencia_id')->nullable()->change();
+            }
         });
     }
 

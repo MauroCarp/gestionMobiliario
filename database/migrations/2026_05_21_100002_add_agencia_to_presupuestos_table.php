@@ -10,7 +10,10 @@ return new class extends Migration
     {
         Schema::table('presupuestos', function (Blueprint $table) {
             // Agencia is now chosen per-presupuesto, filtered by the project's brand
-            $table->unsignedBigInteger('agencia_id')->nullable()->after('proyecto_id');
+            if (! Schema::hasColumn('presupuestos', 'agencia_id')) {
+                $after = Schema::hasColumn('presupuestos', 'proyecto_id') ? 'proyecto_id' : 'codigo';
+                $table->unsignedBigInteger('agencia_id')->nullable()->after($after);
+            }
         });
     }
 
