@@ -14,6 +14,7 @@ class AdminUserSeeder extends Seeder
             ['email' => 'admin@gestionmobiliario.com'],
             [
                 'name'     => 'Administrador',
+                'username' => 'admin',
                 'password' => Hash::make('Admin1234!'),
                 'activo'   => true,
             ]
@@ -24,6 +25,7 @@ class AdminUserSeeder extends Seeder
             ['email' => 'ventas@gestionmobiliario.com'],
             [
                 'name'     => 'Usuario Ventas',
+                'username' => 'ventas',
                 'password' => Hash::make('Ventas1234!'),
                 'activo'   => true,
             ]
@@ -34,6 +36,7 @@ class AdminUserSeeder extends Seeder
             ['email' => 'produccion@gestionmobiliario.com'],
             [
                 'name'     => 'Usuario Producción',
+                'username' => 'produccion',
                 'password' => Hash::make('Prod1234!'),
                 'activo'   => true,
             ]

@@ -27,6 +27,13 @@ class UserResource extends Resource
             Forms\Components\Section::make('Datos del usuario')->schema([
                 Forms\Components\TextInput::make('name')
                     ->label('Nombre')->required()->maxLength(255),
+                Forms\Components\TextInput::make('username')
+                    ->label('Usuario (login)')
+                    ->required()
+                    ->maxLength(255)
+                    ->unique(ignoreRecord: true)
+                    ->regex('/^\S+$/')
+                    ->helperText('Sin espacios. Ej: juan.perez'),
                 Forms\Components\TextInput::make('email')
                     ->email()->required()->maxLength(255)->unique(ignoreRecord: true),
                 Forms\Components\TextInput::make('password')
@@ -55,6 +62,8 @@ class UserResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nombre')->searchable()->sortable(),
+                Tables\Columns\TextColumn::make('username')
+                    ->label('Usuario')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('email')
                     ->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('roles.name')
