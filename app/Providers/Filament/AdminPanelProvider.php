@@ -4,8 +4,8 @@ namespace App\Providers\Filament;
 
 use App\Filament\Widgets\AnalisisGlobalWidget;
 use App\Filament\Widgets\InsumosUrgentesWidget;
-use App\Filament\Widgets\OrdenesCompraWidget;
-use App\Filament\Widgets\ProyectosActivosWidget;
+// use App\Filament\Widgets\OrdenesCompraWidget;
+// use App\Filament\Widgets\ProyectosActivosWidget;
 use App\Filament\Widgets\PresupuestosRecientesWidget;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -49,8 +49,8 @@ class AdminPanelProvider extends PanelProvider
                 // Widgets\AccountWidget::class,
                 AnalisisGlobalWidget::class,
                 InsumosUrgentesWidget::class,
-                OrdenesCompraWidget::class,
-                ProyectosActivosWidget::class,
+                // OrdenesCompraWidget::class,
+                // ProyectosActivosWidget::class,
                 PresupuestosRecientesWidget::class,
             ])
             ->navigationGroups([

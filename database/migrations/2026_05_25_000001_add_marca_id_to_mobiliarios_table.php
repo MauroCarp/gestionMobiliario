@@ -9,11 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('mobiliarios', function (Blueprint $table) {
-            $table->foreignId('marca_id')
-                ->nullable()
-                ->after('categoria_id')
-                ->constrained('marcas')
-                ->nullOnDelete();
+            if (! Schema::hasColumn('mobiliarios', 'marca_id')) {
+                $table->foreignId('marca_id')
+                    ->nullable()
+                    ->after('categoria_id')
+                    ->constrained('marcas')
+                    ->nullOnDelete();
+            }
         });
     }
 

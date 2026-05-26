@@ -9,8 +9,9 @@ use Filament\Widgets\TableWidget as BaseWidget;
 
 class OrdenesCompraWidget extends BaseWidget
 {
-    protected static ?int  $sort     = 3;
-    protected static ?string $heading = 'Órdenes de compra pendientes';
+    protected static bool    $isDiscovered = false;
+    protected static ?int    $sort         = 3;
+    protected static ?string $heading      = 'Órdenes de compra pendientes';
     protected int | string | array $columnSpan = 'full';
 
     public function table(Table $table): Table

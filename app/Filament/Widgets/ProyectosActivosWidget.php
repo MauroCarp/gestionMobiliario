@@ -10,8 +10,9 @@ use Filament\Widgets\TableWidget as BaseWidget;
 
 class ProyectosActivosWidget extends BaseWidget
 {
-    protected static ?int    $sort    = 4;
-    protected static ?string $heading = 'Proyectos activos';
+    protected static bool    $isDiscovered = false;
+    protected static ?int    $sort         = 4;
+    protected static ?string $heading      = 'Proyectos activos';
     protected int | string | array $columnSpan = 'full';
 
     public function table(Table $table): Table
