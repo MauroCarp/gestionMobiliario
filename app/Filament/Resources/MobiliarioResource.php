@@ -67,11 +67,71 @@ class MobiliarioResource extends Resource
                     }),
                 Forms\Components\Select::make('marca_id')
                     ->label('Marca')
-                    ->options(fn () => Marca::where('activo', true)->orderBy('nombre')->pluck('nombre', 'id'))
+                    ->relationship('marca', 'nombre', fn (\Illuminate\Database\Eloquent\Builder $query) => $query->where('activo', true)->orderBy('nombre'))
                     ->searchable()
                     ->preload()
                     ->nullable()
-                    ->placeholder('Sin marca específica'),
+                    ->placeholder('Sin marca específica')
+                    ->createOptionForm([
+                        Forms\Components\TextInput::make('nombre')
+                            ->required()->maxLength(255),
+                        Forms\Components\FileUpload::make('logo')
+                            ->label('Logo')
+                            ->image()
+                            ->directory('marcas/logos')
+                            ->disk('public')
+                            ->imageEditor()
+                            ->imageEditorAspectRatios([null, '16:9', '4:3', '1:1'])
+                            ->imageResizeMode('contain')
+                            ->imageResizeTargetWidth(400)
+                            ->imageResizeTargetHeight(225)
+                            ->helperText('Opcional'),
+                        Forms\Components\Toggle::make('activo')
+                            ->label('Activa')
+                            ->default(true),
+                    ])
+                    ->createOptionUsing(fn (array $data) => Marca::create($data)->getKey())
+                    ->editOptionForm([
+                        Forms\Components\TextInput::make('nombre')
+                            ->required()->maxLength(255),
+                        Forms\Components\FileUpload::make('logo')
+                            ->label('Logo')
+                            ->image()
+                            ->directory('marcas/logos')
+                            ->disk('public')
+                            ->imageEditor()
+                            ->imageEditorAspectRatios([null, '16:9', '4:3', '1:1'])
+                            ->imageResizeMode('contain')
+                            ->imageResizeTargetWidth(400)
+                            ->imageResizeTargetHeight(225)
+                            ->helperText('Opcional')
+                            ->getUploadedFileUsing(function ($component, string $file): ?array {
+                                $storage = $component->getDisk();
+                                if (! $storage->exists($file)) {
+                                    return null;
+                                }
+                                $mimeType = $storage->mimeType($file);
+                                $content  = $storage->get($file);
+                                if ($content === false || $content === null) {
+                                    return null;
+                                }
+                                return [
+                                    'name' => basename($file),
+                                    'size' => $storage->size($file),
+                                    'type' => $mimeType,
+                                    'url'  => 'data:' . $mimeType . ';base64,' . base64_encode($content),
+                                ];
+                            }),
+                        Forms\Components\Toggle::make('activo')
+                            ->label('Activa'),
+                    ])
+                    ->getSelectedRecordUsing(fn ($state): ?Marca => Marca::find($state))
+                    ->fillEditOptionActionFormUsing(fn ($component): array =>
+                        $component->getSelectedRecord()?->only('nombre', 'logo', 'activo') ?? []
+                    )
+                    ->updateOptionUsing(function (array $data, $form): void {
+                        $form->getRecord()?->update($data);
+                    }),
                 Forms\Components\Textarea::make('descripcion')
                     ->label('Descripción')
                     ->rows(3),
