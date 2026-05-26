@@ -85,16 +85,16 @@ class AgenciaResource extends Resource
                 Tables\Columns\TextColumn::make('proyecto.marca.nombre')
                     ->label('Marca')->badge()->color('primary'),
                 Tables\Columns\TextColumn::make('responsable')->searchable(),
-                Tables\Columns\BadgeColumn::make('prioridad')
-                    ->formatStateUsing(fn ($state) => match ($state) {
-                        1 => 'Alta', 2 => 'Media', default => 'Baja',
-                    })
-                    ->color(fn ($state) => match ($state) {
-                        1 => 'danger', 2 => 'warning', default => 'success',
-                    }),
-                Tables\Columns\IconColumn::make('activo')->boolean(),
-                Tables\Columns\TextColumn::make('presupuestos_count')
-                    ->label('Presupuestos')->counts('presupuestos'),
+                // Tables\Columns\BadgeColumn::make('prioridad')
+                //     ->formatStateUsing(fn ($state) => match ($state) {
+                //         1 => 'Alta', 2 => 'Media', default => 'Baja',
+                //     })
+                //     ->color(fn ($state) => match ($state) {
+                //         1 => 'danger', 2 => 'warning', default => 'success',
+                //     }),
+                // Tables\Columns\IconColumn::make('activo')->boolean(),
+                // Tables\Columns\TextColumn::make('presupuestos_count')
+                //     ->label('Presupuestos')->counts('presupuestos'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('proyecto_id')
