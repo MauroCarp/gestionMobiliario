@@ -5,6 +5,8 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\AgenciaResource\Pages;
 use App\Models\Agencia;
 use App\Models\Proyecto;
+use App\Models\Provincia;
+use App\Models\Ciudad;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -44,6 +46,24 @@ class AgenciaResource extends Resource
                     ->default(3)->required(),
                 Forms\Components\TextInput::make('responsable')->maxLength(255),
                 Forms\Components\TextInput::make('direccion')->maxLength(255),
+                Forms\Components\Select::make('provincia_id')
+                    ->label('Provincia')
+                    ->options(Provincia::orderBy('nombre')->pluck('nombre', 'id'))
+                    ->searchable()
+                    ->live(),
+                Forms\Components\Select::make('ciudad_id')
+                    ->label('Ciudad')
+                    ->options(function (callable $get) {
+                        $provinciaId = $get('provincia_id');
+                        if ($provinciaId) {
+                            return Ciudad::where('provincia_id', $provinciaId)
+                                ->orderBy('nombre')
+                                ->pluck('nombre', 'id');
+                        }
+                        return [];
+                    })
+                    ->searchable()
+                    ->disabled(fn (callable $get) => !$get('provincia_id')),
                 Forms\Components\Toggle::make('activo')->default(true)->label('Activa'),
                 Forms\Components\TagsInput::make('etiquetas')
                     ->separator(',')

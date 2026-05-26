@@ -27,6 +27,8 @@ class Agencia extends Model implements HasMedia
         'nombre',
         'proyecto_id',
         'direccion',
+        'provincia_id',
+        'ciudad_id',
         'responsable',
         'observaciones',
         'activo',
@@ -68,6 +70,16 @@ class Agencia extends Model implements HasMedia
     public function proyecto(): BelongsTo
     {
         return $this->belongsTo(Proyecto::class, 'proyecto_id');
+    }
+
+    public function provincia(): BelongsTo
+    {
+        return $this->belongsTo(Provincia::class, 'provincia_id');
+    }
+
+    public function ciudad(): BelongsTo
+    {
+        return $this->belongsTo(Ciudad::class, 'ciudad_id');
     }
 
     public function presupuestos(): HasMany

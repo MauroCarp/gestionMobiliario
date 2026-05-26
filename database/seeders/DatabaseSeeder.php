@@ -13,6 +13,8 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             CategoriasMobiliarioSeeder::class,
             UnidadesMedidaSeeder::class,
+            ProvinciaSeeder::class,
+            CiudadSeeder::class,
         ]);
     }
 }
