@@ -90,7 +90,7 @@ class Auditoria extends Page implements HasTable
 
                 Tables\Filters\SelectFilter::make('causer_id')
                     ->label('Usuario')
-                    ->relationship('causer', 'name'),
+                    ->options(fn () => \App\Models\User::orderBy('name')->pluck('name', 'id')->toArray()),
 
                 Tables\Filters\SelectFilter::make('subject_type')
                     ->label('Modelo')
