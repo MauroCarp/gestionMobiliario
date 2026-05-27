@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Insumo;
+use App\Models\LoteProcesoExterno;
 use App\Models\OrdenCompra;
 use App\Models\OrdenCompraItem;
 use App\Models\Presupuesto;
@@ -79,53 +80,137 @@ class StockReservaService
     }
 
     /**
-     * Genera una orden de compra automática con los insumos faltantes.
-     * No genera duplicados si ya existe una orden 'sugerida' o 'pendiente' para el presupuesto.
+     * Genera una orden de compra automática con los insumos cuyo stock está por debajo
+     * del mínimo configurado, usando la cantidad COMPLETA que necesita el presupuesto.
+     * Si el insumo tiene un flujo externo activo, crea también el LoteProcesoExterno.
+     * Para mobiliarios del presupuesto con flujo externo activo, crea lotes directamente.
      */
     public function generarOrdenCompraAutomatica(Presupuesto $presupuesto): ?OrdenCompra
     {
-        $sugerencias = $this->analisis->sugerenciasCompra();
-
-        if ($sugerencias->isEmpty()) {
+        // Idempotente: no duplicar OC si ya existe una sugerida/pendiente para este presupuesto
+        if (OrdenCompra::where('presupuesto_id', $presupuesto->id)
+                ->whereIn('estado', ['sugerida', 'pendiente'])
+                ->exists()) {
+            $this->crearLotesExternosMobiliarios($presupuesto);
             return null;
         }
 
-        // Filtrar solo los insumos que este presupuesto necesita
         $demanda = $this->calcularDemandaPresupuesto($presupuesto);
-        $insumoIds = array_keys($demanda);
 
-        $itemsOrden = $sugerencias->filter(
-            fn ($s) => in_array($s['insumo']->id, $insumoIds)
+        if (empty($demanda)) {
+            $this->crearLotesExternosMobiliarios($presupuesto);
+            return null;
+        }
+
+        // Cargar insumos con stock y plantillas de flujo activas
+        $insumos = Insumo::whereIn('id', array_keys($demanda))
+            ->with(['plantillaFlujos' => fn ($q) => $q->where('activo', true)->with('etapas')])
+            ->get()
+            ->keyBy('id');
+
+        // Solo insumos con stock actual por debajo del mínimo configurado
+        $insumosLowStock = $insumos->filter(
+            fn (Insumo $insumo) => $insumo->stock_actual < $insumo->stock_minimo
         );
 
-        if ($itemsOrden->isEmpty()) {
-            return null;
+        $orden = null;
+
+        if ($insumosLowStock->isNotEmpty()) {
+            $esCritico = $insumosLowStock->contains(fn (Insumo $i) => ($i->stock_disponible ?? 0) <= 0);
+            $prioridad = $esCritico ? 'critica' : 'alta';
+
+            $orden = DB::transaction(function () use ($presupuesto, $insumosLowStock, $demanda, $prioridad) {
+                $oc = OrdenCompra::create([
+                    'estado'                   => 'sugerida',
+                    'prioridad'                => $prioridad,
+                    'generado_automaticamente' => true,
+                    'presupuesto_id'           => $presupuesto->id,
+                    'observaciones'            => "Generada automáticamente para presupuesto {$presupuesto->codigo}",
+                ]);
+
+                foreach ($insumosLowStock as $insumo) {
+                    $cantidad = $demanda[$insumo->id];
+
+                    OrdenCompraItem::create([
+                        'orden_compra_id'     => $oc->id,
+                        'insumo_id'           => $insumo->id,
+                        'cantidad_solicitada' => $cantidad,
+                        'precio_unitario'     => $insumo->precio_costo,
+                    ]);
+
+                    // Si el insumo tiene un flujo externo activo, crear el lote en estado pendiente
+                    $plantilla = $insumo->plantillaFlujos->first();
+                    if ($plantilla) {
+                        $lote = LoteProcesoExterno::create([
+                            'plantilla_id'  => $plantilla->id,
+                            'entidad_tipo'  => 'insumo',
+                            'entidad_id'    => $insumo->id,
+                            'cantidad'      => $cantidad,
+                            'origen_tipo'   => 'orden_compra',
+                            'origen_id'     => $oc->id,
+                            'estado'        => 'pendiente',
+                            'fecha_inicio'  => now()->toDateString(),
+                            'observaciones' => "Generado al confirmar {$presupuesto->codigo}. Activar al recibir la OC.",
+                        ]);
+                        $lote->crearEtapasDesde($plantilla);
+                    }
+                }
+
+                return $oc;
+            });
         }
 
-        $prioridadOrden = $itemsOrden->contains(fn ($s) => $s['prioridad'] === 'critica')
-            ? 'critica'
-            : ($itemsOrden->contains(fn ($s) => $s['prioridad'] === 'alta') ? 'alta' : 'media');
+        // Crear lotes para mobiliarios del presupuesto que tengan flujo externo activo
+        $this->crearLotesExternosMobiliarios($presupuesto);
 
-        return DB::transaction(function () use ($presupuesto, $itemsOrden, $prioridadOrden) {
-            $orden = OrdenCompra::create([
-                'estado'                   => 'sugerida',
-                'prioridad'                => $prioridadOrden,
-                'generado_automaticamente' => true,
-                'presupuesto_id'           => $presupuesto->id,
-                'observaciones'            => "Generada automáticamente para {$presupuesto->codigo}",
-            ]);
+        return $orden;
+    }
 
-            foreach ($itemsOrden as $sugerencia) {
-                OrdenCompraItem::create([
-                    'orden_compra_id'    => $orden->id,
-                    'insumo_id'          => $sugerencia['insumo']->id,
-                    'cantidad_solicitada' => $sugerencia['cantidad_sugerida'],
-                    'precio_unitario'    => $sugerencia['insumo']->precio_costo,
-                ]);
+    /**
+     * Para cada mobiliario del presupuesto que tenga una PlantillaFlujoExterno activa,
+     * crea un LoteProcesoExterno en estado pendiente.
+     * Idempotente: no duplica si ya existe un lote activo para el mismo mobiliario/presupuesto.
+     */
+    private function crearLotesExternosMobiliarios(Presupuesto $presupuesto): void
+    {
+        $presupuesto->loadMissing(['items.mobiliario']);
+
+        foreach ($presupuesto->items as $item) {
+            // Evitar duplicados usando origen_id para trazar el lote al presupuesto
+            $yaExiste = LoteProcesoExterno::where('entidad_tipo', 'mobiliario')
+                ->where('entidad_id', $item->mobiliario_id)
+                ->where('origen_id', $presupuesto->id)
+                ->whereNotIn('estado', ['cancelado'])
+                ->exists();
+
+            if ($yaExiste) {
+                continue;
             }
 
-            return $orden;
-        });
+            $plantilla = $item->mobiliario
+                ->plantillaFlujos()
+                ->where('activo', true)
+                ->with('etapas')
+                ->first();
+
+            if (! $plantilla) {
+                continue;
+            }
+
+            $lote = LoteProcesoExterno::create([
+                'plantilla_id'  => $plantilla->id,
+                'entidad_tipo'  => 'mobiliario',
+                'entidad_id'    => $item->mobiliario_id,
+                'cantidad'      => $item->cantidad,
+                'origen_tipo'   => 'manual',
+                'origen_id'     => $presupuesto->id,
+                'estado'        => 'pendiente',
+                'fecha_inicio'  => now()->toDateString(),
+                'observaciones' => "Generado al confirmar presupuesto {$presupuesto->codigo}",
+            ]);
+
+            $lote->crearEtapasDesde($plantilla);
+        }
     }
 
     // ─── Internals ────────────────────────────────────────────────────────────

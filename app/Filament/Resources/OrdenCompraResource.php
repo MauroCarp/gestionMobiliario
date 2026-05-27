@@ -182,11 +182,27 @@ class OrdenCompraResource extends Resource
                     ->visible(fn (OrdenCompra $r) => $r->estado === 'aprobada')
                     ->requiresConfirmation()
                     ->action(function (OrdenCompra $record): void {
-                        $lotesCreados = 0;
+                        $lotesCreados   = 0;
+                        $lotesActivados = 0;
 
                         foreach ($record->items()->with('insumo')->get() as $item) {
                             $item->update(['cantidad_recibida' => $item->cantidad_solicitada]);
 
+                            // Si ya existe un lote pendiente creado al confirmar el presupuesto, activarlo
+                            $loteExistente = LoteProcesoExterno::where('entidad_tipo', 'insumo')
+                                ->where('entidad_id', $item->insumo_id)
+                                ->where('origen_tipo', 'orden_compra')
+                                ->where('origen_id', $record->id)
+                                ->where('estado', 'pendiente')
+                                ->first();
+
+                            if ($loteExistente) {
+                                $loteExistente->update(['estado' => 'en_proceso']);
+                                $lotesActivados++;
+                                continue;
+                            }
+
+                            // Sin lote previo: comportamiento original
                             $plantilla = PlantillaFlujoExterno::where('entidad_tipo', 'insumo')
                                 ->where('entidad_id', $item->insumo_id)
                                 ->where('activo', true)
@@ -212,9 +228,17 @@ class OrdenCompraResource extends Resource
 
                         $record->update(['estado' => 'recibida']);
 
-                        $message = $lotesCreados > 0
-                            ? "Stock actualizado. {$lotesCreados} lote(s) de proceso externo creado(s)."
-                            : 'Stock actualizado';
+                        $partes = [];
+                        if ($lotesActivados > 0) {
+                            $partes[] = "{$lotesActivados} lote(s) activado(s)";
+                        }
+                        if ($lotesCreados > 0) {
+                            $partes[] = "{$lotesCreados} lote(s) creado(s)";
+                        }
+
+                        $message = empty($partes)
+                            ? 'Stock actualizado'
+                            : 'Stock actualizado. ' . implode(', ', $partes) . '.';
 
                         Notification::make()->title($message)->success()->send();
                     }),
