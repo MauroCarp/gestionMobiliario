@@ -4,7 +4,9 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\OrdenCompraResource\Pages;
 use App\Models\Insumo;
+use App\Models\LoteProcesoExterno;
 use App\Models\OrdenCompra;
+use App\Models\PlantillaFlujoExterno;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -179,14 +181,42 @@ class OrdenCompraResource extends Resource
                     ->color('info')
                     ->visible(fn (OrdenCompra $r) => $r->estado === 'aprobada')
                     ->requiresConfirmation()
-                    ->action(function (OrdenCompra $record) {
-                        // Actualizar stock de cada insumo
+                    ->action(function (OrdenCompra $record): void {
+                        $lotesCreados = 0;
+
                         foreach ($record->items()->with('insumo')->get() as $item) {
-                            $item->insumo->increment('stock_actual', $item->cantidad_solicitada);
                             $item->update(['cantidad_recibida' => $item->cantidad_solicitada]);
+
+                            $plantilla = PlantillaFlujoExterno::where('entidad_tipo', 'insumo')
+                                ->where('entidad_id', $item->insumo_id)
+                                ->where('activo', true)
+                                ->first();
+
+                            if ($plantilla) {
+                                $lote = LoteProcesoExterno::create([
+                                    'entidad_tipo' => 'insumo',
+                                    'entidad_id'   => $item->insumo_id,
+                                    'plantilla_id' => $plantilla->id,
+                                    'cantidad'     => $item->cantidad_solicitada,
+                                    'origen_tipo'  => 'orden_compra',
+                                    'origen_id'    => $record->id,
+                                    'estado'       => 'en_proceso',
+                                    'fecha_inicio' => now()->toDateString(),
+                                ]);
+                                $lote->crearEtapasDesde($plantilla);
+                                $lotesCreados++;
+                            } else {
+                                $item->insumo->increment('stock_actual', $item->cantidad_solicitada);
+                            }
                         }
+
                         $record->update(['estado' => 'recibida']);
-                        Notification::make()->title('Stock actualizado')->success()->send();
+
+                        $message = $lotesCreados > 0
+                            ? "Stock actualizado. {$lotesCreados} lote(s) de proceso externo creado(s)."
+                            : 'Stock actualizado';
+
+                        Notification::make()->title($message)->success()->send();
                     }),
 
                 Tables\Actions\EditAction::make(),

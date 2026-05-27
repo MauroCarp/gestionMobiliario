@@ -83,6 +83,18 @@ class Mobiliario extends Model implements HasMedia
         return $this->belongsTo(Marca::class, 'marca_id');
     }
 
+    public function plantillaFlujos(): HasMany
+    {
+        return $this->hasMany(PlantillaFlujoExterno::class, 'entidad_id')
+            ->where('entidad_tipo', 'mobiliario');
+    }
+
+    public function lotesProcesoExterno(): HasMany
+    {
+        return $this->hasMany(LoteProcesoExterno::class, 'entidad_id')
+            ->where('entidad_tipo', 'mobiliario');
+    }
+
     public function atributos(): HasMany
     {
         return $this->hasMany(AtributoMobiliario::class, 'mobiliario_id');

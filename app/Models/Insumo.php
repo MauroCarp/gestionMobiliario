@@ -97,4 +97,16 @@ class Insumo extends Model implements HasMedia
     {
         return $this->stock_disponible <= ($this->stock_minimo ?? 0);
     }
+
+    public function plantillaFlujos(): HasMany
+    {
+        return $this->hasMany(PlantillaFlujoExterno::class, 'entidad_id')
+            ->where('entidad_tipo', 'insumo');
+    }
+
+    public function lotesProcesoExterno(): HasMany
+    {
+        return $this->hasMany(LoteProcesoExterno::class, 'entidad_id')
+            ->where('entidad_tipo', 'insumo');
+    }
 }
