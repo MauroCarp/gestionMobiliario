@@ -227,8 +227,15 @@ class PresupuestoResource extends Resource
                     ->sortable()
                     ->toggleable(),
 
-                Tables\Columns\TextColumn::make('responsable.name')
-                    ->label('Responsable')
+                Tables\Columns\TextColumn::make('agencia.provincia.nombre')
+                    ->label('Provincia')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
+                Tables\Columns\TextColumn::make('agencia.ciudad.nombre')
+                    ->label('Ciudad')
+                    ->searchable()
                     ->sortable()
                     ->toggleable(),
 
@@ -238,12 +245,6 @@ class PresupuestoResource extends Resource
                     ->color(fn (string $state): string => Presupuesto::ESTADO_COLORS[$state] ?? 'gray')
                     ->formatStateUsing(fn (string $state): string => Presupuesto::ESTADOS[$state] ?? $state)
                     ->sortable(),
-
-                Tables\Columns\TextColumn::make('items_count')
-                    ->label('Items')
-                    ->counts('items')
-                    ->badge()
-                    ->color('gray'),
 
                 Tables\Columns\TextColumn::make('fecha_emision')
                     ->label('Emisión')

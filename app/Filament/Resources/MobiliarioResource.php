@@ -136,7 +136,7 @@ class MobiliarioResource extends Resource
                     ->label('Descripción')
                     ->rows(3),
                 Forms\Components\Textarea::make('observaciones')
-                    ->label('Descripción')
+                    ->label('Observaciones')
                     ->rows(3),
             ])->columns(2),
 

@@ -102,9 +102,13 @@ class AgenciaResource extends Resource
                     ->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('proyecto.codigo_interno')
                     ->label('Proyecto')->badge()->color('info')->searchable(),
-                Tables\Columns\TextColumn::make('proyecto.marca.nombre')
-                    ->label('Marca')->badge()->color('primary'),
+                // Tables\Columns\TextColumn::make('proyecto.marca.nombre')
+                //     ->label('Marca')->badge()->color('primary'),
                 Tables\Columns\TextColumn::make('responsable')->searchable(),
+                Tables\Columns\TextColumn::make('provincia.nombre')
+                    ->label('Provincia')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('ciudad.nombre')
+                    ->label('Ciudad')->sortable()->searchable(),
                 // Tables\Columns\BadgeColumn::make('prioridad')
                 //     ->formatStateUsing(fn ($state) => match ($state) {
                 //         1 => 'Alta', 2 => 'Media', default => 'Baja',
