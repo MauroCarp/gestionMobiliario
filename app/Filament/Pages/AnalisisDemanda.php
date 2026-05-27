@@ -20,7 +20,7 @@ class AnalisisDemanda extends Page implements HasForms
     protected static ?string $navigationGroup = 'Operaciones';
     protected static ?string $navigationLabel = 'Análisis de Demanda';
     protected static ?string $title           = 'Análisis de Demanda e Insumos';
-    protected static ?int    $navigationSort  = 2;
+    protected static ?int    $navigationSort  = 4;
 
     protected static string $view = 'filament.pages.analisis-demanda';
 
