@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\InsumoResource\Pages;
+use App\Filament\Resources\InsumoResource\RelationManagers;
 use App\Models\Insumo;
 use App\Models\UnidadMedida;
 use Filament\Forms;
@@ -207,6 +208,13 @@ class InsumoResource extends Resource
     {
         return parent::getEloquentQuery()
             ->withoutGlobalScopes([SoftDeletingScope::class]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            RelationManagers\PlantillaFlujosRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

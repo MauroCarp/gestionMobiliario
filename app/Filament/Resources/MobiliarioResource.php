@@ -358,11 +358,10 @@ class MobiliarioResource extends Resource
             ]);
     }
 
-    public static function getRelationManagers(): array
+    public static function getRelations(): array
     {
         return [
-            RelationManagers\ComposicionTecnicaRelationManager::class,
-            RelationManagers\HistorialVersionesRelationManager::class,
+            RelationManagers\PlantillaFlujosRelationManager::class,
         ];
     }
 

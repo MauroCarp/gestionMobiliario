@@ -19,7 +19,7 @@ class AgenciaResource extends Resource
 {
     protected static ?string $model = Agencia::class;
     protected static ?string $navigationIcon = 'heroicon-o-building-office';
-    protected static ?string $navigationGroup = 'Configuración';
+    protected static ?string $navigationGroup = 'Operaciones';
     protected static ?string $modelLabel = 'Agencia';
     protected static ?string $pluralModelLabel = 'Agencias';
     protected static ?int $navigationSort = 2;
