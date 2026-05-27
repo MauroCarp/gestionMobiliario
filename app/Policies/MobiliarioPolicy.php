@@ -19,12 +19,12 @@ class MobiliarioPolicy
 
     public function create(User $user): bool
     {
-        return $user->hasAnyRole(['Administrador', 'Producción']);
+        return $user->hasRole('Administrador');
     }
 
     public function update(User $user, Mobiliario $mobiliario): bool
     {
-        return $user->hasAnyRole(['Administrador', 'Producción']);
+        return $user->hasRole('Administrador');
     }
 
     public function delete(User $user, Mobiliario $mobiliario): bool

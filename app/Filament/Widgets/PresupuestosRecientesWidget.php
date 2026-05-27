@@ -10,7 +10,7 @@ use Filament\Widgets\TableWidget as BaseWidget;
 
 class PresupuestosRecientesWidget extends BaseWidget
 {
-    protected static ?int    $sort    = 5;
+    protected static ?int    $sort    = 2;
     protected static ?string $heading = 'Presupuestos activos';
     protected int | string | array $columnSpan = 'full';
 

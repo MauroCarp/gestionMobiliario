@@ -19,12 +19,12 @@ class AgenciaPolicy
 
     public function create(User $user): bool
     {
-        return $user->hasAnyRole(['Administrador', 'Ventas']);
+        return $user->hasRole('Administrador');
     }
 
     public function update(User $user, Agencia $agencia): bool
     {
-        return $user->hasAnyRole(['Administrador', 'Ventas']);
+        return $user->hasRole('Administrador');
     }
 
     public function delete(User $user, Agencia $agencia): bool

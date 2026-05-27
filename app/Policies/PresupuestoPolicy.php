@@ -19,7 +19,7 @@ class PresupuestoPolicy
 
     public function create(User $user): bool
     {
-        return $user->hasAnyRole(['Administrador', 'Ventas']);
+        return $user->hasRole('Administrador');
     }
 
     public function update(User $user, Presupuesto $presupuesto): bool
@@ -27,7 +27,7 @@ class PresupuestoPolicy
         if (! $presupuesto->puedeEditar()) {
             return false;
         }
-        return $user->hasAnyRole(['Administrador', 'Ventas']);
+        return $user->hasRole('Administrador');
     }
 
     public function delete(User $user, Presupuesto $presupuesto): bool

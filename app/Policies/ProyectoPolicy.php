@@ -19,12 +19,12 @@ class ProyectoPolicy
 
     public function create(User $user): bool
     {
-        return $user->hasAnyRole(['Administrador', 'Ventas']);
+        return $user->hasRole('Administrador');
     }
 
     public function update(User $user, Proyecto $proyecto): bool
     {
-        return $user->hasAnyRole(['Administrador', 'Ventas', 'Producción']);
+        return $user->hasRole('Administrador');
     }
 
     public function delete(User $user, Proyecto $proyecto): bool

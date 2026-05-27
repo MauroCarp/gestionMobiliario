@@ -69,6 +69,32 @@ class PlantillaFlujoExternoResource extends Resource
                                 ->options(fn () => TipoProcesoExterno::where('activo', true)->pluck('nombre', 'id'))
                                 ->searchable()
                                 ->required()
+                                ->createOptionForm([
+                                    Forms\Components\TextInput::make('nombre')
+                                        ->label('Nombre')
+                                        ->required()
+                                        ->maxLength(255),
+                                    Forms\Components\Textarea::make('descripcion')
+                                        ->label('Descripción')
+                                        ->rows(2),
+                                    Forms\Components\Select::make('color')
+                                        ->label('Color')
+                                        ->options([
+                                            'gray'    => 'Gris',
+                                            'info'    => 'Azul',
+                                            'success' => 'Verde',
+                                            'warning' => 'Amarillo',
+                                            'danger'  => 'Rojo',
+                                            'primary' => 'Primario',
+                                        ])
+                                        ->default('gray'),
+                                    Forms\Components\Toggle::make('activo')
+                                        ->label('Activo')
+                                        ->default(true),
+                                ])
+                                ->createOptionUsing(function (array $data): int {
+                                    return TipoProcesoExterno::create($data)->id;
+                                })
                                 ->columnSpan(2),
                             Forms\Components\Select::make('tercero_id')
                                 ->label('Tercero predeterminado')

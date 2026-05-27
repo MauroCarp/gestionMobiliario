@@ -14,9 +14,10 @@ class TipoProcesoExternoResource extends Resource
 {
     protected static ?string $model = TipoProcesoExterno::class;
     protected static ?string $navigationIcon  = 'heroicon-o-cog-6-tooth';
-    protected static ?string $navigationGroup = 'Tercerizados';
+    // protected static ?string $navigationGroup = 'Tercerizados';
     protected static ?string $modelLabel      = 'Tipo de proceso';
     protected static ?string $pluralModelLabel = 'Tipos de proceso';
+    protected static bool $shouldRegisterNavigation = false;
     protected static ?int    $navigationSort  = 2;
 
     public static function form(Form $form): Form

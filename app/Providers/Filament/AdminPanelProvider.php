@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Widgets\AnalisisGlobalWidget;
 use App\Filament\Widgets\InsumosUrgentesWidget;
+use App\Filament\Widgets\LotesEnProcesoWidget;
 // use App\Filament\Widgets\OrdenesCompraWidget;
 // use App\Filament\Widgets\ProyectosActivosWidget;
 use App\Filament\Widgets\PresupuestosRecientesWidget;
@@ -42,6 +43,8 @@ class AdminPanelProvider extends PanelProvider
             // ->brandName('Orlando Pierantoni S.R.L - Gestión Mobiliario')
             ->brandLogo(fn () => new HtmlString(view('filament.brand-logo')->render()))
             ->brandLogoHeight('3.5rem')
+            ->maxContentWidth(\Filament\Support\Enums\MaxWidth::Full)
+            ->sidebarCollapsibleOnDesktop()
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -55,6 +58,7 @@ class AdminPanelProvider extends PanelProvider
                 // OrdenesCompraWidget::class,
                 // ProyectosActivosWidget::class,
                 PresupuestosRecientesWidget::class,
+                LotesEnProcesoWidget::class,
             ])
             ->navigationGroups([
                 'Operaciones',

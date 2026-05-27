@@ -10,9 +10,9 @@ use Illuminate\Database\Eloquent\Builder;
 
 class InsumosUrgentesWidget extends BaseWidget
 {
-    protected static ?int  $sort     = 2;
+    protected static ?int  $sort     = 3;
     protected static ?string $heading = 'Insumos críticos y sin stock';
-    protected int | string | array $columnSpan = 'full';
+    protected int | string | array $columnSpan = 'half';
 
     public function table(Table $table): Table
     {
