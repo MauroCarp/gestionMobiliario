@@ -98,11 +98,16 @@ class AgenciaResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ImageColumn::make('proyecto.marca.logo')
+                    ->label('Logo')
+                    ->disk('public')
+                    ->height(55)
+                    ->defaultImageUrl(null),
                 Tables\Columns\TextColumn::make('nombre')
                     ->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('proyecto.codigo_interno')
-                    ->label('Proyecto')->badge()->color('info')->searchable(),
-                // Tables\Columns\TextColumn::make('proyecto.marca.nombre')
+                // Tables\Columns\TextColumn::make('proyecto.codigo_interno')
+                //     ->label('Proyecto')->badge()->color('info')->searchable(),
+                // // Tables\Columns\TextColumn::make('proyecto.marca.nombre')
                 //     ->label('Marca')->badge()->color('primary'),
                 Tables\Columns\TextColumn::make('responsable')->searchable(),
                 Tables\Columns\TextColumn::make('provincia.nombre')

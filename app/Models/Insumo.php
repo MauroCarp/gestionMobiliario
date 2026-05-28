@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\CategoriaInsumo;
+use App\Models\TipoSilla;
+use App\Models\Tercero;
+use App\Models\InsumoMarcaSilla;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 use Spatie\MediaLibrary\HasMedia;
@@ -23,6 +27,9 @@ class Insumo extends Model implements HasMedia
         'codigo',
         'nombre',
         'unidad_medida_id',
+        'categoria_insumo_id',
+        'proveedor_id',
+        'tipo_silla_id',
         'stock_minimo',
         'stock_actual',
         'precio_costo',
@@ -71,6 +78,26 @@ class Insumo extends Model implements HasMedia
     public function unidadMedida(): BelongsTo
     {
         return $this->belongsTo(UnidadMedida::class, 'unidad_medida_id');
+    }
+
+    public function categoriaInsumo(): BelongsTo
+    {
+        return $this->belongsTo(CategoriaInsumo::class, 'categoria_insumo_id');
+    }
+
+    public function proveedor(): BelongsTo
+    {
+        return $this->belongsTo(Tercero::class, 'proveedor_id');
+    }
+
+    public function tipoSilla(): BelongsTo
+    {
+        return $this->belongsTo(TipoSilla::class, 'tipo_silla_id');
+    }
+
+    public function marcasSilla(): HasMany
+    {
+        return $this->hasMany(InsumoMarcaSilla::class, 'insumo_id');
     }
 
     public function composiciones(): HasMany

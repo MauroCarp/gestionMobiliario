@@ -6,6 +6,11 @@ use App\Filament\Resources\InsumoResource\Pages;
 use App\Filament\Resources\InsumoResource\RelationManagers;
 use App\Models\Insumo;
 use App\Models\UnidadMedida;
+use App\Models\CategoriaInsumo;
+use App\Models\TipoSilla;
+use App\Models\Tercero;
+use App\Models\Marca;
+use Filament\Forms\Get;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -81,13 +86,78 @@ class InsumoResource extends Resource
                     ->numeric()->minValue(0)->prefix('$')->nullable(),
                 Forms\Components\TextInput::make('ubicacion')
                     ->label('Ubicación')->maxLength(255),
-                Forms\Components\TagsInput::make('tag')
-                    ->label('Etiquetas')
-                    ->placeholder('Ej: Patas, Tornillos...'),
+                Forms\Components\Select::make('categoria_insumo_id')
+                    ->label('Categoría')
+                    ->relationship('categoriaInsumo', 'nombre')
+                    ->searchable()->preload()
+                    ->live()
+                    ->createOptionForm([
+                        Forms\Components\TextInput::make('nombre')
+                            ->label('Nombre')
+                            ->required()->maxLength(255),
+                        Forms\Components\Toggle::make('activo')
+                            ->label('Activa')
+                            ->default(true),
+                    ])
+                    ->createOptionUsing(fn (array $data) => CategoriaInsumo::create($data)->getKey()),
                 Forms\Components\Toggle::make('activo')->default(true),
                 Forms\Components\Textarea::make('observaciones')
                     ->rows(3)->columnSpanFull(),
             ])->columns(2),
+
+            Forms\Components\Section::make('Datos de Silla')
+                ->schema([
+                    Forms\Components\Select::make('proveedor_id')
+                        ->label('Proveedor')
+                        ->options(
+                            Tercero::where('tipo', 'proveedor_material')
+                                ->where('activo', true)
+                                ->orderBy('nombre')
+                                ->pluck('nombre', 'id')
+                        )
+                        ->searchable()
+                        ->preload()
+                        ->nullable(),
+
+                    Forms\Components\Select::make('tipo_silla_id')
+                        ->label('Tipo de Silla')
+                        ->relationship('tipoSilla', 'nombre')
+                        ->searchable()
+                        ->preload()
+                        ->nullable()
+                        ->createOptionForm([
+                            Forms\Components\TextInput::make('nombre')
+                                ->label('Nombre')
+                                ->required()->maxLength(255),
+                            Forms\Components\Toggle::make('activo')
+                                ->label('Activo')
+                                ->default(true),
+                        ])
+                        ->createOptionUsing(fn (array $data) => TipoSilla::create($data)->getKey()),
+
+                    Forms\Components\Repeater::make('marcasSilla')
+                        ->relationship('marcasSilla')
+                        ->label('Marcas y nombre de fantasía')
+                        ->schema([
+                            Forms\Components\Select::make('marca_id')
+                                ->label('Marca')
+                                ->options(Marca::where('activo', true)->orderBy('nombre')->pluck('nombre', 'id'))
+                                ->searchable()
+                                ->preload()
+                                ->required(),
+                            Forms\Components\TextInput::make('nombre_fantasia')
+                                ->label('Nombre de fantasía')
+                                ->maxLength(255)
+                                ->nullable(),
+                        ])
+                        ->columns(2)
+                        ->addActionLabel('Agregar marca')
+                        ->columnSpanFull(),
+                ])
+                ->columns(2)
+                ->visible(fn (Get $get): bool => strtolower(
+                    CategoriaInsumo::find($get('categoria_insumo_id'))?->nombre ?? ''
+                ) === 'sillas'),
 
             Forms\Components\Section::make('Imagen y Plano')->schema([
                 Forms\Components\SpatieMediaLibraryFileUpload::make('imagen')
@@ -168,11 +238,11 @@ class InsumoResource extends Resource
                     ->searchable()->sortable()->badge(),
                 Tables\Columns\TextColumn::make('nombre')
                     ->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('tag')
-                    ->label('Etiquetas')
+                Tables\Columns\TextColumn::make('categoriaInsumo.nombre')
+                    ->label('Categoría')
                     ->badge()
-                    ->separator(',')
-                    ->color('primary'),
+                    ->color('primary')
+                    ->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('stock_actual')
                     ->label('Stock actual')->numeric(2),
                 Tables\Columns\TextColumn::make('ubicacion')->label('Ubicación'),
