@@ -11,6 +11,7 @@ use App\Models\Mobiliario;
 use App\Models\UnidadMedida;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Illuminate\Support\HtmlString;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -286,6 +287,47 @@ class MobiliarioResource extends Resource
                     ->reorderable()
                     ->appendFiles(),
             ]),
+
+            Forms\Components\Section::make('Historial de precios')
+                ->schema([
+                    Forms\Components\Placeholder::make('historial_precios_tabla')
+                        ->label('')
+                        ->content(function ($record): HtmlString {
+                            if (! $record) {
+                                return new HtmlString('<p class="text-sm text-gray-400">Sin registros.</p>');
+                            }
+
+                            $historial = $record->historialPrecios()->with('user')->get();
+
+                            if ($historial->isEmpty()) {
+                                return new HtmlString('<p class="text-sm text-gray-400">Aún no se registraron cambios de precio.</p>');
+                            }
+
+                            $rows = $historial->map(fn ($h) =>
+                                '<tr class="border-b border-gray-100 dark:border-gray-700">'
+                                . '<td class="py-1 pr-6 font-semibold text-sm">$ ' . number_format($h->precio, 2, ',', '.') . '</td>'
+                                . '<td class="py-1 pr-6 text-sm">' . e($h->user?->name ?? 'Sistema') . '</td>'
+                                . '<td class="py-1 text-sm text-gray-500">' . $h->created_at->format('d/m/Y H:i') . '</td>'
+                                . '</tr>'
+                            )->implode('');
+
+                            return new HtmlString('
+                                <table class="w-full">
+                                    <thead>
+                                        <tr class="border-b border-gray-200 dark:border-gray-600">
+                                            <th class="pb-1 pr-6 text-left text-xs font-semibold uppercase text-gray-500">Precio</th>
+                                            <th class="pb-1 pr-6 text-left text-xs font-semibold uppercase text-gray-500">Usuario</th>
+                                            <th class="pb-1 text-left text-xs font-semibold uppercase text-gray-500">Fecha</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>' . $rows . '</tbody>
+                                </table>
+                            ');
+                        })
+                        ->columnSpanFull(),
+                ])
+                ->hiddenOn('create')
+                ->collapsible(),
         ]);
     }
 
@@ -377,6 +419,7 @@ class MobiliarioResource extends Resource
         return [
             'index'  => Pages\ListMobiliarios::route('/'),
             'create' => Pages\CreateMobiliario::route('/create'),
+            'view'   => Pages\ViewMobiliario::route('/{record}'),
             'edit'   => Pages\EditMobiliario::route('/{record}/edit'),
         ];
     }

@@ -159,6 +159,13 @@ class InsumoResource extends Resource
                     CategoriaInsumo::find($get('categoria_insumo_id'))?->nombre ?? ''
                 ) === 'sillas'),
 
+            Forms\Components\Section::make('Plantilla de flujo externo')
+                ->schema([
+                    Forms\Components\Placeholder::make('')
+                        ->content('La plantilla de flujo externo podrá ser configurada una vez guardado el insumo.'),
+                ])
+                ->hiddenOn('edit'),
+
             Forms\Components\Section::make('Imagen y Plano')->schema([
                 Forms\Components\SpatieMediaLibraryFileUpload::make('imagen')
                     ->label('Imagen')

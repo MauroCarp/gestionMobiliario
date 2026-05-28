@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use App\Models\Marca;
+use App\Models\MobiliarioHistorialPrecio;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Image\Enums\Fit;
@@ -37,11 +38,13 @@ class Mobiliario extends Model implements HasMedia
         'descripcion',
         'observaciones',
         'estado',
+        'precio',
         'version_actual',
     ];
 
     protected $casts = [
         'version_actual' => 'integer',
+        'precio'         => 'float',
     ];
 
     public function getActivitylogOptions(): LogOptions
@@ -98,6 +101,11 @@ class Mobiliario extends Model implements HasMedia
     public function atributos(): HasMany
     {
         return $this->hasMany(AtributoMobiliario::class, 'mobiliario_id');
+    }
+
+    public function historialPrecios(): HasMany
+    {
+        return $this->hasMany(MobiliarioHistorialPrecio::class, 'mobiliario_id')->latest('created_at');
     }
 
     public function composicionTecnica(): HasMany
