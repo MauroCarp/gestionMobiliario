@@ -10,9 +10,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use App\Models\Marca;
 use App\Models\MobiliarioHistorialPrecio;
-use App\Models\MobiliarioMarcaSilla;
-use App\Models\TipoSilla;
-use App\Models\Tercero;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Image\Enums\Fit;
@@ -42,8 +39,6 @@ class Mobiliario extends Model implements HasMedia
         'observaciones',
         'estado',
         'precio',
-        'proveedor_id',
-        'tipo_silla_id',
         'version_actual',
     ];
 
@@ -111,21 +106,6 @@ class Mobiliario extends Model implements HasMedia
     public function historialPrecios(): HasMany
     {
         return $this->hasMany(MobiliarioHistorialPrecio::class, 'mobiliario_id')->latest('created_at');
-    }
-
-    public function proveedor(): BelongsTo
-    {
-        return $this->belongsTo(Tercero::class, 'proveedor_id');
-    }
-
-    public function tipoSilla(): BelongsTo
-    {
-        return $this->belongsTo(TipoSilla::class, 'tipo_silla_id');
-    }
-
-    public function marcasSilla(): HasMany
-    {
-        return $this->hasMany(MobiliarioMarcaSilla::class, 'mobiliario_id');
     }
 
     public function composicionTecnica(): HasMany

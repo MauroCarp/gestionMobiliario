@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\CategoriaInsumo;
+use App\Models\TipoSilla;
+use App\Models\Tercero;
+use App\Models\InsumoMarcaSilla;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 use Spatie\MediaLibrary\HasMedia;
@@ -32,6 +35,8 @@ class Insumo extends Model implements HasMedia
         'tag',
         'observaciones',
         'activo',
+        'proveedor_id',
+        'tipo_silla_id',
     ];
 
     protected $casts = [
@@ -115,5 +120,20 @@ class Insumo extends Model implements HasMedia
     {
         return $this->hasMany(LoteProcesoExterno::class, 'entidad_id')
             ->where('entidad_tipo', 'insumo');
+    }
+
+    public function tipoSilla(): BelongsTo
+    {
+        return $this->belongsTo(TipoSilla::class, 'tipo_silla_id');
+    }
+
+    public function proveedor(): BelongsTo
+    {
+        return $this->belongsTo(Tercero::class, 'proveedor_id');
+    }
+
+    public function marcasSilla(): HasMany
+    {
+        return $this->hasMany(InsumoMarcaSilla::class, 'insumo_id');
     }
 }

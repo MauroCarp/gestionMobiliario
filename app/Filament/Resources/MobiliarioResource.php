@@ -8,8 +8,6 @@ use App\Models\CategoriaMobiliario;
 use App\Models\Insumo;
 use App\Models\Marca;
 use App\Models\Mobiliario;
-use App\Models\TipoSilla;
-use App\Models\Tercero;
 use App\Models\UnidadMedida;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -183,61 +181,6 @@ class MobiliarioResource extends Resource
                         ];
                     }),
             ]),
-
-            Forms\Components\Section::make('Datos de Silla')
-                ->schema([
-                    Forms\Components\Select::make('proveedor_id')
-                        ->label('Proveedor')
-                        ->options(
-                            Tercero::where('tipo', 'proveedor_material')
-                                ->where('activo', true)
-                                ->orderBy('nombre')
-                                ->pluck('nombre', 'id')
-                        )
-                        ->searchable()
-                        ->preload()
-                        ->nullable(),
-
-                    Forms\Components\Select::make('tipo_silla_id')
-                        ->label('Tipo de Silla')
-                        ->relationship('tipoSilla', 'nombre')
-                        ->searchable()
-                        ->preload()
-                        ->nullable()
-                        ->createOptionForm([
-                            Forms\Components\TextInput::make('nombre')
-                                ->label('Nombre')
-                                ->required()->maxLength(255),
-                            Forms\Components\Toggle::make('activo')
-                                ->label('Activo')
-                                ->default(true),
-                        ])
-                        ->createOptionUsing(fn (array $data) => TipoSilla::create($data)->getKey()),
-
-                    Forms\Components\Repeater::make('marcasSilla')
-                        ->relationship('marcasSilla')
-                        ->label('Marcas y nombre de fantasía')
-                        ->schema([
-                            Forms\Components\Select::make('marca_id')
-                                ->label('Marca')
-                                ->options(Marca::where('activo', true)->orderBy('nombre')->pluck('nombre', 'id'))
-                                ->searchable()
-                                ->preload()
-                                ->required(),
-                            Forms\Components\TextInput::make('nombre_fantasia')
-                                ->label('Nombre de fantasía')
-                                ->maxLength(255)
-                                ->nullable(),
-                        ])
-                        ->columns(2)
-                        ->addActionLabel('Agregar marca')
-                        ->columnSpanFull(),
-                ])
-                ->columns(2)
-                ->visible(fn (Get $get): bool => str_contains(
-                    strtolower(CategoriaMobiliario::find($get('categoria_id'))?->nombre ?? ''),
-                    'silla'
-                )),
 
             Forms\Components\Section::make('Atributos configurables')->schema([
                 Forms\Components\Repeater::make('atributos')
