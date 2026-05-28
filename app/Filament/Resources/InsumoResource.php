@@ -7,10 +7,6 @@ use App\Filament\Resources\InsumoResource\RelationManagers;
 use App\Models\Insumo;
 use App\Models\UnidadMedida;
 use App\Models\CategoriaInsumo;
-use App\Models\TipoSilla;
-use App\Models\Tercero;
-use App\Models\Marca;
-use Filament\Forms\Get;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -104,60 +100,6 @@ class InsumoResource extends Resource
                 Forms\Components\Textarea::make('observaciones')
                     ->rows(3)->columnSpanFull(),
             ])->columns(2),
-
-            Forms\Components\Section::make('Datos de Silla')
-                ->schema([
-                    Forms\Components\Select::make('proveedor_id')
-                        ->label('Proveedor')
-                        ->options(
-                            Tercero::where('tipo', 'proveedor_material')
-                                ->where('activo', true)
-                                ->orderBy('nombre')
-                                ->pluck('nombre', 'id')
-                        )
-                        ->searchable()
-                        ->preload()
-                        ->nullable(),
-
-                    Forms\Components\Select::make('tipo_silla_id')
-                        ->label('Tipo de Silla')
-                        ->relationship('tipoSilla', 'nombre')
-                        ->searchable()
-                        ->preload()
-                        ->nullable()
-                        ->createOptionForm([
-                            Forms\Components\TextInput::make('nombre')
-                                ->label('Nombre')
-                                ->required()->maxLength(255),
-                            Forms\Components\Toggle::make('activo')
-                                ->label('Activo')
-                                ->default(true),
-                        ])
-                        ->createOptionUsing(fn (array $data) => TipoSilla::create($data)->getKey()),
-
-                    Forms\Components\Repeater::make('marcasSilla')
-                        ->relationship('marcasSilla')
-                        ->label('Marcas y nombre de fantasía')
-                        ->schema([
-                            Forms\Components\Select::make('marca_id')
-                                ->label('Marca')
-                                ->options(Marca::where('activo', true)->orderBy('nombre')->pluck('nombre', 'id'))
-                                ->searchable()
-                                ->preload()
-                                ->required(),
-                            Forms\Components\TextInput::make('nombre_fantasia')
-                                ->label('Nombre de fantasía')
-                                ->maxLength(255)
-                                ->nullable(),
-                        ])
-                        ->columns(2)
-                        ->addActionLabel('Agregar marca')
-                        ->columnSpanFull(),
-                ])
-                ->columns(2)
-                ->visible(fn (Get $get): bool => strtolower(
-                    CategoriaInsumo::find($get('categoria_insumo_id'))?->nombre ?? ''
-                ) === 'sillas'),
 
             Forms\Components\Section::make('Plantilla de flujo externo')
                 ->schema([
