@@ -71,11 +71,11 @@ class InsumoResource extends Resource
                     ->updateOptionUsing(function (array $data, $form): void {
                         $form->getRecord()?->update($data);
                     }),
-                Forms\Components\TextInput::make('stock_minimo')
-                    ->label('Stock mínimo')
-                    ->numeric()->minValue(0)->default(0),
                 Forms\Components\TextInput::make('stock_actual')
                     ->label('Stock actual')
+                    ->numeric()->minValue(0)->default(0),
+                Forms\Components\TextInput::make('stock_minimo')
+                    ->label('Stock mínimo')
                     ->numeric()->minValue(0)->default(0),
                 Forms\Components\TextInput::make('precio_costo')
                     ->label('Precio de costo')
@@ -193,7 +193,17 @@ class InsumoResource extends Resource
                     ->color('primary')
                     ->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('stock_actual')
-                    ->label('Stock actual')->numeric(2),
+                    ->label('Stock actual')->numeric(0),
+                Tables\Columns\TextColumn::make('stock_proyectado')
+                    ->label('Stock proyectado')->numeric(0),
+                Tables\Columns\TextColumn::make('stock_comprometido')
+                    ->label('Cantidad Comprometida')->numeric(0),
+                Tables\Columns\TextColumn::make('pendiente_recepcion')
+                    ->label('Cantidad en Compra')->numeric(0),
+                Tables\Columns\TextColumn::make('stock_proyectado')
+                    ->label('Stock proyectado')->numeric(0),
+                Tables\Columns\TextColumn::make('precio_costo')
+                    ->label('Precio Costo')->numeric(0),
                 Tables\Columns\TextColumn::make('ubicacion')->label('Ubicación'),
             ])
             ->filters([
