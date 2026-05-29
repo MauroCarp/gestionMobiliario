@@ -4,7 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProveedorResource\Pages;
 use App\Models\Proveedor;
-use App\Models\Rubro;
 use App\Models\Provincia;
 use App\Models\Ciudad;
 use Filament\Forms;
@@ -100,12 +99,12 @@ class ProveedorResource extends Resource
             ])->columns(2),
 
             Forms\Components\Section::make('Comercial')->schema([
-                Forms\Components\Select::make('rubro_id')
-                    ->label('Rubro')
-                    ->relationship('rubro', 'nombre', fn ($query) => $query->where('activo', true)->orderBy('nombre'))
+                Forms\Components\Select::make('rubros')
+                    ->label('Rubros')
+                    ->relationship('rubros', 'nombre', fn ($query) => $query->where('activo', true)->orderBy('nombre'))
+                    ->multiple()
                     ->searchable()
                     ->preload()
-                    ->nullable()
                     ->createOptionForm([
                         Forms\Components\TextInput::make('nombre')
                             ->label('Nombre')
@@ -114,8 +113,7 @@ class ProveedorResource extends Resource
                         Forms\Components\Toggle::make('activo')
                             ->label('Activo')
                             ->default(true),
-                    ])
-                    ->createOptionUsing(fn (array $data) => Rubro::create($data)->getKey()),
+                    ]),
                 Forms\Components\TextInput::make('condicion_pago')
                     ->label('Condición de Pago')
                     ->maxLength(255)
@@ -173,12 +171,12 @@ class ProveedorResource extends Resource
                     ->badge()
                     ->color('info')
                     ->placeholder('—'),
-                Tables\Columns\TextColumn::make('rubro.nombre')
-                    ->label('Rubro')
-                    ->placeholder('—')
-                    ->searchable()
+                Tables\Columns\TextColumn::make('rubros.nombre')
+                    ->label('Rubros')
                     ->badge()
-                    ->color('warning'),
+                    ->color('warning')
+                    ->searchable()
+                    ->separator(','),
                 Tables\Columns\TextColumn::make('telefono')
                     ->label('Teléfono')
                     ->placeholder('—')
@@ -207,9 +205,9 @@ class ProveedorResource extends Resource
                     ->sortable(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('rubro_id')
+                Tables\Filters\SelectFilter::make('rubros')
                     ->label('Rubro')
-                    ->relationship('rubro', 'nombre'),
+                    ->relationship('rubros', 'nombre'),
                 Tables\Filters\SelectFilter::make('condicion_iva')
                     ->label('Condición IVA')
                     ->options(Proveedor::CONDICIONES_IVA),

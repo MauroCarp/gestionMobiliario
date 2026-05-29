@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Rubro extends Model
 {
@@ -13,8 +13,8 @@ class Rubro extends Model
 
     protected $casts = ['activo' => 'boolean'];
 
-    public function proveedores(): HasMany
+    public function proveedores(): BelongsToMany
     {
-        return $this->hasMany(Proveedor::class);
+        return $this->belongsToMany(Proveedor::class, 'proveedor_rubro');
     }
 }

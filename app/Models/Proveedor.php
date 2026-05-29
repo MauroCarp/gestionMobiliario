@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Proveedor extends Model
 {
@@ -51,7 +52,6 @@ class Proveedor extends Model
         'persona_contacto',
         'activo',
         'observaciones',
-        'rubro_id',
         'condicion_pago',
         'lista_precio',
     ];
@@ -70,8 +70,8 @@ class Proveedor extends Model
         return $this->belongsTo(Ciudad::class);
     }
 
-    public function rubro(): BelongsTo
+    public function rubros(): BelongsToMany
     {
-        return $this->belongsTo(Rubro::class);
+        return $this->belongsToMany(Rubro::class, 'proveedor_rubro');
     }
 }
