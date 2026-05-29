@@ -24,7 +24,7 @@
                 @foreach($snap['items'] ?? [] as $i => $item)
                 <tr class="border-t border-gray-200 dark:border-gray-700">
                     <td class="px-3 py-2">{{ $i + 1 }}</td>
-                    <td class="px-3 py-2">{{ $item['mobiliario']['nombre'] ?? $item['mobiliario_id'] }}</td>
+                    <td class="px-3 py-2">{{ $item['mobiliario']['nombre'] ?? ($item['insumo']['nombre'] ?? $item['mobiliario_id'] ?? $item['insumo_id'] ?? '—') }}</td>
                     <td class="px-3 py-2">{{ $item['cantidad'] }}</td>
                     <td class="px-3 py-2">{{ $item['precio_unitario'] ? '$' . number_format($item['precio_unitario'], 2) : '—' }}</td>
                     <td class="px-3 py-2">{{ $item['observaciones'] ?? '—' }}</td>

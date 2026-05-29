@@ -176,6 +176,11 @@ class StockReservaService
         $presupuesto->loadMissing(['items.mobiliario']);
 
         foreach ($presupuesto->items as $item) {
+            // Los ítems de silla (insumo directo) no tienen flujo externo de fabricación
+            if (!$item->mobiliario_id) {
+                continue;
+            }
+
             // Evitar duplicados usando origen_id para trazar el lote al presupuesto
             $yaExiste = LoteProcesoExterno::where('entidad_tipo', 'mobiliario')
                 ->where('entidad_id', $item->mobiliario_id)
@@ -219,16 +224,23 @@ class StockReservaService
     {
         $presupuesto->loadMissing([
             'items.mobiliario.composicionTecnica',
+            'items.insumo',
         ]);
 
         $demanda = [];
 
         foreach ($presupuesto->items as $item) {
-            $cantMobiliario = (int) $item->cantidad;
+            $cantItem = (int) $item->cantidad;
+
+            // Ítem de silla (insumo directo) → la demanda ES el insumo × cantidad
+            if ($item->insumo_id) {
+                $demanda[$item->insumo_id] = ($demanda[$item->insumo_id] ?? 0) + $cantItem;
+                continue;
+            }
 
             foreach ($item->mobiliario->composicionTecnica as $comp) {
                 $id = $comp->insumo_id;
-                $demanda[$id] = ($demanda[$id] ?? 0) + ($comp->cantidad * $cantMobiliario);
+                $demanda[$id] = ($demanda[$id] ?? 0) + ($comp->cantidad * $cantItem);
             }
         }
 

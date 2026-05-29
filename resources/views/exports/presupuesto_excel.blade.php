@@ -60,15 +60,20 @@
 
     {{-- ── ITEMS ──────────────────────────────────────────────────── --}}
     @foreach($presupuesto->items as $i => $item)
+    @php
+        $entidad = $item->mobiliario ?? $item->insumo;
+        $categoria = $item->mobiliario?->categoria?->nombre ?? ($item->insumo ? 'Silla' : '—');
+        $descripcion = $item->descripcion_override ?: ($item->mobiliario?->descripcion ?? $item->insumo?->observaciones ?? '');
+    @endphp
     <tr>
         <td>{{ $i + 1 }}</td>
-        <td>{{ $item->mobiliario->codigo_interno }}</td>
-        <td>{{ $item->mobiliario->nombre }}</td>
-        <td>{{ $item->mobiliario->categoria->nombre ?? '—' }}</td>
+        <td>{{ $item->item_codigo }}</td>
+        <td>{{ $item->item_nombre }}</td>
+        <td>{{ $categoria }}</td>
         <td>{{ $item->cantidad }}</td>
         <td>{{ $item->precio_unitario ?? '' }}</td>
         <td>{{ $item->subtotal ?? '' }}</td>
-        <td>{{ $item->descripcion_override ?: $item->mobiliario->descripcion }}{{ $item->observaciones ? ' | Obs: ' . $item->observaciones : '' }}</td>
+        <td>{{ $descripcion }}{{ $item->observaciones ? ' | Obs: ' . $item->observaciones : '' }}</td>
         <td>{{ $item->notas_manuales }}</td>
     </tr>
     @endforeach

@@ -12,6 +12,7 @@ class PresupuestoItem extends Model
     protected $fillable = [
         'presupuesto_id',
         'mobiliario_id',
+        'insumo_id',
         'cantidad',
         'precio_unitario',
         'descripcion_override',
@@ -47,5 +48,22 @@ class PresupuestoItem extends Model
     public function mobiliario(): BelongsTo
     {
         return $this->belongsTo(Mobiliario::class);
+    }
+
+    public function insumo(): BelongsTo
+    {
+        return $this->belongsTo(Insumo::class);
+    }
+
+    /** Retorna el nombre del ítem independientemente de si es Mobiliario o Insumo. */
+    public function getItemNombreAttribute(): string
+    {
+        return $this->mobiliario?->nombre ?? $this->insumo?->nombre ?? '—';
+    }
+
+    /** Retorna el código del ítem independientemente de si es Mobiliario o Insumo. */
+    public function getItemCodigoAttribute(): string
+    {
+        return $this->mobiliario?->codigo_interno ?? $this->insumo?->codigo ?? '—';
     }
 }

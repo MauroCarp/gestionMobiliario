@@ -5,6 +5,8 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\PresupuestoResource\Pages;
 use App\Filament\Resources\PresupuestoResource\RelationManagers;
 use App\Models\Agencia;
+use App\Models\Insumo;
+use App\Models\CategoriaInsumo;
 use App\Models\Presupuesto;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -101,33 +103,71 @@ class PresupuestoResource extends Resource
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')
                         ->schema([
-                            Forms\Components\Select::make('mobiliario_id')
-                                ->label('Mobiliario')
+                            Forms\Components\Select::make('_item_selector')
+                                ->label('Mobiliario / Silla')
                                 ->options(function (Get $get) {
                                     $agenciaId = $get('../../agencia_id');
+
+                                    // Mobiliarios: del proyecto si hay agencia, o todos activos
                                     if ($agenciaId) {
                                         $agencia = Agencia::find($agenciaId);
                                         $proyecto = $agencia?->proyecto;
                                         if ($proyecto) {
-                                            return $proyecto->mobiliarios()
+                                            $mobiliarios = $proyecto->mobiliarios()
                                                 ->where('estado', 'activo')
                                                 ->orderBy('nombre')
                                                 ->get()
                                                 ->mapWithKeys(fn ($m) => [
-                                                    $m->id => "[{$m->codigo_interno}] {$m->nombre}",
+                                                    'mob_' . $m->id => "[{$m->codigo_interno}] {$m->nombre}",
                                                 ]);
                                         }
                                     }
-                                    return \App\Models\Mobiliario::where('estado', 'activo')
+
+                                    if (!isset($mobiliarios)) {
+                                        $mobiliarios = \App\Models\Mobiliario::where('estado', 'activo')
+                                            ->orderBy('nombre')
+                                            ->get()
+                                            ->mapWithKeys(fn ($m) => [
+                                                'mob_' . $m->id => "[{$m->codigo_interno}] {$m->nombre}",
+                                            ]);
+                                    }
+
+                                    // Insumos de categoría Sillas
+                                    $sillas = Insumo::whereHas('categoriaInsumo', fn ($q) =>
+                                            $q->where('nombre', 'like', '%silla%')
+                                        )
+                                        ->where('activo', true)
                                         ->orderBy('nombre')
                                         ->get()
-                                        ->mapWithKeys(fn ($m) => [
-                                            $m->id => "[{$m->codigo_interno}] {$m->nombre}",
+                                        ->mapWithKeys(fn ($i) => [
+                                            'ins_' . $i->id => "[SILLA] [{$i->codigo}] {$i->nombre}",
                                         ]);
+
+                                    return $mobiliarios->merge($sillas);
                                 })
                                 ->searchable()
                                 ->required()
+                                ->dehydrated(false)
+                                ->live()
+                                ->formatStateUsing(function ($state, $record): ?string {
+                                    if ($record?->mobiliario_id) return 'mob_' . $record->mobiliario_id;
+                                    if ($record?->insumo_id)     return 'ins_' . $record->insumo_id;
+                                    return $state;
+                                })
+                                ->afterStateUpdated(function ($state, Forms\Set $set): void {
+                                    if (!$state) return;
+                                    if (str_starts_with($state, 'mob_')) {
+                                        $set('mobiliario_id', (int) substr($state, 4));
+                                        $set('insumo_id', null);
+                                    } elseif (str_starts_with($state, 'ins_')) {
+                                        $set('insumo_id', (int) substr($state, 4));
+                                        $set('mobiliario_id', null);
+                                    }
+                                })
                                 ->columnSpan(2),
+
+                            Forms\Components\Hidden::make('mobiliario_id'),
+                            Forms\Components\Hidden::make('insumo_id'),
 
                             Forms\Components\TextInput::make('cantidad')
                                 ->label('Cantidad')
@@ -171,11 +211,11 @@ class PresupuestoResource extends Resource
                         ->addActionLabel('+ Agregar mobiliario')
                         ->defaultItems(0)
                         ->cloneable()
-                        ->itemLabel(fn (array $state): ?string =>
-                            isset($state['mobiliario_id'])
-                                ? \App\Models\Mobiliario::find($state['mobiliario_id'])?->nombre
-                                : null
-                        )
+                        ->itemLabel(fn (array $state): ?string => match (true) {
+                            !empty($state['mobiliario_id']) => \App\Models\Mobiliario::find($state['mobiliario_id'])?->nombre,
+                            !empty($state['insumo_id'])     => ('[SILLA] ' . (Insumo::find($state['insumo_id'])?->nombre ?? '')),
+                            default                         => null,
+                        })
                         ->collapsible(),
                 ]),
 
