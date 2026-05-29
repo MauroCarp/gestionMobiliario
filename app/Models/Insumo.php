@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\CategoriaInsumo;
 use App\Models\TipoSilla;
@@ -27,7 +28,6 @@ class Insumo extends Model implements HasMedia
         'codigo',
         'nombre',
         'unidad_medida_id',
-        'categoria_insumo_id',
         'stock_minimo',
         'stock_actual',
         'precio_costo',
@@ -80,9 +80,9 @@ class Insumo extends Model implements HasMedia
         return $this->belongsTo(UnidadMedida::class, 'unidad_medida_id');
     }
 
-    public function categoriaInsumo(): BelongsTo
+    public function categoriasInsumo(): BelongsToMany
     {
-        return $this->belongsTo(CategoriaInsumo::class, 'categoria_insumo_id');
+        return $this->belongsToMany(CategoriaInsumo::class, 'categoria_insumo_insumo');
     }
 
     public function composiciones(): HasMany

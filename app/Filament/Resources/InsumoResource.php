@@ -85,10 +85,12 @@ class InsumoResource extends Resource
                     ->numeric()->minValue(0)->prefix('$')->nullable(),
                 Forms\Components\TextInput::make('ubicacion')
                     ->label('Ubicación')->maxLength(255),
-                Forms\Components\Select::make('categoria_insumo_id')
+                Forms\Components\Select::make('categoriasInsumo')
                     ->label('Categoría')
-                    ->relationship('categoriaInsumo', 'nombre')
-                    ->searchable()->preload()
+                    ->relationship('categoriasInsumo', 'nombre')
+                    ->multiple()
+                    ->searchable()
+                    ->preload()
                     ->live()
                     ->createOptionForm([
                         Forms\Components\TextInput::make('nombre')
@@ -97,8 +99,7 @@ class InsumoResource extends Resource
                         Forms\Components\Toggle::make('activo')
                             ->label('Activa')
                             ->default(true),
-                    ])
-                    ->createOptionUsing(fn (array $data) => CategoriaInsumo::create($data)->getKey()),
+                    ]),
                 Forms\Components\Toggle::make('activo')->default(true),
                 Forms\Components\Textarea::make('observaciones')
                     ->rows(3)->columnSpanFull(),
@@ -154,10 +155,10 @@ class InsumoResource extends Resource
                         ->columnSpanFull(),
                 ])
                 ->columns(2)
-                ->visible(fn (Forms\Get $get): bool => str_contains(
-                    strtolower(CategoriaInsumo::find($get('categoria_insumo_id'))?->nombre ?? ''),
-                    'silla'
-                )),
+                ->visible(fn (Forms\Get $get): bool => CategoriaInsumo::whereIn('id', (array) ($get('categoriasInsumo') ?? []))
+                    ->whereRaw("LOWER(nombre) LIKE '%silla%'")
+                    ->exists()
+                ),
 
             Forms\Components\Section::make('Plantilla de flujo externo')
                 ->schema([
@@ -245,11 +246,11 @@ class InsumoResource extends Resource
                     ->searchable()->sortable()->badge(),
                 Tables\Columns\TextColumn::make('nombre')
                     ->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('categoriaInsumo.nombre')
+                Tables\Columns\TextColumn::make('categoriasInsumo.nombre')
                     ->label('Categoría')
                     ->badge()
                     ->color('primary')
-                    ->searchable()->sortable(),
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('stock_actual')
                     ->label('Stock actual')->numeric(0),
                 Tables\Columns\TextColumn::make('stock_proyectado')
