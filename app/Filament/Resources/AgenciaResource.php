@@ -63,7 +63,23 @@ class AgenciaResource extends Resource
                         return [];
                     })
                     ->searchable()
-                    ->disabled(fn (callable $get) => !$get('provincia_id')),
+                    ->disabled(fn (callable $get) => !$get('provincia_id'))
+                    ->createOptionForm(fn (callable $get) => [
+                        Forms\Components\TextInput::make('nombre')
+                            ->label('Nombre')
+                            ->required()
+                            ->maxLength(100),
+                        Forms\Components\TextInput::make('codigo_postal')
+                            ->label('Código postal')
+                            ->maxLength(20),
+                        Forms\Components\Hidden::make('provincia_id')
+                            ->default(fn () => $get('provincia_id')),
+                    ])
+                    ->createOptionUsing(function (array $data, callable $get) {
+                        $data['provincia_id'] = $data['provincia_id'] ?? $get('provincia_id');
+                        $ciudad = Ciudad::create($data);
+                        return $ciudad->id;
+                    }),
                 Forms\Components\Toggle::make('activo')->default(true)->label('Activa'),
                 Forms\Components\TagsInput::make('etiquetas')
                     ->separator(',')

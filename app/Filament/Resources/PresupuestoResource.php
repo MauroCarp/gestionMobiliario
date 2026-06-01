@@ -134,7 +134,7 @@ class PresupuestoResource extends Resource
                                     }
 
                                     // Insumos de categoría Sillas
-                                    $sillas = Insumo::whereHas('categoriaInsumo', fn ($q) =>
+                                    $sillas = Insumo::whereHas('categoriasInsumo', fn ($q) =>
                                             $q->where('nombre', 'like', '%silla%')
                                         )
                                         ->where('activo', true)

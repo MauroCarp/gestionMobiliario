@@ -129,7 +129,7 @@ class ProveedorResource extends Resource
                         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                         'text/csv',
                     ])
-                    ->maxSize(10240)
+                    ->maxSize(80720)
                     ->nullable()
                     ->columnSpanFull(),
             ])->columns(2),
