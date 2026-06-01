@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\CategoriaInsumo;
 use App\Models\TipoSilla;
-use App\Models\Tercero;
+use App\Models\Proveedor;
 use App\Models\InsumoMarcaSilla;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
@@ -129,7 +129,7 @@ class Insumo extends Model implements HasMedia
 
     public function proveedor(): BelongsTo
     {
-        return $this->belongsTo(Tercero::class, 'proveedor_id');
+        return $this->belongsTo(Proveedor::class, 'proveedor_id');
     }
 
     public function marcasSilla(): HasMany

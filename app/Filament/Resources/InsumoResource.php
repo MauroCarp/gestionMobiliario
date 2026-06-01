@@ -9,7 +9,7 @@ use App\Models\UnidadMedida;
 use App\Models\CategoriaInsumo;
 use App\Models\TipoSilla;
 use App\Models\Marca;
-use App\Models\Tercero;
+use App\Models\Proveedor;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -109,12 +109,10 @@ class InsumoResource extends Resource
                 ->schema([
                     Forms\Components\Select::make('proveedor_id')
                         ->label('Proveedor')
-                        ->options(
-                            Tercero::where('tipo', 'proveedor_material')
-                                ->where('activo', true)
-                                ->orderBy('nombre')
-                                ->pluck('nombre', 'id')
-                        )
+                        ->relationship('proveedor', 'razon_social', fn ($query) => $query
+                            ->where('activo', true)
+                            ->whereHas('rubros', fn ($q) => $q->whereRaw("LOWER(nombre) LIKE '%silla%'"))
+                            ->orderBy('razon_social'))
                         ->searchable()
                         ->preload()
                         ->nullable(),

@@ -40,6 +40,7 @@ class Mobiliario extends Model implements HasMedia
         'estado',
         'precio',
         'version_actual',
+        'sector_id',
     ];
 
     protected $casts = [
@@ -74,6 +75,11 @@ class Mobiliario extends Model implements HasMedia
         // Fit::Max escala hacia abajo para caber en 800×600 sin recortar ni agrandar.
         $this->addMediaConversion('medium')
             ->fit(Fit::Max, 800, 600);
+    }
+
+    public function sector(): BelongsTo
+    {
+        return $this->belongsTo(Sector::class, 'sector_id');
     }
 
     public function categoria(): BelongsTo

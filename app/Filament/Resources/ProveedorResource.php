@@ -12,6 +12,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\DB;
 
 class ProveedorResource extends Resource
 {
@@ -115,7 +116,7 @@ class ProveedorResource extends Resource
                             ->default(true),
                     ]),
                 Forms\Components\TextInput::make('condicion_pago')
-                    ->label('Condición de Pago')
+                    ->label('Condición de Pago (Días)')
                     ->maxLength(255)
                     ->nullable(),
                 Forms\Components\FileUpload::make('lista_precio')
@@ -160,7 +161,8 @@ class ProveedorResource extends Resource
                 Tables\Columns\TextColumn::make('nombre_comercial')
                     ->label('Nombre Comercial')
                     ->placeholder('—')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('cuit')
                     ->label('CUIT')
                     ->placeholder('—')
@@ -176,7 +178,8 @@ class ProveedorResource extends Resource
                     ->badge()
                     ->color('warning')
                     ->searchable()
-                    ->separator(','),
+                    ->separator(',')
+                    ->sortable(query: fn ($query, string $direction) => $query->orderBy('primer_rubro', $direction)),
                 Tables\Columns\TextColumn::make('telefono')
                     ->label('Teléfono')
                     ->placeholder('—')
@@ -248,6 +251,12 @@ class ProveedorResource extends Resource
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         return parent::getEloquentQuery()
-            ->withoutGlobalScopes([SoftDeletingScope::class]);
+            ->withoutGlobalScopes([SoftDeletingScope::class])
+            ->addSelect([
+                'proveedores.*',
+                DB::raw('(SELECT MIN(r.nombre) FROM rubros r
+                    INNER JOIN proveedor_rubro pr ON r.id = pr.rubro_id
+                    WHERE pr.proveedor_id = proveedores.id) as primer_rubro'),
+            ]);
     }
 }
