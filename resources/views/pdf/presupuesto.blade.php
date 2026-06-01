@@ -38,7 +38,7 @@
         .fecha-row .val { font-weight: bold; }
 
         /* ── TABLA DE ITEMS ───────────────────────────────────── */
-        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; border: 1px solid #9CA3AF; }
+        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 0; border: 1px solid #9CA3AF; }
         .items-table thead tr { background: #1E3A8A; color: #FFFFFF; }
         .items-table thead th {
             padding: 7px 8px;
@@ -54,6 +54,26 @@
         .items-table tbody td { padding: 7px 8px; vertical-align: top; font-size: 10px; border: 1px solid #D1D5DB; }
         .items-table tbody td.center { text-align: center; }
         .items-table tbody td.right  { text-align: right; }
+
+        /* ── SECTOR HEADER ───────────────────────────────────────── */
+        .sector-header {
+            background: #1E3A8A;
+            color: #FFFFFF;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding: 6px 10px;
+            margin-top: 14px;
+            margin-bottom: 0;
+        }
+        .sector-total-row td {
+            background: #EFF6FF;
+            font-weight: bold;
+            font-size: 10px;
+            border-top: 2px solid #1E3A8A;
+        }
+        .sector-spacer { height: 14px; }
 
         .item-num    { color: #6B7280; font-size: 10px; font-weight: bold; }
         .item-img-cell { overflow: hidden; }
@@ -191,7 +211,23 @@
     <span class="val">{{ $presupuesto->fecha_emision->format('d/m/Y') }}</span>
 </div>
 
-{{-- ── TABLA DE MOBILIARIOS ───────────────────────────────────── --}}
+{{-- ── TABLAS POR SECTOR ───────────────────────────────────── --}}
+@php $globalIndex = 1; $grandTotal = 0; $hayPrecios = false; @endphp
+
+@foreach($itemsPorSector as $sectorNombre => $sectorItems)
+@php
+    $esSinSector = ($sectorNombre === '__sin_sector__');
+    $labelSector = $esSinSector ? 'Sin sector asignado' : $sectorNombre;
+    $sectorTotal = $sectorItems->sum(fn($i) => (float)($i['item']->subtotal ?? 0));
+    $grandTotal += $sectorTotal;
+    if ($sectorItems->contains(fn($i) => $i['item']->precio_unitario !== null)) $hayPrecios = true;
+@endphp
+
+{{-- Encabezado de sector --}}
+<div class="sector-header" style="{{ $esSinSector ? 'background:#6B7280;' : '' }}">
+    {{ $labelSector }}
+</div>
+
 <table class="items-table" cellpadding="0" cellspacing="0">
     <thead>
         <tr>
@@ -205,21 +241,23 @@
         </tr>
     </thead>
     <tbody>
-        @foreach($items as $index => $itemData)
+        @foreach($sectorItems as $idx => $itemData)
         @php
             $item      = $itemData['item'];
             $mob       = $itemData['mobiliario'];
+            $insumo    = $itemData['insumo'];
             $imgBase64 = $itemData['imagen_base64'];
-            $rowClass  = $index % 2 === 1 ? 'even' : '';
+            $rowClass  = $idx % 2 === 1 ? 'even' : '';
+            $nombreItem = $mob?->nombre ?? $insumo?->nombre ?? '—';
+            $codigoItem = $mob?->codigo_interno ?? $insumo?->codigo ?? '';
+            $categoriaItem = $mob?->categoria?->nombre ?? ($insumo ? 'Insumo' : '');
         @endphp
         <tr class="{{ $rowClass }}">
 
-            {{-- Número --}}
             <td class="center">
-                <span class="item-num">{{ $index + 1 }}</span>
+                <span class="item-num">{{ $globalIndex++ }}</span>
             </td>
 
-            {{-- Imagen --}}
             <td class="center item-img-cell">
                 @if($imgBase64)
                     <img src="{{ $imgBase64 }}" class="item-img">
@@ -228,18 +266,16 @@
                 @endif
             </td>
 
-            {{-- Nombre + código --}}
             <td>
-                <strong>{{ $mob->nombre }}</strong>
-                <div class="item-code">Cód: {{ $mob->codigo_interno }}</div>
-                @if($mob->categoria)
-                    <div class="item-code">{{ $mob->categoria->nombre }}</div>
+                <strong>{{ $nombreItem }}</strong>
+                <div class="item-code">Cód: {{ $codigoItem }}</div>
+                @if($categoriaItem)
+                    <div class="item-code">{{ $categoriaItem }}</div>
                 @endif
             </td>
 
-            {{-- Descripción y observaciones --}}
             <td>
-                @php $desc = $item->descripcion_override ?: $mob->descripcion; @endphp
+                @php $desc = $item->descripcion_override ?: $mob?->descripcion; @endphp
                 @if($desc)
                     <div class="item-desc">{{ \Illuminate\Support\Str::limit($desc, 230) }}</div>
                 @endif
@@ -248,12 +284,10 @@
                 @endif
             </td>
 
-            {{-- Cantidad --}}
             <td class="center">
                 <span class="item-qty">{{ $item->cantidad }}</span>
             </td>
 
-            {{-- Notas / Anotaciones --}}
             <td>
                 @if($item->notas_manuales)
                     <div style="font-size:9px;">{{ $item->notas_manuales }}</div>
@@ -264,7 +298,6 @@
                 @endif
             </td>
 
-            {{-- Precio unitario --}}
             <td class="right item-price">
                 @if($item->precio_unitario !== null)
                     ${{ number_format((float)$item->precio_unitario, 2, ',', '.') }}
@@ -275,24 +308,36 @@
         @endforeach
     </tbody>
 
-    {{-- Total (sólo si algún ítem tiene precio) --}}
-    @php
-        $hayPrecios = $items->contains(fn($i) => $i['item']->precio_unitario !== null);
-        $total      = $items->sum(fn($i) => (float)($i['item']->subtotal ?? 0));
-    @endphp
-    @if($hayPrecios && $total > 0)
+    {{-- Subtotal por sector --}}
+    @if($sectorTotal > 0)
     <tfoot>
-        <tr style="background:#1E3A8A; color:#FFFFFF;">
-            <td colspan="6" style="padding:7px 10px; text-align:right; font-weight:bold; font-size:11px;">
-                Total estimado:
+        <tr class="sector-total-row">
+            <td colspan="6" style="padding:5px 10px; text-align:right;">
+                Subtotal {{ $labelSector }}:
             </td>
-            <td style="padding:7px 10px; text-align:right; font-size:12px; font-weight:bold;">
-                ${{ number_format($total, 2, ',', '.') }}
+            <td style="padding:5px 10px; text-align:right;">
+                ${{ number_format($sectorTotal, 2, ',', '.') }}
             </td>
         </tr>
     </tfoot>
     @endif
 </table>
+<div class="sector-spacer"></div>
+@endforeach
+
+{{-- ── TOTAL GENERAL ──────────────────────────────────────────── --}}
+@if($hayPrecios && $grandTotal > 0)
+<table style="width:100%; border-collapse:collapse; margin-bottom:14px;">
+    <tr style="background:#1E3A8A; color:#FFFFFF;">
+        <td style="padding:8px 10px; text-align:right; font-weight:bold; font-size:12px;">
+            TOTAL GENERAL:
+        </td>
+        <td style="padding:8px 10px; text-align:right; font-size:13px; font-weight:bold; width:120px;">
+            ${{ number_format($grandTotal, 2, ',', '.') }}
+        </td>
+    </tr>
+</table>
+@endif
 
 {{-- ── OBSERVACIONES GENERALES ────────────────────────────────── --}}
 @if($presupuesto->observaciones)

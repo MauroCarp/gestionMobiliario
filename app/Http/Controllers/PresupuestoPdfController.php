@@ -15,7 +15,7 @@ class PresupuestoPdfController extends Controller
             'agencia.proyecto.marca',
             'responsable',
             'aprobadoPor',
-            'items' => fn ($q) => $q->orderBy('orden')->with('mobiliario'),
+            'items' => fn ($q) => $q->orderBy('sector_id')->orderBy('orden')->with(['mobiliario', 'sector', 'insumo']),
         ]);
 
         // El proyecto y la marca se obtienen a través de la agencia
@@ -41,30 +41,35 @@ class PresupuestoPdfController extends Controller
             $logoEmpresaBase64 = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($logoEmpresaPath));
         }
 
-        // Items con imagen en base64
+        // Items con imagen en base64, agrupados por sector
         $items = $presupuesto->items->map(function ($item) {
             $imagenBase64 = null;
             try {
-                $media = $item->mobiliario->getFirstMedia('imagenes');
+                $media = $item->mobiliario?->getFirstMedia('imagenes');
                 if ($media) {
                     $path = $media->getPath();
                     if (file_exists($path)) {
                         $imagenBase64 = 'data:' . $media->mime_type . ';base64,' . base64_encode(file_get_contents($path));
                     }
                 }
-            } catch (\Throwable) {
-                // imagen no disponible, continúa sin ella
-            }
+            } catch (\Throwable) {}
 
             return [
-                'item'         => $item,
-                'mobiliario'   => $item->mobiliario,
+                'item'          => $item,
+                'mobiliario'    => $item->mobiliario,
+                'insumo'        => $item->insumo,
+                'sector'        => $item->sector,
                 'imagen_base64' => $imagenBase64,
             ];
         });
 
+        // Agrupar por sector (null = "Sin sector")
+        $itemsPorSector = $items->groupBy(function ($itemData) {
+            return $itemData['sector']?->nombre ?? '__sin_sector__';
+        });
+
         $pdf = Pdf::loadView('pdf.presupuesto', compact(
-            'presupuesto', 'proyecto', 'agencia', 'marca', 'logoBase64', 'logoEmpresaBase64', 'items'
+            'presupuesto', 'proyecto', 'agencia', 'marca', 'logoBase64', 'logoEmpresaBase64', 'items', 'itemsPorSector'
         ))
         ->setPaper('a4', 'portrait')
         ->setOptions([
