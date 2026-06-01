@@ -8,7 +8,6 @@ use App\Models\CategoriaMobiliario;
 use App\Models\Insumo;
 use App\Models\Marca;
 use App\Models\Mobiliario;
-use App\Models\Sector;
 use App\Models\UnidadMedida;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -142,21 +141,6 @@ class MobiliarioResource extends Resource
                 Forms\Components\Textarea::make('observaciones')
                     ->label('Observaciones')
                     ->rows(3),
-                Forms\Components\Select::make('sector_id')
-                    ->label('Sector')
-                    ->relationship('sector', 'nombre', fn ($query) => $query->where('activo', true)->orderBy('nombre'))
-                    ->searchable()
-                    ->preload()
-                    ->nullable()
-                    ->createOptionForm([
-                        Forms\Components\TextInput::make('nombre')
-                            ->label('Nombre')
-                            ->required()->maxLength(100),
-                        Forms\Components\Toggle::make('activo')
-                            ->label('Activo')
-                            ->default(true),
-                    ])
-                    ->createOptionUsing(fn (array $data) => Sector::create($data)->getKey()),
             ])->columns(2),
 
             Forms\Components\Section::make('Imagen principal')->schema([
@@ -369,12 +353,6 @@ class MobiliarioResource extends Resource
                     ->badge()
                     ->color('gray')
                     ->placeholder('—'),
-                Tables\Columns\TextColumn::make('sector.nombre')
-                    ->label('Sector')
-                    ->badge()
-                    ->color('success')
-                    ->placeholder('—')
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('atributos_resumen')
                     ->label('Atributos')
                     ->getStateUsing(fn ($record) =>

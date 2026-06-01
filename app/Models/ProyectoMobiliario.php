@@ -12,6 +12,7 @@ class ProyectoMobiliario extends Model
     protected $fillable = [
         'proyecto_id',
         'mobiliario_id',
+        'sector_id',
         'cantidad',
         'observaciones',
     ];
@@ -28,5 +29,10 @@ class ProyectoMobiliario extends Model
     public function mobiliario(): BelongsTo
     {
         return $this->belongsTo(Mobiliario::class, 'mobiliario_id');
+    }
+
+    public function sector(): BelongsTo
+    {
+        return $this->belongsTo(Sector::class, 'sector_id');
     }
 }

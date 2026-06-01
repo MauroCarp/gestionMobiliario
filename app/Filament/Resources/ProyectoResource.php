@@ -49,6 +49,23 @@ class ProyectoResource extends Resource
                         ->preload()
                         ->required()
                         ->live()
+                        ->afterStateUpdated(function ($state, Forms\Set $set, $livewire): void {
+                            if (! ($livewire instanceof \App\Filament\Resources\ProyectoResource\Pages\CreateProyecto)) {
+                                return;
+                            }
+                            if (! $state) {
+                                $set('mobiliariosPivot', []);
+                                return;
+                            }
+                            $mobiliarios = \App\Models\Mobiliario::where('marca_id', $state)
+                                ->orderBy('nombre')
+                                ->get();
+                            $set('mobiliariosPivot', $mobiliarios->map(fn ($m) => [
+                                'mobiliario_id' => $m->id,
+                                'cantidad'      => 1,
+                                'observaciones' => null,
+                            ])->values()->toArray());
+                        })
                         ->createOptionForm([
                             Forms\Components\TextInput::make('nombre')
                                 ->label('Nombre de la marca')

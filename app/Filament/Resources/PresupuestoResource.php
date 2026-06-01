@@ -8,6 +8,7 @@ use App\Models\Agencia;
 use App\Models\Insumo;
 use App\Models\CategoriaInsumo;
 use App\Models\Presupuesto;
+use App\Models\Sector;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -168,6 +169,23 @@ class PresupuestoResource extends Resource
 
                             Forms\Components\Hidden::make('mobiliario_id'),
                             Forms\Components\Hidden::make('insumo_id'),
+
+                            Forms\Components\Select::make('sector_id')
+                                ->label('Sector')
+                                ->options(fn () => Sector::where('activo', true)->orderBy('nombre')->pluck('nombre', 'id'))
+                                ->searchable()
+                                ->nullable()
+                                ->placeholder('Sin sector')
+                                ->createOptionForm([
+                                    Forms\Components\TextInput::make('nombre')
+                                        ->label('Nombre')
+                                        ->required()->maxLength(100),
+                                    Forms\Components\Toggle::make('activo')
+                                        ->label('Activo')
+                                        ->default(true),
+                                ])
+                                ->createOptionUsing(fn (array $data) => Sector::create($data)->getKey())
+                                ->columnSpan(2),
 
                             Forms\Components\TextInput::make('cantidad')
                                 ->label('Cantidad')

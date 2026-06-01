@@ -13,6 +13,7 @@ class PresupuestoItem extends Model
         'presupuesto_id',
         'mobiliario_id',
         'insumo_id',
+        'sector_id',
         'cantidad',
         'precio_unitario',
         'descripcion_override',
@@ -53,6 +54,11 @@ class PresupuestoItem extends Model
     public function insumo(): BelongsTo
     {
         return $this->belongsTo(Insumo::class);
+    }
+
+    public function sector(): BelongsTo
+    {
+        return $this->belongsTo(Sector::class);
     }
 
     /** Retorna el nombre del ítem independientemente de si es Mobiliario o Insumo. */
