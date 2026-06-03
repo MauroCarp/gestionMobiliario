@@ -30,7 +30,7 @@
             color: #374151; margin-top: 6px; text-align: right;
         }
 
-        .header-divider { border: none; border-top: 3px solid #1E3A8A; margin: 0 0 10px; }
+        .header-divider { border: none; border-top: 3px solid #db0d0d; margin: 0 0 10px; }
 
         /* ── FECHA DE EMISIÓN ─────────────────────────────────── */
         .fecha-row { text-align: right; font-size: 10px; margin-bottom: 12px; }
@@ -39,25 +39,25 @@
 
         /* ── TABLA DE ITEMS ───────────────────────────────────── */
         .items-table { width: 100%; border-collapse: collapse; margin-bottom: 0; border: 1px solid #9CA3AF; }
-        .items-table thead tr { background: #1E3A8A; color: #FFFFFF; }
+        .items-table thead tr { background: rgba(61, 104, 219,0.5); color: #FFFFFF; }
         .items-table thead th {
             padding: 7px 8px;
             text-align: left;
             font-size: 9px;
             text-transform: uppercase;
             letter-spacing: 0.4px;
-            border: 1px solid #4B6CB7;
+            border: 1px solid rgba(61, 104, 219,0.5);
         }
         .items-table thead th.center { text-align: center; }
         .items-table thead th.right  { text-align: right; }
-        .items-table tbody tr.even { background: #F9FAFB; }
+        /* .items-table tbody tr.even { background: #F9FAFB; } */
         .items-table tbody td { padding: 7px 8px; vertical-align: top; font-size: 10px; border: 1px solid #D1D5DB; }
         .items-table tbody td.center { text-align: center; }
         .items-table tbody td.right  { text-align: right; }
 
         /* ── SECTOR HEADER ───────────────────────────────────────── */
         .sector-header {
-            background: #1E3A8A;
+            background: #3d68db;
             color: #FFFFFF;
             font-size: 11px;
             font-weight: bold;
@@ -80,7 +80,8 @@
         .item-img    { width: 106px; height: auto; display: block; }
         .item-no-img {
             width: 106px; height: 90px;
-            background: #F3F4F6; border: 1px solid #E5E7EB;
+            background: #F3F4F6; 
+            border: 1px solid #E5E7EB;
             font-size: 8px; color: #9CA3AF;
             text-align: center; line-height: 90px;
         }
@@ -148,9 +149,36 @@
 
         /* page break helpers */
         .page-break { page-break-after: always; }
+
+        /* ── MARCA DE AGUA ───────────────────────────────────── */
+        .watermark-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1000;
+            overflow: visible;
+        }
+        .watermark {
+            position: absolute;
+            top: 500px;
+            left: 50%;
+            width: 1000px;
+            margin-left: -500px;
+            opacity: 0.15;
+            transform: rotate(-25deg);
+        }
     </style>
 </head>
 <body>
+
+{{-- ── MARCA DE AGUA ───────────────────────────────────────────── --}}
+@if(!empty($logoEmpresaBase64))
+<div class="watermark-wrapper">
+    <img src="{{ $logoEmpresaBase64 }}" class="watermark">
+</div>
+@endif
 
 {{-- ── PIE FIJO (página) ─────────────────────────────────────── --}}
 <div class="footer-fixed">
