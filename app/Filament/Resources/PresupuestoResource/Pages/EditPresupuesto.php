@@ -23,6 +23,14 @@ class EditPresupuesto extends EditRecord
                 ->url(fn () => route('presupuesto.pdf.viewer', $this->record->id))
                 ->openUrlInNewTab(),
 
+            Actions\Action::make('produccionPdf')
+                ->label('Produccion PDF')
+                ->icon('heroicon-o-cog-6-tooth')
+                ->color('warning')
+                ->visible(fn (): bool => in_array($this->record->estado, ['aprobado', 'confirmado', 'pagado']))
+                ->url(fn () => route('presupuesto.produccion.viewer', $this->record->id))
+                ->openUrlInNewTab(),
+
             Actions\Action::make('excel')
                 ->label('Excel')
                 ->icon('heroicon-o-table-cells')
@@ -90,11 +98,39 @@ class EditPresupuesto extends EditRecord
                     $this->refreshFormData(['estado']);
                 }),
 
+            Actions\Action::make('confirmar')
+                ->label('Confirmar')
+                ->icon('heroicon-o-check-badge')
+                ->color('success')
+                ->visible(fn (): bool => $this->record->estado === 'aprobado')
+                ->requiresConfirmation()
+                ->modalHeading('Confirmar presupuesto')
+                ->modalDescription('Se reservará el stock de insumos y el presupuesto pasará a estado Confirmado.')
+                ->action(function (): void {
+                    $this->record->cambiarEstado('confirmado');
+                    Notification::make()->success()->title('Presupuesto confirmado. Stock reservado.')->send();
+                    $this->refreshFormData(['estado']);
+                }),
+
+            Actions\Action::make('marcarPagado')
+                ->label('Marcar Pagado')
+                ->icon('heroicon-o-banknotes')
+                ->color('warning')
+                ->visible(fn (): bool => $this->record->estado === 'confirmado')
+                ->requiresConfirmation()
+                ->modalHeading('Registrar pago')
+                ->modalDescription('El stock de insumos será descontado definitivamente.')
+                ->action(function (): void {
+                    $this->record->cambiarEstado('pagado');
+                    Notification::make()->success()->title('Presupuesto marcado como pagado.')->send();
+                    $this->refreshFormData(['estado']);
+                }),
+
             Actions\Action::make('nuevaVersion')
                 ->label('Nueva Versión')
                 ->icon('heroicon-o-document-duplicate')
                 ->color('info')
-                ->visible(fn (): bool => in_array($this->record->estado, ['aprobado', 'rechazado']))
+                ->visible(false)
                 ->form([
                     Forms\Components\Textarea::make('motivo')
                         ->label('Motivo de la nueva versión')

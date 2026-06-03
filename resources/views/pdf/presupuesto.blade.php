@@ -211,6 +211,11 @@
             @if($agencia?->direccion)
                 <div class="agency-sub">{{ $agencia->direccion }}</div>
             @endif
+            @if($agencia?->ciudad || $agencia?->provincia)
+                <div class="agency-sub">
+                    {{ $agencia->ciudad?->nombre }}@if($agencia?->ciudad && $agencia?->provincia), @endif{{ $agencia->provincia?->nombre }}
+                </div>
+            @endif
             @if($agencia?->responsable)
                 <div class="agency-sub">Resp.: {{ $agencia->responsable }}</div>
             @endif

@@ -13,6 +13,8 @@ class PresupuestoPdfController extends Controller
     {
         $presupuesto->load([
             'agencia.proyecto.marca',
+            'agencia.provincia',
+            'agencia.ciudad',
             'responsable',
             'aprobadoPor',
             'items' => fn ($q) => $q->orderBy('sector_id')->orderBy('orden')->with(['mobiliario', 'sector', 'insumo']),
@@ -102,5 +104,94 @@ class PresupuestoPdfController extends Controller
         $filename = "presupuesto-{$presupuesto->codigo}.xlsx";
 
         return Excel::download(new PresupuestoExport($presupuesto), $filename);
+    }
+
+    public function produccionPdf(Presupuesto $presupuesto)
+    {
+        $presupuesto->load([
+            'agencia.proyecto.marca',
+            'agencia.provincia',
+            'agencia.ciudad',
+            'responsable',
+            'aprobadoPor',
+            'items' => fn ($q) => $q->orderBy('sector_id')->orderBy('orden')
+                ->with(['mobiliario.composicionTecnica.insumo.unidadMedida', 'sector', 'insumo']),
+        ]);
+
+        $agencia  = $presupuesto->agencia;
+        $proyecto = $agencia?->proyecto;
+        $marca    = $proyecto?->marca;
+
+        $logoBase64 = null;
+        if ($marca && $marca->logo) {
+            $logoPath = public_path('storage/' . ltrim($marca->logo, '/'));
+            if (file_exists($logoPath)) {
+                $mime       = mime_content_type($logoPath);
+                $logoBase64 = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($logoPath));
+            }
+        }
+
+        $logoEmpresaBase64 = null;
+        $logoEmpresaPath   = public_path('images/logo-empresa.png');
+        if (file_exists($logoEmpresaPath)) {
+            $mime              = mime_content_type($logoEmpresaPath);
+            $logoEmpresaBase64 = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($logoEmpresaPath));
+        }
+
+        $items = $presupuesto->items->map(function ($item) {
+            $imagenBase64 = null;
+            try {
+                $media = $item->mobiliario?->getFirstMedia('imagenes');
+                if ($media) {
+                    $path = $media->getPath();
+                    if (file_exists($path)) {
+                        $imagenBase64 = 'data:' . $media->mime_type . ';base64,' . base64_encode(file_get_contents($path));
+                    }
+                }
+            } catch (\Throwable) {}
+
+            return [
+                'item'          => $item,
+                'mobiliario'    => $item->mobiliario,
+                'insumo'        => $item->insumo,
+                'sector'        => $item->sector,
+                'imagen_base64' => $imagenBase64,
+            ];
+        });
+
+        $itemsPorSector = $items->groupBy(function ($itemData) {
+            return $itemData['sector']?->nombre ?? '__sin_sector__';
+        });
+
+        $pdf = Pdf::loadView('pdf.produccion', compact(
+            'presupuesto', 'proyecto', 'agencia', 'marca', 'logoBase64', 'logoEmpresaBase64', 'items', 'itemsPorSector'
+        ))
+        ->setPaper('a4', 'portrait')
+        ->setOptions([
+            'dpi'             => 150,
+            'defaultFont'     => 'DejaVu Sans',
+            'isRemoteEnabled' => false,
+        ]);
+
+        $filename = "produccion-{$presupuesto->codigo}.pdf";
+
+        return $pdf->stream($filename);
+    }
+
+    public function produccionViewer(Presupuesto $presupuesto)
+    {
+        $presupuesto->load(['agencia']);
+
+        $codigo   = $presupuesto->codigo;
+        $pdfUrl   = route('presupuesto.produccion.pdf', $presupuesto);
+        $filename = "produccion-{$codigo}.pdf";
+
+        $planoUrl = null;
+        $planoMedia = $presupuesto->agencia?->getFirstMedia('planos');
+        if ($planoMedia) {
+            $planoUrl = url($planoMedia->getUrl());
+        }
+
+        return view('pdf.produccion_viewer', compact('codigo', 'pdfUrl', 'filename', 'planoUrl'));
     }
 }
