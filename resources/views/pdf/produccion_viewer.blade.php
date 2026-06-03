@@ -56,6 +56,27 @@
             Ver Plano / Layout
         </a>
     </div>
+    @else
+    {{-- DEBUG: plano no encontrado --}}
+    <div style="
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+        background: #1e1e1e;
+        color: #f8f8f2;
+        font-family: monospace;
+        font-size: 12px;
+        padding: 14px 18px;
+        border-radius: 8px;
+        max-width: 500px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+        overflow: auto;
+        max-height: 80vh;
+    ">
+        <strong style="color:#ff79c6;">⚠ DEBUG: Plano no encontrado</strong>
+        <pre style="margin-top:8px; white-space:pre-wrap;">{{ json_encode($planoDebug, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+    </div>
     @endif
 </body>
 </html>
