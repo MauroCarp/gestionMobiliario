@@ -120,7 +120,8 @@ class PresupuestoResource extends Resource
                                                 ->get()
                                                 ->mapWithKeys(fn ($m) => [
                                                     'mob_' . $m->id => "[{$m->codigo_interno}] {$m->nombre}",
-                                                ]);
+                                                ])
+                                                ->toArray();
                                         }
                                     }
 
@@ -130,7 +131,8 @@ class PresupuestoResource extends Resource
                                             ->get()
                                             ->mapWithKeys(fn ($m) => [
                                                 'mob_' . $m->id => "[{$m->codigo_interno}] {$m->nombre}",
-                                            ]);
+                                            ])
+                                            ->toArray();
                                     }
 
                                     // Insumos de categoría Sillas
@@ -142,14 +144,19 @@ class PresupuestoResource extends Resource
                                         ->get()
                                         ->mapWithKeys(fn ($i) => [
                                             'ins_' . $i->id => "[SILLA] [{$i->codigo}] {$i->nombre}",
-                                        ]);
+                                        ])
+                                        ->toArray();
 
-                                    return $mobiliarios->merge($sillas);
+                                    return array_merge($mobiliarios, $sillas);
                                 })
                                 ->searchable()
                                 ->required()
                                 ->dehydrated(false)
                                 ->live()
+                                ->afterStateHydrated(function ($component, $state) {
+                                    // El estado ya viene como string, no necesita getKey()
+                                    $component->state($state);
+                                })
                                 ->formatStateUsing(function ($state, $record): ?string {
                                     if ($record?->mobiliario_id) return 'mob_' . $record->mobiliario_id;
                                     if ($record?->insumo_id)     return 'ins_' . $record->insumo_id;
