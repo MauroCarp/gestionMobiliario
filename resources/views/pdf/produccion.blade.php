@@ -318,8 +318,8 @@
     // Agrupar items que tienen mobiliario (ignorar insumos directos como sillas)
     $itemsConMobiliario = $items->filter(fn($d) => $d['mobiliario'] !== null);
 
-    // Acumular totales de insumos para el resumen final
-    $resumenInsumos = collect(); // insumo_id => ['insumo' => ..., 'total' => float]
+    // Acumular totales de insumos para el resumen final (array nativo: Collection no permite += anidado)
+    $resumenInsumos = []; // insumo_id => ['insumo' => ..., 'total' => float]
 @endphp
 
 @forelse($itemsConMobiliario as $itemData)
@@ -369,7 +369,7 @@
                     // Acumular en resumen
                     $insId = $insumoComp?->id;
                     if ($insId) {
-                        if ($resumenInsumos->has($insId)) {
+                        if (isset($resumenInsumos[$insId])) {
                             $resumenInsumos[$insId]['total'] += $cantTotal;
                         } else {
                             $resumenInsumos[$insId] = [
@@ -409,7 +409,7 @@
 {{-- ══════════════════════════════════════════════════════════════
      SECCIÓN 3 — RESUMEN TOTAL DE INSUMOS NECESARIOS
      ══════════════════════════════════════════════════════════════ --}}
-@if($resumenInsumos->isNotEmpty())
+@if(count($resumenInsumos) > 0)
 <div class="page-break"></div>
 
 <div class="section-title">Resumen Total de Insumos Necesarios</div>
@@ -424,7 +424,7 @@
         </tr>
     </thead>
     <tbody>
-        @foreach($resumenInsumos->sortBy(fn($r) => $r['insumo']?->nombre) as $idx => $row)
+        @foreach(collect($resumenInsumos)->sortBy(fn($r) => $r['insumo']?->nombre) as $idx => $row)
         <tr class="{{ $idx % 2 === 0 ? '' : 'even' }}">
             <td style="font-size:9px; color:#6B7280;">{{ $row['insumo']?->codigo ?? '—' }}</td>
             <td>{{ $row['insumo']?->nombre ?? '—' }}</td>

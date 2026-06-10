@@ -110,9 +110,14 @@ class Mobiliario extends Model implements HasMedia
 
     public function composicionTecnica(): HasMany
     {
+        $composicionTable = (new ComposicionTecnica)->getTable();
+        $mobiliarioTable  = $this->getTable();
+
         return $this->hasMany(ComposicionTecnica::class, 'mobiliario_id')
-            ->where('version', $this->version_actual)
-            ->where('activo', true);
+            ->where("{$composicionTable}.activo", true)
+            ->whereRaw(
+                "{$composicionTable}.version = (SELECT version_actual FROM {$mobiliarioTable} WHERE {$mobiliarioTable}.id = {$composicionTable}.mobiliario_id)",
+            );
     }
 
     public function todasVersionesComposicion(): HasMany
