@@ -7,12 +7,16 @@
     <style>
         * { box-sizing: border-box; }
 
+        @page {
+            margin-top: 5mm;
+            margin-bottom: 5mm; /* espacio para el footer fijo */
+        }
+
         body {
             font-family: 'DejaVu Sans', sans-serif;
             font-size: 11px;
             color: #1F2937;
             margin: 0;
-            padding: 15px 25px 20px;
         }
 
         /* ── CABECERA ─────────────────────────────────────────── */
@@ -22,7 +26,7 @@
 
         .header-agency { vertical-align: middle; padding: 0 14px; }
         .header-agency .agency-name { font-size: 14px; font-weight: bold; color: #1E3A8A; }
-        .header-agency .agency-sub  { font-size: 9px; color: #6B7280; margin-top: 2px; }
+        .header-agency .agency-sub  { font-size: 12px; color: #6B7280; margin-top: 2px; }
 
         .header-empresa { width: 200px; text-align: right; vertical-align: middle; }
         .header-empresa .empresa-codigo {
@@ -39,7 +43,7 @@
 
         /* ── TABLA DE ITEMS ───────────────────────────────────── */
         .items-table { width: 100%; border-collapse: collapse; margin-bottom: 0; border: 1px solid #9CA3AF; }
-        .items-table thead tr { background: rgba(61, 104, 219,0.5); color: #FFFFFF; }
+        .items-table thead tr { background: rgba(61, 104, 219,0.5); color: #000000; }
         .items-table thead th {
             padding: 7px 8px;
             text-align: left;
@@ -64,7 +68,7 @@
             text-transform: uppercase;
             letter-spacing: 0.6px;
             padding: 6px 10px;
-            margin-top: 14px;
+            margin-top:0;
             margin-bottom: 0;
         }
         .sector-total-row td {
@@ -85,9 +89,9 @@
             font-size: 8px; color: #9CA3AF;
             text-align: center; line-height: 90px;
         }
-        .item-code   { font-size: 9px; color: #9CA3AF; margin-top: 2px; }
-        .item-desc   { font-size: 9px; color: #6B7280; margin-top: 3px; line-height: 1.4; }
-        .item-obs    { font-size: 9px; color: #374151; margin-top: 3px; }
+        .item-code   { font-size: 12px; color: #9CA3AF; margin-top: 2px; }
+        .item-desc   { font-size: 12px; color: #6B7280; margin-top: 3px; line-height: 1.4; }
+        .item-obs    { font-size: 12px; color: #374151; margin-top: 3px; }
         .item-qty    { font-size: 13px; font-weight: bold; }
         .item-price  { font-size: 10px; }
         .notas-line  { border-bottom: 1px solid #D1D5DB; height: 14px; margin-bottom: 3px; }
@@ -126,7 +130,7 @@
         /* ── PIE EMPRESA ──────────────────────────────────────── */
         .empresa-footer {
             text-align: center;
-            font-size: 8px;
+            font-size: 12px;
             color: #374151;
             padding: 5px 0;
             border-top: 1px solid #9CA3AF;
@@ -142,7 +146,7 @@
             right: 0;
             border-top: 1px solid #E5E7EB;
             padding: 3px 25px;
-            font-size: 7.5px;
+            font-size: 7px;
             color: #9CA3AF;
         }
         .footer-fixed table { width: 100%; }
@@ -261,7 +265,7 @@
     {{ $labelSector }}
 </div>
 
-<table class="items-table" cellpadding="0" cellspacing="0">
+<table class="items-table" cellpadding="0" cellspacing="0" style="margin-top: 0;padding-top: 0;">
     <thead>
         <tr>
             <th style="width:18px;" class="center">#</th>
@@ -310,7 +314,7 @@
             <td>
                 @php $desc = $item->descripcion_override ?: $mob?->descripcion; @endphp
                 @if($desc)
-                    <div class="item-desc">{{ \Illuminate\Support\Str::limit($desc, 230) }}</div>
+                    <div class="item-desc">{{ $desc }}</div>
                 @endif
                 @if($item->observaciones)
                     <div class="item-obs"><strong>Obs:</strong> {{ $item->observaciones }}</div>
@@ -323,7 +327,7 @@
 
             <td>
                 @if($item->notas_manuales)
-                    <div style="font-size:9px;">{{ $item->notas_manuales }}</div>
+                    <div style="font-size:11px;">{{ $item->notas_manuales }}</div>
                 @else
                     <div class="notas-line"></div>
                     <div class="notas-line"></div>
@@ -355,7 +359,6 @@
     </tfoot>
     @endif
 </table>
-<div class="sector-spacer"></div>
 @endforeach
 
 {{-- ── TOTAL GENERAL ──────────────────────────────────────────── --}}

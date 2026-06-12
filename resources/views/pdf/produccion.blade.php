@@ -7,12 +7,16 @@
     <style>
         * { box-sizing: border-box; }
 
+        @page {
+            margin-top: 5mm;
+            margin-bottom: 5mm; /* espacio para el footer fijo */
+        }
         body {
             font-family: 'DejaVu Sans', sans-serif;
             font-size: 11px;
             color: #1F2937;
             margin: 0;
-            padding: 15px 25px 20px;
+            /* padding: 15header-agency .agency-subpx 25px 20px; */
         }
 
         /* ── CABECERA ─────────────────────────────────────────── */
@@ -20,7 +24,7 @@
         .header-marca { width: 150px; vertical-align: middle; }
         .header-agency { vertical-align: middle; padding: 0 14px; }
         .header-agency .agency-name { font-size: 14px; font-weight: bold; color: #1E3A8A; }
-        .header-agency .agency-sub  { font-size: 9px; color: #6B7280; margin-top: 2px; }
+        .header-agency .agency-sub  { font-size: 12px; color: #6B7280; margin-top: 2px; }
         .header-empresa { width: 200px; text-align: right; vertical-align: middle; }
         .header-empresa .empresa-codigo {
             font-size: 10px; font-weight: bold;
@@ -50,12 +54,12 @@
         .items-table { width: 100%; border-collapse: collapse; margin-bottom: 0; border: 1px solid #9CA3AF; }
         .items-table thead tr { background: rgba(61, 104, 219, 0.5); color: #FFFFFF; }
         .items-table thead th {
-            padding: 7px 8px; text-align: left; font-size: 9px;
+            padding: 7px 8px; text-align: left; font-size: 12px;
             text-transform: uppercase; letter-spacing: 0.4px;
             border: 1px solid rgba(61, 104, 219, 0.5);
         }
         .items-table thead th.center { text-align: center; }
-        .items-table tbody td { padding: 7px 8px; vertical-align: top; font-size: 10px; border: 1px solid #D1D5DB; }
+        .items-table tbody td { padding: 7px 8px; vertical-align: top; font-size: 12px; border: 1px solid #D1D5DB; }
         .items-table tbody td.center { text-align: center; }
 
         /* ── SECTOR HEADER ───────────────────────────────────── */
@@ -82,8 +86,8 @@
             font-size: 8px; color: #9CA3AF;
             text-align: center; line-height: 70px;
         }
-        .item-code  { font-size: 9px; color: #9CA3AF; margin-top: 2px; }
-        .item-desc  { font-size: 9px; color: #6B7280; margin-top: 3px; line-height: 1.4; }
+        .item-code  { font-size: 11px; color: #9CA3AF; margin-top: 2px; }
+        .item-desc  { font-size: 14px; color: #000000; margin-top: 3px; line-height: 1.4; }
         .item-qty   { font-size: 13px; font-weight: bold; }
 
         /* ── SECCIÓN DETALLE INSUMOS ──────────────────────────── */
@@ -110,7 +114,7 @@
             margin-bottom: 0;
         }
         .mob-insumos-subtitle {
-            font-size: 9px;
+            font-size: 12px;
             font-weight: normal;
             color: #6B7280;
         }
@@ -118,17 +122,17 @@
         .insumos-table { width: 100%; border-collapse: collapse; }
         .insumos-table thead tr { background: #DDD6FE; }
         .insumos-table thead th {
-            padding: 5px 8px; text-align: left; font-size: 9px;
+            padding: 5px 8px; text-align: left; font-size: 12px;
             text-transform: uppercase; letter-spacing: 0.3px;
             border: 1px solid #C4B5FD; color: #4C1D95;
         }
         .insumos-table thead th.right { text-align: right; }
         .insumos-table thead th.center { text-align: center; }
-        .insumos-table tbody td { padding: 5px 8px; font-size: 9.5px; border: 1px solid #E5E7EB; vertical-align: middle; }
+        .insumos-table tbody td { padding: 5px 8px; font-size: 12px; border: 1px solid #E5E7EB; vertical-align: middle; }
         .insumos-table tbody td.right  { text-align: right; }
         .insumos-table tbody td.center { text-align: center; }
         .insumos-table tfoot td {
-            padding: 5px 8px; font-size: 9px; font-weight: bold;
+            padding: 5px 8px; font-size: 12px; font-weight: bold;
             background: #F5F3FF; border: 1px solid #C4B5FD; color: #4C1D95;
         }
 
@@ -136,12 +140,12 @@
         .resumen-table { width: 100%; border-collapse: collapse; margin-top: 14px; }
         .resumen-table thead tr { background: #4C1D95; color: #fff; }
         .resumen-table thead th {
-            padding: 6px 8px; text-align: left; font-size: 9px;
+            padding: 6px 8px; text-align: left; font-size: 12px;
             text-transform: uppercase; letter-spacing: 0.4px;
             border: 1px solid #4C1D95;
         }
         .resumen-table thead th.right { text-align: right; }
-        .resumen-table tbody td { padding: 5px 8px; font-size: 9.5px; border: 1px solid #E5E7EB; }
+        .resumen-table tbody td { padding: 5px 8px; font-size: 12px; border: 1px solid #E5E7EB; }
         .resumen-table tbody td.right  { text-align: right; font-weight: bold; }
         .resumen-table tbody tr.even   { background: #F5F3FF; }
 
@@ -160,7 +164,7 @@
         .footer-fixed {
             position: fixed; bottom: -10px; left: 0; right: 0;
             border-top: 1px solid #E5E7EB; padding: 3px 25px;
-            font-size: 7.5px; color: #9CA3AF;
+            font-size: 12px; color: #9CA3AF;
         }
         .footer-fixed table { width: 100%; }
 
@@ -285,7 +289,7 @@
             </td>
             <td>
                 <strong>{{ $nombreItem }}</strong>
-                <div class="item-code">Cód: {{ $codigoItem }}</div>
+                <div class="item-code" style="font-size: 14px;font-weight: bold;">Cód: {{ $codigoItem }}</div>
                 @if($categoriaItem)
                     <div class="item-code">{{ $categoriaItem }}</div>
                 @endif
@@ -293,7 +297,7 @@
             <td>
                 @php $desc = $item->descripcion_override ?: $mob?->descripcion; @endphp
                 @if($desc)
-                    <div class="item-desc">{{ \Illuminate\Support\Str::limit($desc, 230) }}</div>
+                    <div class="item-desc">{{ $desc }}</div>
                 @endif
                 @if($item->observaciones)
                     <div class="item-desc"><strong>Obs:</strong> {{ $item->observaciones }}</div>
@@ -304,8 +308,9 @@
         @endforeach
     </tbody>
 </table>
-<div class="sector-spacer"></div>
+
 @endforeach
+
 
 {{-- ══════════════════════════════════════════════════════════════
      SECCIÓN 2 — DETALLE DE INSUMOS POR MOBILIARIO
@@ -344,7 +349,7 @@
     </div>
 
     @if($composicion->isEmpty())
-        <div style="padding:6px 10px; font-size:9px; color:#9CA3AF; border:1px solid #E5E7EB; border-top:none;">
+        <div style="padding:6px 10px; font-size:12px; color:#9CA3AF; border:1px solid #E5E7EB; border-top:none;">
             Este mobiliario no tiene composición técnica registrada.
         </div>
     @else
@@ -381,7 +386,7 @@
                     }
                 @endphp
                 <tr>
-                    <td style="font-size:9px; color:#6B7280;">{{ $insumoComp?->codigo ?? '—' }}</td>
+                    <td style="font-size:12px; color:#6B7280;">{{ $insumoComp?->codigo ?? '—' }}</td>
                     <td>{{ $insumoComp?->nombre ?? '—' }}</td>
                     <td class="right">{{ number_format($cantUnit, 2, ',', '.') }}</td>
                     <td class="center" style="font-size:9px; color:#6B7280;">{{ $unidad }}</td>
@@ -426,7 +431,7 @@
     <tbody>
         @foreach(collect($resumenInsumos)->sortBy(fn($r) => $r['insumo']?->nombre) as $idx => $row)
         <tr class="{{ $idx % 2 === 0 ? '' : 'even' }}">
-            <td style="font-size:9px; color:#6B7280;">{{ $row['insumo']?->codigo ?? '—' }}</td>
+            <td style="font-size:12px; color:#6B7280;">{{ $row['insumo']?->codigo ?? '—' }}</td>
             <td>{{ $row['insumo']?->nombre ?? '—' }}</td>
             <td class="right">{{ number_format($row['total'], 2, ',', '.') }}</td>
             <td style="font-size:9px; color:#6B7280;">{{ $row['unidad'] }}</td>
