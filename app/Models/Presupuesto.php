@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 
@@ -141,9 +142,16 @@ class Presupuesto extends Model
     // ─── Relations ────────────────────────────────────────────────────────────
 
     /** El proyecto se obtiene a través de la agencia asignada. */
-    public function getProyectoAttribute(): ?Proyecto
+    public function proyecto(): HasOneThrough
     {
-        return $this->agencia?->proyecto;
+        return $this->hasOneThrough(
+            Proyecto::class,
+            Agencia::class,
+            'id',
+            'id',
+            'agencia_id',
+            'proyecto_id',
+        );
     }
 
     public function agencia(): BelongsTo
