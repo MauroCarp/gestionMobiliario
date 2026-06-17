@@ -326,6 +326,11 @@ class PresupuestoResource extends Resource
                     ->relationship('agencia', 'nombre')
                     ->searchable()
                     ->preload(),
+                Tables\Filters\SelectFilter::make('marca_id')
+                    ->label('Marca')
+                    ->relationship('proyecto.marca', 'nombre')
+                    ->searchable()
+                    ->preload(),
 
                 Tables\Filters\TrashedFilter::make(),
             ])
