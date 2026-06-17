@@ -22,4 +22,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/presupuesto/{presupuesto}/produccion/ver', [PresupuestoPdfController::class, 'produccionViewer'])
         ->name('presupuesto.produccion.viewer');
+
+    Route::get('/presupuesto/{presupuesto}/produccion/excel', [PresupuestoPdfController::class, 'produccionExcel'])
+        ->name('presupuesto.produccion.excel');
 });

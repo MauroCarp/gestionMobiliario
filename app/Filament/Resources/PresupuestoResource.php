@@ -382,6 +382,14 @@ class PresupuestoResource extends Resource
                         ->url(fn (Presupuesto $record) => route('presupuesto.excel', $record->id))
                         ->openUrlInNewTab(),
 
+                    Tables\Actions\Action::make('produccionExcel')
+                        ->label('Exportar Excel Producción')
+                        ->icon('heroicon-o-table-cells')
+                        ->color('info')
+                        ->visible(fn (Presupuesto $record): bool => in_array($record->estado, ['aprobado', 'confirmado', 'pagado']))
+                        ->url(fn (Presupuesto $record) => route('presupuesto.produccion.excel', $record->id))
+                        ->openUrlInNewTab(),
+
                     Tables\Actions\Action::make('enviarRevision')
                         ->label('Enviar a Revisión')
                         ->icon('heroicon-o-arrow-right-circle')

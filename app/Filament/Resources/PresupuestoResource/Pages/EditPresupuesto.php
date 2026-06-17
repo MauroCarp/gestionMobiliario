@@ -31,6 +31,14 @@ class EditPresupuesto extends EditRecord
                 ->url(fn () => route('presupuesto.produccion.viewer', $this->record->id))
                 ->openUrlInNewTab(),
 
+            Actions\Action::make('produccionExcel')
+                ->label('Produccion Excel')
+                ->icon('heroicon-o-table-cells')
+                ->color('success')
+                ->visible(fn (): bool => in_array($this->record->estado, ['aprobado', 'confirmado', 'pagado']))
+                ->url(fn () => route('presupuesto.produccion.excel', $this->record->id))
+                ->openUrlInNewTab(),
+
             Actions\Action::make('excel')
                 ->label('Excel')
                 ->icon('heroicon-o-table-cells')

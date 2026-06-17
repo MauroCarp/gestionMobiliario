@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Exports\PresupuestoExport;
+use App\Exports\PresupuestoProduccionExport;
 use App\Models\Presupuesto;
+use App\Services\PresupuestoProduccionExportService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -176,6 +178,14 @@ class PresupuestoPdfController extends Controller
         $filename = "produccion-{$presupuesto->codigo}.pdf";
 
         return $pdf->stream($filename);
+    }
+
+    public function produccionExcel(Presupuesto $presupuesto, PresupuestoProduccionExportService $exportService)
+    {
+        $data     = $exportService->prepare($presupuesto);
+        $filename = "produccion-{$presupuesto->codigo}.xlsx";
+
+        return Excel::download(new PresupuestoProduccionExport($data), $filename);
     }
 
     public function produccionViewer(Presupuesto $presupuesto)
