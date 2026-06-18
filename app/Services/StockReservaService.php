@@ -211,7 +211,7 @@ class StockReservaService
                 'origen_id'     => $presupuesto->id,
                 'estado'        => 'pendiente',
                 'fecha_inicio'  => now()->toDateString(),
-                'observaciones' => "Generado al confirmar presupuesto {$presupuesto->codigo}",
+                'observaciones' => "Generado al confirmar presupuesto {$presupuesto->codigo} - {$presupuesto->agencia} - {$presupuesto->agencia->proyecto->marca}",
             ]);
 
             $lote->crearEtapasDesde($plantilla);

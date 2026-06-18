@@ -21,6 +21,8 @@
     $composicion = $mob->composicionTecnica;
     $cantItem    = (int) $item->cantidad;
     $sectorNombre = $itemData['sector']?->nombre;
+    $plantilla   = $mob->plantillaFlujos->first();
+    $etapasFlujo = $plantilla?->etapas ?? collect();
 @endphp
     <tr>
         <td colspan="5" style="font-weight: bold; background-color: #EDE9FE; border-left: 4px solid #7C3AED; color: #4C1D95;">
@@ -60,6 +62,40 @@
         <td style="border: 1px solid #E5E7EB; text-align: right;">{{ number_format($cantUnit, 2, ',', '.') }}</td>
         <td style="border: 1px solid #E5E7EB; text-align: center; color: #6B7280;">{{ $unidad }}</td>
         <td style="border: 1px solid #E5E7EB; text-align: right; font-weight: bold; color: #4C1D95;">{{ number_format($cantTotal, 2, ',', '.') }}</td>
+    </tr>
+        @endforeach
+    @endif
+
+    <tr>
+        <td colspan="5" style="font-weight: bold; background-color: #F5F3FF; border-left: 4px solid #7C3AED; color: #4C1D95;">
+            Flujo externo
+            @if($plantilla)
+                — {{ $plantilla->nombre }}
+            @endif
+        </td>
+    </tr>
+
+    @if(!$plantilla || $etapasFlujo->isEmpty())
+    <tr>
+        <td colspan="5" style="color: #9CA3AF; border: 1px solid #E5E7EB;">
+            Este mobiliario no tiene una plantilla de flujo externo activa configurada.
+        </td>
+    </tr>
+    @else
+    <tr>
+        <th style="font-weight: bold; background-color: #DDD6FE; color: #4C1D95; border: 1px solid #C4B5FD;">Orden</th>
+        <th style="font-weight: bold; background-color: #DDD6FE; color: #4C1D95; border: 1px solid #C4B5FD;">Proceso</th>
+        <th style="font-weight: bold; background-color: #DDD6FE; color: #4C1D95; border: 1px solid #C4B5FD;">Tercero</th>
+        <th style="font-weight: bold; background-color: #DDD6FE; color: #4C1D95; border: 1px solid #C4B5FD;">Días est.</th>
+        <th style="font-weight: bold; background-color: #DDD6FE; color: #4C1D95; border: 1px solid #C4B5FD;">Observaciones</th>
+    </tr>
+        @foreach($etapasFlujo as $etapa)
+    <tr>
+        <td style="border: 1px solid #E5E7EB; text-align: center;">{{ $etapa->orden }}</td>
+        <td style="border: 1px solid #E5E7EB;">{{ $etapa->tipoProceso?->nombre ?? '—' }}</td>
+        <td style="border: 1px solid #E5E7EB;">{{ $etapa->tercero?->nombre ?? 'Sin asignar' }}</td>
+        <td style="border: 1px solid #E5E7EB; text-align: center;">{{ $etapa->dias_estimados ?? '—' }}</td>
+        <td style="border: 1px solid #E5E7EB; color: #6B7280;">{{ $etapa->observaciones ?? '' }}</td>
     </tr>
         @endforeach
     @endif

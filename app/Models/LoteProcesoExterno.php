@@ -87,6 +87,15 @@ class LoteProcesoExterno extends Model
         };
     }
 
+    public function getEntidadCodigoAttribute(): ?string
+    {
+        return match ($this->entidad_tipo) {
+            'insumo'     => Insumo::find($this->entidad_id)?->codigo,
+            'mobiliario' => Mobiliario::find($this->entidad_id)?->codigo_interno,
+            default      => null,
+        };
+    }
+
     public function getEtapaActualAttribute(): ?LoteEtapa
     {
         return $this->etapas->firstWhere('estado', '!=', 'completado');

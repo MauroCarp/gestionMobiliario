@@ -136,6 +136,18 @@
             background: #F5F3FF; border: 1px solid #C4B5FD; color: #4C1D95;
         }
 
+        .flujo-externo-title {
+            background: #F5F3FF;
+            border-left: 4px solid #7C3AED;
+            padding: 5px 10px;
+            font-size: 10px;
+            font-weight: bold;
+            color: #4C1D95;
+            margin-top: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
         /* ── TABLA RESUMEN TOTAL INSUMOS ──────────────────────── */
         .resumen-table { width: 100%; border-collapse: collapse; margin-top: 14px; }
         .resumen-table thead tr { background: #4C1D95; color: #fff; }
@@ -334,6 +346,8 @@
     $imgBase64   = $itemData['imagen_base64'];
     $composicion = $mob->composicionTecnica;
     $cantItem    = (int) $item->cantidad;
+    $plantilla   = $mob->plantillaFlujos->first();
+    $etapasFlujo = $plantilla?->etapas ?? collect();
 @endphp
 
 <div class="mob-insumos-block">
@@ -402,6 +416,42 @@
                 </tr>
             </tfoot>
             @endif
+        </table>
+    @endif
+
+    <div class="flujo-externo-title">
+        Flujo externo
+        @if($plantilla)
+            — {{ $plantilla->nombre }}
+        @endif
+    </div>
+
+    @if(!$plantilla || $etapasFlujo->isEmpty())
+        <div style="padding:6px 10px; font-size:12px; color:#9CA3AF; border:1px solid #E5E7EB; border-top:none;">
+            Este mobiliario no tiene una plantilla de flujo externo activa configurada.
+        </div>
+    @else
+        <table class="insumos-table" cellpadding="0" cellspacing="0">
+            <thead>
+                <tr>
+                    <th style="width:50px;" class="center">Orden</th>
+                    <th>Proceso</th>
+                    <th style="width:30%;">Tercero</th>
+                    <th style="width:70px;" class="center">Días est.</th>
+                    <th>Observaciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($etapasFlujo as $etapa)
+                <tr>
+                    <td class="center">{{ $etapa->orden }}</td>
+                    <td>{{ $etapa->tipoProceso?->nombre ?? '—' }}</td>
+                    <td>{{ $etapa->tercero?->nombre ?? 'Sin asignar' }}</td>
+                    <td class="center">{{ $etapa->dias_estimados ?? '—' }}</td>
+                    <td style="font-size:11px; color:#6B7280;">{{ $etapa->observaciones ?? '' }}</td>
+                </tr>
+                @endforeach
+            </tbody>
         </table>
     @endif
 </div>

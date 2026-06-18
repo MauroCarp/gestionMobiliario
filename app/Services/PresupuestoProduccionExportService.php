@@ -20,7 +20,15 @@ class PresupuestoProduccionExportService
             'responsable',
             'aprobadoPor',
             'items' => fn ($q) => $q->orderBy('sector_id')->orderBy('orden')
-                ->with(['mobiliario.categoria', 'mobiliario.composicionTecnica.insumo.unidadMedida', 'sector', 'insumo']),
+                ->with([
+                    'mobiliario.categoria',
+                    'mobiliario.composicionTecnica.insumo.unidadMedida',
+                    'mobiliario.plantillaFlujos' => fn ($q) => $q
+                        ->where('activo', true)
+                        ->with(['etapas.tipoProceso', 'etapas.tercero']),
+                    'sector',
+                    'insumo',
+                ]),
         ]);
 
         $agencia  = $presupuesto->agencia;

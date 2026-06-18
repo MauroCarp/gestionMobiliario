@@ -98,9 +98,9 @@ class LoteProcesoExternoResource extends Resource
     {
         return $infolist->schema([
             Infolists\Components\Section::make('Datos del lote')->schema([
-                Infolists\Components\TextEntry::make('codigo')
-                    ->badge()
-                    ->color('primary'),
+                // Infolists\Components\TextEntry::make('codigo')
+                //     ->badge()
+                //     ->color('primary'),
                 Infolists\Components\TextEntry::make('entidad_nombre')
                     ->label('Item'),
                 Infolists\Components\TextEntry::make('entidad_tipo')
@@ -145,17 +145,37 @@ class LoteProcesoExternoResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('codigo')
-                    ->label('Código')
-                    ->searchable()
-                    ->sortable()
-                    ->badge(),
+                Tables\Columns\TextColumn::make('entidad_codigo')
+                    ->label('Código Mobiliario')
+                    ->getStateUsing(fn (LoteProcesoExterno $record): ?string =>
+                        $record->entidad_tipo === 'mobiliario' ? $record->entidad_codigo : null
+                    )
+                    ->placeholder('—')
+                    ->searchable(query: fn ($query, string $search) => $query->where(
+                        fn ($q) => $q
+                            ->where('entidad_tipo', 'mobiliario')
+                            ->whereIn(
+                                'entidad_id',
+                                Mobiliario::where('codigo_interno', 'like', "%{$search}%")->pluck('id')
+                            )
+                    ))
+                    ->sortable(query: fn ($query, string $direction) => $query
+                        ->leftJoin('mobiliarios', function ($join): void {
+                            $join->on('lotes_proceso_externo.entidad_id', '=', 'mobiliarios.id')
+                                ->where('lotes_proceso_externo.entidad_tipo', '=', 'mobiliario');
+                        })
+                        ->orderBy('mobiliarios.codigo_interno', $direction)
+                        ->select('lotes_proceso_externo.*'))
+                    ->badge(),  
                 Tables\Columns\TextColumn::make('entidad_nombre')
                     ->label('Item')
-                    ->searchable(query: fn ($query, string $search) => $query),
+                    ->searchable(query: fn ($query, string $search) => $query)
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('entidad_tipo')
                     ->label('Tipo')
                     ->badge()
+                    ->searchable()
+                    ->sortable()
                     ->color(fn (string $state): string => $state === 'insumo' ? 'info' : 'warning')
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'insumo'     => 'Insumo',
@@ -169,12 +189,15 @@ class LoteProcesoExternoResource extends Resource
                     ->badge()
                     ->color(fn (string $state): string => LoteProcesoExterno::ESTADO_COLORS[$state] ?? 'gray')
                     ->formatStateUsing(fn (string $state): string => LoteProcesoExterno::ESTADOS[$state] ?? $state)
+                    ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('etapa_actual.tipoProceso.nombre')
                     ->label('Etapa actual')
                     ->placeholder('—')
                     ->badge()
-                    ->color(fn ($record) => $record->etapa_actual?->tipoProceso?->color ?? 'gray'),
+                    ->color(fn ($record) => $record->etapa_actual?->tipoProceso?->color ?? 'gray')
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('fecha_inicio')
                     ->label('Inicio')
                     ->date('d/m/Y')
@@ -196,18 +219,6 @@ class LoteProcesoExternoResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('cancelar')
-                    ->label('')
-                    ->icon('heroicon-o-x-circle')
-                    ->color('danger')
-                    ->requiresConfirmation()
-                    ->visible(fn (LoteProcesoExterno $r): bool =>
-                        ! in_array($r->estado, ['completado', 'cancelado'])
-                    )
-                    ->action(function (LoteProcesoExterno $record): void {
-                        $record->update(['estado' => 'cancelado']);
-                        Notification::make()->title('Lote cancelado')->warning()->send();
-                    }),
                 Tables\Actions\DeleteAction::make()
                 ->label('')
                 ->icon('heroicon-o-trash')
