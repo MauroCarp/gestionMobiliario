@@ -54,7 +54,7 @@ class PresupuestoObserver
             $this->stockService->reservar($presupuesto);
         }
 
-        $this->stockService->consumir($presupuesto);
+        // El stock se descuenta al confirmar la finalización de cada ítem, no al pagar.
     }
 
     private function alCancelar(Presupuesto $presupuesto): void

@@ -7,6 +7,7 @@ use App\Models\LoteProcesoExterno;
 use App\Models\OrdenCompra;
 use App\Models\OrdenCompraItem;
 use App\Models\Presupuesto;
+use App\Models\PresupuestoItem;
 use App\Models\ReservaStock;
 use Illuminate\Support\Facades\DB;
 
@@ -60,6 +61,7 @@ class StockReservaService
 
     /**
      * Descuenta el stock real y marca reservas como consumidas (presupuesto pagado).
+     * @deprecated Usar finalizarItem() por línea de ítem.
      */
     public function consumir(Presupuesto $presupuesto): void
     {
@@ -76,6 +78,53 @@ class StockReservaService
 
                 $reserva->update(['estado' => 'consumida']);
             }
+        });
+    }
+
+    /**
+     * Confirma la finalización de una línea de ítem: descuenta stock real
+     * y reduce la reserva activa (comprometido) del presupuesto.
+     * Idempotente: si el ítem ya está finalizado, no hace nada.
+     */
+    public function finalizarItem(PresupuestoItem $item): void
+    {
+        if ($item->estaFinalizado()) {
+            return;
+        }
+
+        $demanda = $item->demandaInsumos();
+
+        DB::transaction(function () use ($item, $demanda) {
+            foreach ($demanda as $insumoId => $cantidad) {
+                Insumo::where('id', $insumoId)
+                    ->decrement('stock_actual', $cantidad);
+
+                $reserva = ReservaStock::where('presupuesto_id', $item->presupuesto_id)
+                    ->where('insumo_id', $insumoId)
+                    ->where('estado', 'activa')
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $reserva) {
+                    continue;
+                }
+
+                $nuevaCantidad = max(0, (float) $reserva->cantidad_reservada - $cantidad);
+
+                if ($nuevaCantidad <= 0) {
+                    $reserva->update([
+                        'cantidad_reservada' => 0,
+                        'estado'             => 'consumida',
+                    ]);
+                } else {
+                    $reserva->update(['cantidad_reservada' => $nuevaCantidad]);
+                }
+            }
+
+            $item->update([
+                'finalizado_at'    => now(),
+                'finalizado_por'   => auth()->id(),
+            ]);
         });
     }
 

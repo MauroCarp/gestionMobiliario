@@ -12,6 +12,8 @@ use App\Models\Sector;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
+use Filament\Infolists;
+use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -260,6 +262,75 @@ class PresupuestoResource extends Resource
         ]);
     }
 
+    // ─── Infolist ─────────────────────────────────────────────────────────────
+
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist->schema([
+            Infolists\Components\Section::make('Información del presupuesto')->schema([
+                Infolists\Components\TextEntry::make('codigo')
+                    ->label('Código')
+                    ->badge()
+                    ->color('primary'),
+                Infolists\Components\TextEntry::make('estado')
+                    ->badge()
+                    ->color(fn (string $state): string => Presupuesto::ESTADO_COLORS[$state] ?? 'gray')
+                    ->formatStateUsing(fn (string $state): string => Presupuesto::ESTADOS[$state] ?? $state),
+                Infolists\Components\TextEntry::make('version')
+                    ->label('Versión')
+                    ->formatStateUsing(fn (int $state): string => 'v' . $state),
+                Infolists\Components\TextEntry::make('agencia.nombre')
+                    ->label('Agencia'),
+                Infolists\Components\TextEntry::make('proyecto.codigo_interno')
+                    ->label('Proyecto')
+                    ->placeholder('—'),
+                Infolists\Components\TextEntry::make('proyecto.marca.nombre')
+                    ->label('Marca')
+                    ->placeholder('—'),
+                Infolists\Components\TextEntry::make('responsable.name')
+                    ->label('Responsable'),
+                Infolists\Components\TextEntry::make('fecha_emision')
+                    ->label('Fecha de emisión')
+                    ->date('d/m/Y'),
+                Infolists\Components\TextEntry::make('fecha_vencimiento')
+                    ->label('Fecha de vencimiento')
+                    ->date('d/m/Y')
+                    ->placeholder('—'),
+                Infolists\Components\TextEntry::make('aprobadoPor.name')
+                    ->label('Aprobado por')
+                    ->placeholder('—'),
+                Infolists\Components\TextEntry::make('aprobado_at')
+                    ->label('Aprobado el')
+                    ->dateTime('d/m/Y H:i')
+                    ->placeholder('—'),
+            ])->columns(3),
+
+            Infolists\Components\Section::make('Resumen de ítems')->schema([
+                Infolists\Components\TextEntry::make('resumen_items')
+                    ->label('Estado de finalización')
+                    ->getStateUsing(function (Presupuesto $record): string {
+                        $items = $record->items;
+                        $total = $items->count();
+                        $finalizados = $items->filter(fn ($item) => $item->estaFinalizado())->count();
+                        $pendientes = $total - $finalizados;
+
+                        return "{$total} ítems — {$finalizados} finalizados, {$pendientes} pendientes";
+                    }),
+            ]),
+
+            Infolists\Components\Section::make('Observaciones')->schema([
+                Infolists\Components\TextEntry::make('observaciones')
+                    ->label('Observaciones generales')
+                    ->placeholder('—')
+                    ->columnSpanFull(),
+                Infolists\Components\TextEntry::make('notas_internas')
+                    ->label('Notas internas')
+                    ->placeholder('—')
+                    ->columnSpanFull(),
+            ]),
+        ]);
+    }
+
     // ─── Table ────────────────────────────────────────────────────────────────
 
     public static function table(Table $table): Table
@@ -317,6 +388,7 @@ class PresupuestoResource extends Resource
                     ->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
+            ->recordUrl(fn (Presupuesto $record): string => static::getUrl('view', ['record' => $record]))
             ->filters([
                 Tables\Filters\SelectFilter::make('estado')
                     ->options(Presupuesto::ESTADOS),
@@ -358,11 +430,14 @@ class PresupuestoResource extends Resource
                     ->visible(fn (Presupuesto $record): bool => $record->estado === 'confirmado')
                     ->requiresConfirmation()
                     ->modalHeading('Registrar pago')
-                    ->modalDescription('El stock de insumos será descontado definitivamente.')
+                    ->modalDescription('Se registrará el pago del presupuesto. El stock se descuenta al confirmar la finalización de cada ítem.')
                     ->action(function (Presupuesto $record): void {
                         $record->cambiarEstado('pagado');
-                        Notification::make()->success()->title('Presupuesto pagado. Stock descontado.')->send();
+                        Notification::make()->success()->title('Presupuesto marcado como pagado.')->send();
                     }),
+
+                Tables\Actions\ViewAction::make()
+                    ->button(),
 
                 // ── Resto de acciones en el menú desplegable ────────────────
                 Tables\Actions\ActionGroup::make([
@@ -468,6 +543,7 @@ class PresupuestoResource extends Resource
     public static function getRelationManagers(): array
     {
         return [
+            RelationManagers\ItemsRelationManager::class,
             RelationManagers\VersionesRelationManager::class,
             RelationManagers\HistorialPresupuestoRelationManager::class,
         ];
@@ -480,6 +556,7 @@ class PresupuestoResource extends Resource
         return [
             'index'  => Pages\ListPresupuestos::route('/'),
             'create' => Pages\CreatePresupuesto::route('/create'),
+            'view'   => Pages\ViewPresupuesto::route('/{record}'),
             'edit'   => Pages\EditPresupuesto::route('/{record}/edit'),
         ];
     }

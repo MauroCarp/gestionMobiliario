@@ -251,8 +251,6 @@ class InsumoResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('stock_actual')
                     ->label('Stock actual')->numeric(0),
-                Tables\Columns\TextColumn::make('stock_proyectado')
-                    ->label('Stock proyectado')->numeric(0),
                 Tables\Columns\TextColumn::make('stock_comprometido')
                     ->label('Cantidad Comprometida')->numeric(0),
                 Tables\Columns\TextColumn::make('pendiente_recepcion')
@@ -260,7 +258,7 @@ class InsumoResource extends Resource
                 Tables\Columns\TextColumn::make('stock_proyectado')
                     ->label('Stock proyectado')->numeric(0),
                 Tables\Columns\TextColumn::make('precio_costo')
-                    ->label('Precio Costo')->numeric(0),
+                    ->label('Ultimo Precio')->numeric(0),
                 Tables\Columns\TextColumn::make('ubicacion')->label('Ubicación'),
             ])
             ->filters([
