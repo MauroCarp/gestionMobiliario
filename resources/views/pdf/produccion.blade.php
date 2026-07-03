@@ -287,9 +287,10 @@
             $insumo        = $itemData['insumo'];
             $imgBase64     = $itemData['imagen_base64'];
             $esSillaInsumo = $insumo && $insumo->esSilla();
-            $insumoDisplay = $insumo?->nombreYCodigoParaMarca($marca?->id);
-            $nombreItem    = $mob?->nombre ?? $insumoDisplay['nombre'] ?? '—';
-            $codigoItem    = $mob?->codigo_interno ?? $insumoDisplay['codigo'] ?? '';
+            $insumoNombreOriginal = $insumo?->nombreYCodigoParaMarca();
+            $insumoCodigoFantasia = $insumo?->codigoDesdeNombreFantasia($marca?->id);
+            $nombreItem    = $mob?->nombre ?? $insumoNombreOriginal['nombre'] ?? '—';
+            $codigoItem    = $mob?->codigo_interno ?? $insumoCodigoFantasia ?? '';
             $categoriaItem = $mob?->categoria?->nombre ?? ($insumo && ! $esSillaInsumo ? 'Insumo' : '');
         @endphp
         <tr>

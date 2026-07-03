@@ -188,4 +188,23 @@ class Insumo extends Model implements HasMedia
             'codigo' => '',
         ];
     }
+
+    public function codigoDesdeNombreFantasia(?int $marcaId): string
+    {
+        if ($marcaId === null || ! $this->esSilla()) {
+            return '';
+        }
+
+        $this->loadMissing('marcasSilla');
+
+        $fantasia = $this->marcasSilla
+            ->firstWhere('marca_id', $marcaId)
+            ?->nombre_fantasia;
+
+        if (! filled($fantasia) || ! preg_match('/^\s*\[([^\]]+)\]/u', $fantasia, $matches)) {
+            return '';
+        }
+
+        return trim($matches[1]);
+    }
 }
