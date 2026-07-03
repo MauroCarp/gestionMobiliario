@@ -19,7 +19,13 @@ class PresupuestoPdfController extends Controller
             'agencia.ciudad',
             'responsable',
             'aprobadoPor',
-            'items' => fn ($q) => $q->orderBy('sector_id')->orderBy('orden')->with(['mobiliario', 'sector', 'insumo']),
+            'items' => fn ($q) => $q->orderBy('sector_id')->orderBy('orden')->with([
+                'mobiliario',
+                'sector',
+                'insumo.media',
+                'insumo.marcasSilla',
+                'insumo.categoriasInsumo',
+            ]),
         ]);
 
         // El proyecto y la marca se obtienen a través de la agencia
@@ -49,7 +55,9 @@ class PresupuestoPdfController extends Controller
         $items = $presupuesto->items->map(function ($item) {
             $imagenBase64 = null;
             try {
-                $media = $item->mobiliario?->getFirstMedia('imagenes');
+                $media = $item->mobiliario
+                    ? $item->mobiliario->getFirstMedia('imagenes')
+                    : $item->insumo?->getFirstMedia('imagen');
                 if ($media) {
                     $path = $media->getPath();
                     if (file_exists($path)) {
@@ -102,7 +110,17 @@ class PresupuestoPdfController extends Controller
 
     public function excel(Presupuesto $presupuesto)
     {
-        $presupuesto->load(['proyecto.marca', 'agencia', 'responsable', 'items.mobiliario']);
+        $presupuesto->load([
+            'proyecto.marca',
+            'agencia.proyecto.marca',
+            'agencia',
+            'responsable',
+            'items' => fn ($q) => $q->orderBy('orden')->with([
+                'mobiliario.categoria',
+                'insumo.marcasSilla',
+                'insumo.categoriasInsumo',
+            ]),
+        ]);
         $filename = "presupuesto-{$presupuesto->codigo}.xlsx";
 
         return Excel::download(new PresupuestoExport($presupuesto), $filename);
@@ -124,7 +142,9 @@ class PresupuestoPdfController extends Controller
                         ->where('activo', true)
                         ->with(['etapas.tipoProceso', 'etapas.tercero']),
                     'sector',
-                    'insumo',
+                    'insumo.media',
+                    'insumo.marcasSilla',
+                    'insumo.categoriasInsumo',
                 ]),
         ]);
 
@@ -151,7 +171,9 @@ class PresupuestoPdfController extends Controller
         $items = $presupuesto->items->map(function ($item) {
             $imagenBase64 = null;
             try {
-                $media = $item->mobiliario?->getFirstMedia('imagenes');
+                $media = $item->mobiliario
+                    ? $item->mobiliario->getFirstMedia('imagenes')
+                    : $item->insumo?->getFirstMedia('imagen');
                 if ($media) {
                     $path = $media->getPath();
                     if (file_exists($path)) {

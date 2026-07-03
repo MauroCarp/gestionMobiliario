@@ -59,16 +59,20 @@
     </tr>
 
     {{-- ── ITEMS ──────────────────────────────────────────────────── --}}
+    @php $marcaPresupuestoId = $presupuesto->agencia?->proyecto?->marca?->id; @endphp
     @foreach($presupuesto->items as $i => $item)
     @php
         $entidad = $item->mobiliario ?? $item->insumo;
-        $categoria = $item->mobiliario?->categoria?->nombre ?? ($item->insumo ? 'Silla' : '—');
+        $esSillaInsumo = $item->insumo?->esSilla() ?? false;
+        $categoria = $item->mobiliario?->categoria?->nombre ?? ($item->insumo && ! $esSillaInsumo ? 'Silla' : '');
         $descripcion = $item->descripcion_override ?: ($item->mobiliario?->descripcion ?? $item->insumo?->observaciones ?? '');
+        $nombreItem = $item->mobiliario?->nombre ?? $item->insumo?->nombreParaMarca($marcaPresupuestoId) ?? '—';
+        $codigoItem = $esSillaInsumo ? '' : $item->item_codigo;
     @endphp
     <tr>
         <td>{{ $i + 1 }}</td>
-        <td>{{ $item->item_codigo }}</td>
-        <td>{{ $item->item_nombre }}</td>
+        <td>{{ $codigoItem }}</td>
+        <td>{{ $nombreItem }}</td>
         <td>{{ $categoria }}</td>
         <td>{{ $item->cantidad }}</td>
         <td>{{ $item->precio_unitario ?? '' }}</td>

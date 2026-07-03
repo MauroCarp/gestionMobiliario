@@ -437,7 +437,8 @@ class PresupuestoResource extends Resource
                     }),
 
                 Tables\Actions\ViewAction::make()
-                    ->button(),
+                    ->button()
+                    ->openUrlInNewTab(),
 
                 // ── Resto de acciones en el menú desplegable ────────────────
                 Tables\Actions\ActionGroup::make([

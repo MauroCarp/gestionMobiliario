@@ -16,8 +16,8 @@ class ViewPresupuesto extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
-            Actions\EditAction::make()
-                ->visible(fn (): bool => $this->record->puedeEditar()),
+            Actions\EditAction::make(),
+                // ->visible(fn (): bool => $this->record->puedeEditar()),
 
             Actions\Action::make('pdf')
                 ->label('PDF')

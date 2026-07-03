@@ -136,4 +136,31 @@ class Insumo extends Model implements HasMedia
     {
         return $this->hasMany(InsumoMarcaSilla::class, 'insumo_id');
     }
+
+    public function esSilla(): bool
+    {
+        $this->loadMissing('categoriasInsumo');
+
+        return $this->categoriasInsumo->contains(
+            fn (CategoriaInsumo $c) => str_contains(mb_strtolower($c->nombre), 'silla')
+        );
+    }
+
+    /**
+     * Nombre a mostrar según la marca del presupuesto (nombre de fantasía para sillas).
+     */
+    public function nombreParaMarca(?int $marcaId): string
+    {
+        if ($marcaId === null || ! $this->esSilla()) {
+            return $this->nombre;
+        }
+
+        $this->loadMissing('marcasSilla');
+
+        $fantasia = $this->marcasSilla
+            ->firstWhere('marca_id', $marcaId)
+            ?->nombre_fantasia;
+
+        return filled($fantasia) ? $fantasia : $this->nombre;
+    }
 }

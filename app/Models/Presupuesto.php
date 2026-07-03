@@ -136,7 +136,7 @@ class Presupuesto extends Model
 
     public function puedeEditar(): bool
     {
-        return in_array($this->estado, ['borrador', 'rechazado']);
+        return in_array($this->estado, ['borrador','en_revision', 'rechazado']);
     }
 
     // ─── Relations ────────────────────────────────────────────────────────────

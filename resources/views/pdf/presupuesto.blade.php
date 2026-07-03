@@ -285,9 +285,10 @@
             $insumo    = $itemData['insumo'];
             $imgBase64 = $itemData['imagen_base64'];
             $rowClass  = $idx % 2 === 1 ? 'even' : '';
-            $nombreItem = $mob?->nombre ?? $insumo?->nombre ?? '—';
-            $codigoItem = $mob?->codigo_interno ?? $insumo?->codigo ?? '';
-            $categoriaItem = $mob?->categoria?->nombre ?? ($insumo ? 'Insumo' : '');
+            $nombreItem = $mob?->nombre ?? $insumo?->nombreParaMarca($marca?->id) ?? '—';
+            $esSillaInsumo = $insumo && $insumo->esSilla();
+            $codigoItem = $esSillaInsumo ? '' : ($mob?->codigo_interno ?? $insumo?->codigo ?? '');
+            $categoriaItem = $mob?->categoria?->nombre ?? ($insumo && ! $esSillaInsumo ? 'Insumo' : '');
         @endphp
         <tr class="{{ $rowClass }}">
 
@@ -305,7 +306,9 @@
 
             <td>
                 <strong>{{ $nombreItem }}</strong>
-                <div class="item-code">Cód: {{ $codigoItem }}</div>
+                @if($codigoItem)
+                    <div class="item-code">Cód: {{ $codigoItem }}</div>
+                @endif
                 @if($categoriaItem)
                     <div class="item-code">{{ $categoriaItem }}</div>
                 @endif
