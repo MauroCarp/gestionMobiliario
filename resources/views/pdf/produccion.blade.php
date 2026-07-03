@@ -286,9 +286,11 @@
             $mob           = $itemData['mobiliario'];
             $insumo        = $itemData['insumo'];
             $imgBase64     = $itemData['imagen_base64'];
-            $nombreItem    = $mob?->nombre ?? $insumo?->nombre ?? '—';
-            $codigoItem    = $mob?->codigo_interno ?? $insumo?->codigo ?? '';
-            $categoriaItem = $mob?->categoria?->nombre ?? ($insumo ? 'Insumo' : '');
+            $esSillaInsumo = $insumo && $insumo->esSilla();
+            $insumoDisplay = $insumo?->nombreYCodigoParaMarca($marca?->id);
+            $nombreItem    = $mob?->nombre ?? $insumoDisplay['nombre'] ?? '—';
+            $codigoItem    = $mob?->codigo_interno ?? $insumoDisplay['codigo'] ?? '';
+            $categoriaItem = $mob?->categoria?->nombre ?? ($insumo && ! $esSillaInsumo ? 'Insumo' : '');
         @endphp
         <tr>
             <td class="center"><span class="item-num">{{ $globalIndex++ }}</span></td>
@@ -301,7 +303,9 @@
             </td>
             <td>
                 <strong>{{ $nombreItem }}</strong>
-                <div class="item-code" style="font-size: 14px;font-weight: bold;">Cód: {{ $codigoItem }}</div>
+                @if($codigoItem)
+                    <div class="item-code" style="font-size: 14px;font-weight: bold;">Cód: {{ $codigoItem }}</div>
+                @endif
                 @if($categoriaItem)
                     <div class="item-code">{{ $categoriaItem }}</div>
                 @endif

@@ -67,8 +67,9 @@
         $categoria = $item->mobiliario?->categoria?->nombre ?? ($item->insumo && ! $esSillaInsumo ? 'Silla' : '');
         $descripcion = $item->descripcion_override
             ?: ($item->mobiliario?->descripcion ?? $item->insumo?->descripcion ?? '');
-        $nombreItem = $item->mobiliario?->nombre ?? $item->insumo?->nombreParaMarca($marcaPresupuestoId) ?? '—';
-        $codigoItem = $esSillaInsumo ? '' : $item->item_codigo;
+        $insumoDisplay = $item->insumo?->nombreYCodigoParaMarca($marcaPresupuestoId);
+        $nombreItem = $item->mobiliario?->nombre ?? $insumoDisplay['nombre'] ?? '—';
+        $codigoItem = $item->mobiliario?->codigo_interno ?? $insumoDisplay['codigo'] ?? '';
     @endphp
     <tr>
         <td>{{ $i + 1 }}</td>

@@ -164,4 +164,28 @@ class Insumo extends Model implements HasMedia
 
         return filled($fantasia) ? $fantasia : $this->nombre;
     }
+
+    public function nombreYCodigoParaMarca(?int $marcaId = null): array
+    {
+        $nombre = $this->nombreParaMarca($marcaId);
+
+        if (! $this->esSilla()) {
+            return [
+                'nombre' => $nombre,
+                'codigo' => $this->codigo ?? '',
+            ];
+        }
+
+        if (preg_match('/^\s*\[([^\]]+)\]\s*(.+)$/u', $nombre, $matches)) {
+            return [
+                'nombre' => trim($matches[2]),
+                'codigo' => trim($matches[1]),
+            ];
+        }
+
+        return [
+            'nombre' => $nombre,
+            'codigo' => '',
+        ];
+    }
 }

@@ -82,10 +82,12 @@
         $item          = $itemData['item'];
         $mob           = $itemData['mobiliario'];
         $insumo        = $itemData['insumo'];
-        $nombreItem    = $mob?->nombre ?? $insumo?->nombre ?? '—';
-        $codigoItem    = $mob?->codigo_interno ?? $insumo?->codigo ?? '';
-        $categoriaItem = $mob?->categoria?->nombre ?? ($insumo ? 'Insumo' : '');
-        $desc          = $item->descripcion_override ?: $mob?->descripcion;
+        $esSillaInsumo = $insumo && $insumo->esSilla();
+        $insumoDisplay = $insumo?->nombreYCodigoParaMarca($marca?->id);
+        $nombreItem    = $mob?->nombre ?? $insumoDisplay['nombre'] ?? '—';
+        $codigoItem    = $mob?->codigo_interno ?? $insumoDisplay['codigo'] ?? '';
+        $categoriaItem = $mob?->categoria?->nombre ?? ($insumo && ! $esSillaInsumo ? 'Insumo' : '');
+        $desc          = $item->descripcion_override ?: ($mob?->descripcion ?? $insumo?->descripcion);
         $descObs       = $desc ?? '';
         if ($item->observaciones) {
             $descObs .= ($descObs ? ' | ' : '') . 'Obs: ' . $item->observaciones;
