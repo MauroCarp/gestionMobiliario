@@ -133,6 +133,12 @@ class InsumoResource extends Resource
                         ])
                         ->createOptionUsing(fn (array $data) => TipoSilla::create($data)->getKey()),
 
+                    Forms\Components\Textarea::make('descripcion')
+                        ->label('Descripción')
+                        ->rows(3)
+                        ->nullable()
+                        ->columnSpanFull(),
+
                     Forms\Components\Repeater::make('marcasSilla')
                         ->relationship('marcasSilla')
                         ->label('Marcas y nombre de fantasía')

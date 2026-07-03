@@ -315,7 +315,7 @@
             </td>
 
             <td>
-                @php $desc = $item->descripcion_override ?: $mob?->descripcion; @endphp
+                @php $desc = $item->descripcion_override ?: ($mob?->descripcion ?? $insumo?->descripcion); @endphp
                 @if($desc)
                     <div class="item-desc">{{ $desc }}</div>
                 @endif

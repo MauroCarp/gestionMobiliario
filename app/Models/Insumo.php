@@ -37,6 +37,7 @@ class Insumo extends Model implements HasMedia
         'activo',
         'proveedor_id',
         'tipo_silla_id',
+        'descripcion',
     ];
 
     protected $casts = [
