@@ -23,7 +23,7 @@
         .header-table { width: 100%; margin-bottom: 10px; }
         .header-marca { width: 150px; vertical-align: middle; }
         .header-agency { vertical-align: middle; padding: 0 14px; }
-        .header-agency .agency-name { font-size: 14px; font-weight: bold; color: #1E3A8A; }
+        .header-agency .agency-name { font-size: 22px; font-weight: bold; color: #1E3A8A; }
         .header-agency .agency-sub  { font-size: 12px; color: #6B7280; margin-top: 2px; }
         .header-empresa { width: 200px; text-align: right; vertical-align: middle; }
         .header-empresa .empresa-codigo {
@@ -66,7 +66,7 @@
         .sector-header {
             background: #3d68db;
             color: #FFFFFF;
-            font-size: 11px;
+            font-size: 16px;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 0.6px;
@@ -78,7 +78,7 @@
 
         .item-num    { color: #6B7280; font-size: 10px; font-weight: bold; }
         .item-img-cell { overflow: hidden; }
-        .item-img    { width: 80px; height: auto; display: block; }
+        .item-img    { width: 120px; height: auto; display: block; }
         .item-no-img {
             width: 80px; height: 70px;
             background: #F3F4F6;
@@ -87,8 +87,8 @@
             text-align: center; line-height: 70px;
         }
         .item-code  { font-size: 11px; color: #9CA3AF; margin-top: 2px; }
-        .item-desc  { font-size: 14px; color: #000000; margin-top: 3px; line-height: 1.4; }
-        .item-qty   { font-size: 13px; font-weight: bold; }
+        .item-desc  { font-size: 14px; color: #000000; margin-top: 3px; line-height: 1.4; text-transform: uppercase;}
+        .item-qty   { font-size: 16px; font-weight: bold; }
 
         /* ── SECCIÓN DETALLE INSUMOS ──────────────────────────── */
         .section-title {
@@ -108,7 +108,7 @@
             background: #EDE9FE;
             border-left: 4px solid #7C3AED;
             padding: 5px 10px;
-            font-size: 10px;
+            font-size: 14px;
             font-weight: bold;
             color: #4C1D95;
             margin-bottom: 0;
@@ -116,7 +116,7 @@
         .mob-insumos-subtitle {
             font-size: 12px;
             font-weight: normal;
-            color: #6B7280;
+            color: #000000;
         }
 
         .insumos-table { width: 100%; border-collapse: collapse; }
@@ -157,7 +157,7 @@
             border: 1px solid #4C1D95;
         }
         .resumen-table thead th.right { text-align: right; }
-        .resumen-table tbody td { padding: 5px 8px; font-size: 12px; border: 1px solid #E5E7EB; }
+        .resumen-table tbody td { padding: 5px 8px; font-size: 16px; border: 1px solid #E5E7EB; }
         .resumen-table tbody td.right  { text-align: right; font-weight: bold; }
         .resumen-table tbody tr.even   { background: #F5F3FF; }
 
@@ -194,14 +194,14 @@
 @endif
 
 {{-- ── PIE FIJO ─────────────────────────────────────────────────── --}}
-<div class="footer-fixed">
+{{-- <div class="footer-fixed">
     <table cellpadding="0" cellspacing="0">
         <tr>
             <td>PRODUCCIÓN — {{ $presupuesto->codigo }}</td>
             <td style="text-align:right;">Generado el {{ now()->format('d/m/Y H:i') }}</td>
         </tr>
     </table>
-</div>
+</div> --}}
 
 {{-- ── CABECERA ────────────────────────────────────────────────── --}}
 <table class="header-table" cellpadding="0" cellspacing="0">
@@ -211,7 +211,7 @@
                 <img src="{{ $logoBase64 }}" style="max-width:140px; max-height:90px;">
             @elseif($marca)
                 <div style="width:140px; height:70px; background:#E5E7EB; border:1px solid #D1D5DB;
-                            text-align:center; line-height:70px; font-size:9px; color:#9CA3AF;">
+                            text-align:center; line-height:70px; font-size:9px; color:#000000;">
                     {{ $marca->nombre }}
                 </div>
             @endif
@@ -235,7 +235,7 @@
                 <img src="{{ $logoEmpresaBase64 }}" style="height:65px; width:auto;">
             @else
                 <div style="width:190px; height:65px; background:#E5E7EB; border:1px solid #D1D5DB;
-                            text-align:center; line-height:65px; font-size:9px; color:#9CA3AF;">
+                            text-align:center; line-height:65px; font-size:9px; color:#000000;">
                     LOGO EMPRESA
                 </div>
             @endif
@@ -272,11 +272,12 @@
 <table class="items-table" cellpadding="0" cellspacing="0">
     <thead>
         <tr>
-            <th style="width:18px;" class="center">#</th>
-            <th style="width:90px;" class="center">Imagen</th>
+            {{-- <th style="width:18px;" class="center">#</th> --}}
+            <th style="width:130px;" class="center">Imagen</th>
             <th style="width:20%;">Mobiliario</th>
             <th>Descripción / Observaciones</th>
             <th style="width:36px;" class="center">Cant.</th>
+            <th style="width:90px;" class="center">Notas</th>
         </tr>
     </thead>
     <tbody>
@@ -294,7 +295,7 @@
             $categoriaItem = $mob?->categoria?->nombre ?? ($insumo && ! $esSillaInsumo ? 'Insumo' : '');
         @endphp
         <tr>
-            <td class="center"><span class="item-num">{{ $globalIndex++ }}</span></td>
+            {{-- <td class="center"><span class="item-num">{{ $globalIndex++ }}</span></td> --}}
             <td class="center item-img-cell">
                 @if($imgBase64)
                     <img src="{{ $imgBase64 }}" class="item-img">
@@ -305,7 +306,7 @@
             <td>
                 <strong>{{ $nombreItem }}</strong>
                 @if($codigoItem)
-                    <div class="item-code" style="font-size: 14px;font-weight: bold;">Cód: {{ $codigoItem }}</div>
+                    <div class="item-code" style="font-size: 14px;color:black;font-weight: bold;">Cód: {{ $codigoItem }}</div>
                 @endif
                 @if($categoriaItem)
                     <div class="item-code">{{ $categoriaItem }}</div>
@@ -321,6 +322,7 @@
                 @endif
             </td>
             <td class="center"><span class="item-qty">{{ $item->cantidad }}</span></td>
+            <td></td>
         </tr>
         @endforeach
     </tbody>
@@ -368,7 +370,7 @@
     </div>
 
     @if($composicion->isEmpty())
-        <div style="padding:6px 10px; font-size:12px; color:#9CA3AF; border:1px solid #E5E7EB; border-top:none;">
+        <div style="padding:6px 10px; font-size:12px; color:#000000; border:1px solid #E5E7EB; border-top:none;">
             Este mobiliario no tiene composición técnica registrada.
         </div>
     @else
@@ -408,19 +410,19 @@
                     <td style="font-size:12px; color:#6B7280;">{{ $insumoComp?->codigo ?? '—' }}</td>
                     <td>{{ $insumoComp?->nombre ?? '—' }}</td>
                     <td class="right">{{ number_format($cantUnit, 2, ',', '.') }}</td>
-                    <td class="center" style="font-size:9px; color:#6B7280;">{{ $unidad }}</td>
+                    <td class="center" style="font-size:9px; color:#000000;">{{ $unidad }}</td>
                     <td class="right" style="font-weight:bold; color:#4C1D95;">{{ number_format($cantTotal, 2, ',', '.') }}</td>
                 </tr>
                 @endforeach
             </tbody>
-            @if($comp && $composicion->count() > 1)
+            {{-- @if($comp && $composicion->count() > 1)
             <tfoot>
                 <tr>
                     <td colspan="4" style="text-align:right;">Total insumos para {{ $cantItem }} unidades:</td>
                     <td style="text-align:right; color:#4C1D95;">{{ $composicion->count() }} tipos</td>
                 </tr>
             </tfoot>
-            @endif
+            @endif --}}
         </table>
     @endif
 
@@ -432,7 +434,7 @@
     </div>
 
     @if(!$plantilla || $etapasFlujo->isEmpty())
-        <div style="padding:6px 10px; font-size:12px; color:#9CA3AF; border:1px solid #E5E7EB; border-top:none;">
+        <div style="padding:6px 10px; font-size:12px; color:#000000; border:1px solid #E5E7EB; border-top:none;">
             Este mobiliario no tiene una plantilla de flujo externo activa configurada.
         </div>
     @else
@@ -453,7 +455,7 @@
                     <td>{{ $etapa->tipoProceso?->nombre ?? '—' }}</td>
                     <td>{{ $etapa->tercero?->nombre ?? 'Sin asignar' }}</td>
                     <td class="center">{{ $etapa->dias_estimados ?? '—' }}</td>
-                    <td style="font-size:11px; color:#6B7280;">{{ $etapa->observaciones ?? '' }}</td>
+                    <td style="font-size:11px; color:#000000;">{{ $etapa->observaciones ?? '' }}</td>
                 </tr>
                 @endforeach
             </tbody>
@@ -461,7 +463,7 @@
     @endif
 </div>
 @empty
-    <div style="padding:12px; font-size:10px; color:#9CA3AF; text-align:center; margin-top:10px;">
+    <div style="padding:12px; font-size:10px; color:#000000; text-align:center; margin-top:10px;">
         No hay mobiliarios con composición técnica en este presupuesto.
     </div>
 @endforelse
@@ -489,14 +491,14 @@
             <td style="font-size:12px; color:#6B7280;">{{ $row['insumo']?->codigo ?? '—' }}</td>
             <td>{{ $row['insumo']?->nombre ?? '—' }}</td>
             <td class="right">{{ number_format($row['total'], 2, ',', '.') }}</td>
-            <td style="font-size:9px; color:#6B7280;">{{ $row['unidad'] }}</td>
+            <td style="font-size:9px; color:#000000;">{{ $row['unidad'] }}</td>
         </tr>
         @endforeach
     </tbody>
 </table>
 @endif
 
-{{-- ── OBSERVACIONES GENERALES ────────────────────────────────── --}}
+{{-- ── OBSERVACIONES GENERALES ────────────────────────────────── --}} 
 @if($presupuesto->observaciones)
 <div style="border:1px solid #FCD34D; background:#FFFBEB; padding:7px 10px; margin-top:14px;">
     <div style="font-weight:bold; font-size:10px; color:#92400E; margin-bottom:3px;">Observaciones generales</div>
@@ -505,7 +507,7 @@
 @endif
 
 {{-- ── PIE DE EMPRESA ──────────────────────────────────────────── --}}
-<div style="text-align:center; font-size:8px; color:#374151; padding:5px 0;
+<div style="text-align:center; font-size:10px; color:#000000; padding:5px 0;
             border-top:1px solid #9CA3AF; margin-top:10px; line-height:1.6;">
     Chacabuco 80 (S2500CHB) Cañada de Gómez, Santa Fe, Argentina. &nbsp;&nbsp; Tel: 03471 – 422983 / 15575476<br>
     WhatsApp: 3471575476 &nbsp;&nbsp;&nbsp; Seguinos en Facebook: Pierantonimuebles<br>
