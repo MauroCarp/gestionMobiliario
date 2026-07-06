@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PresupuestoItem extends Model
 {
@@ -69,6 +70,11 @@ class PresupuestoItem extends Model
         return $this->belongsTo(User::class, 'finalizado_por');
     }
 
+    public function etapasProduccion(): HasMany
+    {
+        return $this->hasMany(PresupuestoItemEtapa::class)->orderBy('orden');
+    }
+
     /** Retorna el nombre del ítem independientemente de si es Mobiliario o Insumo. */
     public function getItemNombreAttribute(): string
     {
@@ -84,6 +90,37 @@ class PresupuestoItem extends Model
     public function estaFinalizado(): bool
     {
         return ! is_null($this->finalizado_at);
+    }
+
+    public function getProgresoProduccionAttribute(): string
+    {
+        if (! $this->mobiliario_id) {
+            return '—';
+        }
+
+        $etapas = $this->relationLoaded('etapasProduccion')
+            ? $this->etapasProduccion
+            : $this->etapasProduccion()->get();
+
+        if ($etapas->isEmpty()) {
+            return '0/0';
+        }
+
+        return $etapas->where('estado', 'completado')->count() . '/' . $etapas->count();
+    }
+
+    public function getEtapaActualProduccionAttribute(): string
+    {
+        if (! $this->mobiliario_id) {
+            return '—';
+        }
+
+        $etapas = $this->relationLoaded('etapasProduccion')
+            ? $this->etapasProduccion
+            : $this->etapasProduccion()->get();
+
+        return $etapas->firstWhere('estado', '!=', 'completado')?->nombre
+            ?? ($etapas->isNotEmpty() ? 'Completado' : 'Sin etapas');
     }
 
     /**

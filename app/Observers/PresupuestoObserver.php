@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\Presupuesto;
 use App\Services\AnalisisPresupuestoService;
+use App\Services\PresupuestoItemProduccionService;
 use App\Services\StockReservaService;
 use Illuminate\Support\Facades\Log;
 
@@ -12,6 +13,7 @@ class PresupuestoObserver
     public function __construct(
         private readonly StockReservaService $stockService,
         private readonly AnalisisPresupuestoService $analisisService,
+        private readonly PresupuestoItemProduccionService $produccionService,
     ) {}
 
     public function updated(Presupuesto $presupuesto): void
@@ -45,6 +47,7 @@ class PresupuestoObserver
     {
         $this->stockService->reservar($presupuesto);
         $this->stockService->generarOrdenCompraAutomatica($presupuesto);
+        $this->produccionService->crearEtapasParaPresupuesto($presupuesto);
     }
 
     private function alPagar(Presupuesto $presupuesto): void
