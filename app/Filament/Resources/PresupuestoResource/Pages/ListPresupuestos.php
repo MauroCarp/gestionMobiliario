@@ -36,7 +36,9 @@ class ListPresupuestos extends ListRecords
             'en_revision' => Tab::make('En Revisión')->modifyQueryUsing(fn (Builder $query) => $query->where('estado', 'en_revision'))->badge(isset($counts['en_revision']) ? $counts['en_revision'] : 0),
             'aprobado'    => Tab::make('Aprobados')->modifyQueryUsing(fn (Builder $query) => $query->where('estado', 'aprobado'))->badge(isset($counts['aprobado']) ? $counts['aprobado'] : 0),
             'confirmado'    => Tab::make('Confirmados')->modifyQueryUsing(fn (Builder $query) => $query->where('estado', 'confirmado'))->badge(isset($counts['confirmado']) ? $counts['confirmado'] : 0),
-            'pagado'    => Tab::make('Pagados')->modifyQueryUsing(fn (Builder $query) => $query->where('estado', 'pagado'))->badge(isset($counts['pagado']) ? $counts['pagado'] : 0),
+            'pagado'            => Tab::make('Pagados')->modifyQueryUsing(fn (Builder $query) => $query->where('estado', 'pagado'))->badge(isset($counts['pagado']) ? $counts['pagado'] : 0),
+            'entregado_parcial' => Tab::make('Entregado parcial')->modifyQueryUsing(fn (Builder $query) => $query->where('estado', 'entregado_parcial'))->badge(isset($counts['entregado_parcial']) ? $counts['entregado_parcial'] : 0),
+            'entregado'         => Tab::make('Entregados')->modifyQueryUsing(fn (Builder $query) => $query->where('estado', 'entregado'))->badge(isset($counts['entregado']) ? $counts['entregado'] : 0),
             'rechazado'   => Tab::make('Rechazados')->modifyQueryUsing(fn (Builder $query) => $query->where('estado', 'rechazado'))->badge(isset($counts['rechazado']) ? $counts['rechazado'] : 0),
         ];
     }

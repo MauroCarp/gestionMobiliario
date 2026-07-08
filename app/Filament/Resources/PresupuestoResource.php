@@ -8,7 +8,9 @@ use App\Models\Agencia;
 use App\Models\Insumo;
 use App\Models\CategoriaInsumo;
 use App\Models\Presupuesto;
+use App\Models\PresupuestoItem;
 use App\Models\Sector;
+use App\Services\PresupuestoEntregaService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -316,6 +318,12 @@ class PresupuestoResource extends Resource
 
                         return "{$total} ítems — {$finalizados} finalizados, {$pendientes} pendientes";
                     }),
+                Infolists\Components\TextEntry::make('progreso_entrega')
+                    ->label('Progreso de entrega')
+                    ->badge()
+                    ->color('info'),
+                Infolists\Components\TextEntry::make('resumen_entrega')
+                    ->label('Estado de entrega'),
             ]),
 
             Infolists\Components\Section::make('Observaciones')->schema([
@@ -436,6 +444,63 @@ class PresupuestoResource extends Resource
                         Notification::make()->success()->title('Presupuesto marcado como pagado.')->send();
                     }),
 
+                Tables\Actions\Action::make('entregarCompleto')
+                    ->label('Entregar completo')
+                    ->icon('heroicon-o-truck')
+                    ->color('success')
+                    ->button()
+                    ->visible(fn (Presupuesto $record): bool =>
+                        $record->puedeRegistrarEntrega()
+                        && $record->items()->whereNull('entregado_at')->exists()
+                    )
+                    ->requiresConfirmation()
+                    ->modalHeading('Entregar presupuesto completo')
+                    ->modalDescription('Se marcarán todos los ítems como entregados.')
+                    ->action(function (Presupuesto $record): void {
+                        app(PresupuestoEntregaService::class)->marcarEntregaCompleta($record);
+                        Notification::make()->success()->title('Presupuesto entregado completamente')->send();
+                    }),
+
+                Tables\Actions\Action::make('entregarParcial')
+                    ->label('Entregar parcial')
+                    ->icon('heroicon-o-clipboard-document-list')
+                    ->color('warning')
+                    ->button()
+                    ->visible(fn (Presupuesto $record): bool => $record->puedeRegistrarEntrega())
+                    ->fillForm(fn (Presupuesto $record): array => [
+                        'items_entregados' => $record->items()
+                            ->whereNotNull('entregado_at')
+                            ->pluck('id')
+                            ->all(),
+                    ])
+                    ->form([
+                        Forms\Components\CheckboxList::make('items_entregados')
+                            ->label('Ítems entregados')
+                            ->options(fn (Presupuesto $record): array => $record->items()
+                                ->orderBy('orden')
+                                ->get()
+                                ->mapWithKeys(fn (PresupuestoItem $item): array => [
+                                    $item->id => "[{$item->item_codigo}] {$item->item_nombre}",
+                                ])
+                                ->all())
+                            ->columns(1),
+                    ])
+                    ->action(function (Presupuesto $record, array $data): void {
+                        app(PresupuestoEntregaService::class)->marcarEntregaParcial(
+                            $record,
+                            $data['items_entregados'] ?? [],
+                        );
+
+                        Notification::make()
+                            ->success()
+                            ->title(match ($record->fresh()->estado) {
+                                'entregado'         => 'Presupuesto entregado completamente',
+                                'entregado_parcial' => 'Entrega parcial registrada',
+                                default             => 'Entrega actualizada',
+                            })
+                            ->send();
+                    }),
+
                 Tables\Actions\ViewAction::make()
                     ->button()
                     ->openUrlInNewTab(),
@@ -462,7 +527,7 @@ class PresupuestoResource extends Resource
                         ->label('Exportar Excel Producción')
                         ->icon('heroicon-o-table-cells')
                         ->color('info')
-                        ->visible(fn (Presupuesto $record): bool => in_array($record->estado, ['aprobado', 'confirmado', 'pagado']))
+                        ->visible(fn (Presupuesto $record): bool => in_array($record->estado, ['aprobado', 'confirmado', 'pagado', 'entregado_parcial', 'entregado']))
                         ->url(fn (Presupuesto $record) => route('presupuesto.produccion.excel', $record->id))
                         ->openUrlInNewTab(),
 

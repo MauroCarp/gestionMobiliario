@@ -23,6 +23,9 @@ class PresupuestoItem extends Model
         'orden',
         'finalizado_at',
         'finalizado_por',
+        'entregado_at',
+        'entregado_por',
+        'entrega_observaciones',
     ];
 
     protected $attributes = [
@@ -35,6 +38,7 @@ class PresupuestoItem extends Model
         'precio_unitario' => 'decimal:2',
         'orden'           => 'integer',
         'finalizado_at'   => 'datetime',
+        'entregado_at'    => 'datetime',
     ];
 
     public function getSubtotalAttribute(): ?float
@@ -70,6 +74,11 @@ class PresupuestoItem extends Model
         return $this->belongsTo(User::class, 'finalizado_por');
     }
 
+    public function entregadoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'entregado_por');
+    }
+
     public function etapasProduccion(): HasMany
     {
         return $this->hasMany(PresupuestoItemEtapa::class)->orderBy('orden');
@@ -90,6 +99,16 @@ class PresupuestoItem extends Model
     public function estaFinalizado(): bool
     {
         return ! is_null($this->finalizado_at);
+    }
+
+    public function estaEntregado(): bool
+    {
+        return ! is_null($this->entregado_at);
+    }
+
+    public function getEstadoEntregaAttribute(): string
+    {
+        return $this->estaEntregado() ? 'Entregado' : 'Pendiente';
     }
 
     public function getProgresoProduccionAttribute(): string

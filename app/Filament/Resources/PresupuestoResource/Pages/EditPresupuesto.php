@@ -29,7 +29,7 @@ class EditPresupuesto extends EditRecord
                 ->label('Produccion PDF')
                 ->icon('heroicon-o-cog-6-tooth')
                 ->color('warning')
-                ->visible(fn (): bool => in_array($this->record->estado, ['aprobado', 'confirmado', 'pagado']))
+                ->visible(fn (): bool => in_array($this->record->estado, ['aprobado', 'confirmado', 'pagado', 'entregado_parcial', 'entregado']))
                 ->url(fn () => route('presupuesto.produccion.viewer', $this->record->id))
                 ->openUrlInNewTab(),
 
@@ -37,7 +37,7 @@ class EditPresupuesto extends EditRecord
                 ->label('Produccion Excel')
                 ->icon('heroicon-o-table-cells')
                 ->color('success')
-                ->visible(fn (): bool => in_array($this->record->estado, ['aprobado', 'confirmado', 'pagado']))
+                ->visible(fn (): bool => in_array($this->record->estado, ['aprobado', 'confirmado', 'pagado', 'entregado_parcial', 'entregado']))
                 ->url(fn () => route('presupuesto.produccion.excel', $this->record->id))
                 ->openUrlInNewTab(),
 

@@ -4,6 +4,8 @@ namespace App\Filament\Resources\PresupuestoResource\Pages;
 
 use App\Filament\Resources\PresupuestoResource;
 use App\Filament\Resources\PresupuestoResource\RelationManagers\ItemsRelationManager;
+use App\Models\PresupuestoItem;
+use App\Services\PresupuestoEntregaService;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Notifications\Notification;
@@ -30,7 +32,7 @@ class ViewPresupuesto extends ViewRecord
                 ->label('Produccion PDF')
                 ->icon('heroicon-o-cog-6-tooth')
                 ->color('warning')
-                ->visible(fn (): bool => in_array($this->record->estado, ['aprobado', 'confirmado', 'pagado']))
+                ->visible(fn (): bool => in_array($this->record->estado, ['aprobado', 'confirmado', 'pagado', 'entregado_parcial', 'entregado']))
                 ->url(fn () => route('presupuesto.produccion.viewer', $this->record->id))
                 ->openUrlInNewTab(),
 
@@ -38,7 +40,7 @@ class ViewPresupuesto extends ViewRecord
                 ->label('Produccion Excel')
                 ->icon('heroicon-o-table-cells')
                 ->color('success')
-                ->visible(fn (): bool => in_array($this->record->estado, ['aprobado', 'confirmado', 'pagado']))
+                ->visible(fn (): bool => in_array($this->record->estado, ['aprobado', 'confirmado', 'pagado', 'entregado_parcial', 'entregado']))
                 ->url(fn () => route('presupuesto.produccion.excel', $this->record->id))
                 ->openUrlInNewTab(),
 
@@ -98,6 +100,72 @@ class ViewPresupuesto extends ViewRecord
                 ->action(function (): void {
                     $this->record->cambiarEstado('pagado');
                     Notification::make()->success()->title('Presupuesto marcado como pagado.')->send();
+                    $this->refreshFormData(['estado']);
+                }),
+
+            Actions\Action::make('entregarCompleto')
+                ->label('Entregar completo')
+                ->icon('heroicon-o-truck')
+                ->color('success')
+                ->visible(fn (): bool =>
+                    $this->record->puedeRegistrarEntrega()
+                    && $this->record->items()->whereNull('entregado_at')->exists()
+                )
+                ->requiresConfirmation()
+                ->modalHeading('Entregar presupuesto completo')
+                ->modalDescription('Se marcarán todos los ítems como entregados y el presupuesto pasará a estado Entregado.')
+                ->action(function (): void {
+                    app(PresupuestoEntregaService::class)->marcarEntregaCompleta($this->record);
+
+                    Notification::make()
+                        ->success()
+                        ->title('Presupuesto entregado completamente')
+                        ->send();
+
+                    $this->record->refresh();
+                    $this->refreshFormData(['estado']);
+                }),
+
+            Actions\Action::make('entregarParcial')
+                ->label('Entregar parcial')
+                ->icon('heroicon-o-clipboard-document-list')
+                ->color('warning')
+                ->visible(fn (): bool => $this->record->puedeRegistrarEntrega())
+                ->fillForm(fn (): array => [
+                    'items_entregados' => $this->record->items()
+                        ->whereNotNull('entregado_at')
+                        ->pluck('id')
+                        ->all(),
+                ])
+                ->form([
+                    Forms\Components\CheckboxList::make('items_entregados')
+                        ->label('Ítems entregados')
+                        ->options(fn (): array => $this->record->items()
+                            ->orderBy('orden')
+                            ->get()
+                            ->mapWithKeys(fn (PresupuestoItem $item): array => [
+                                $item->id => "[{$item->item_codigo}] {$item->item_nombre}",
+                            ])
+                            ->all())
+                        ->columns(1),
+                ])
+                ->action(function (array $data): void {
+                    app(PresupuestoEntregaService::class)->marcarEntregaParcial(
+                        $this->record,
+                        $data['items_entregados'] ?? [],
+                    );
+
+                    $this->record->refresh();
+
+                    Notification::make()
+                        ->success()
+                        ->title(match ($this->record->estado) {
+                            'entregado'         => 'Presupuesto entregado completamente',
+                            'entregado_parcial' => 'Entrega parcial registrada',
+                            default             => 'Entrega actualizada',
+                        })
+                        ->send();
+
                     $this->refreshFormData(['estado']);
                 }),
 

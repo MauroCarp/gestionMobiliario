@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProyectoResource\Pages;
 use App\Filament\Resources\ProyectoResource\RelationManagers;
+use App\Filament\Support\MarcaLogoUpload;
 use App\Models\Marca;
 use App\Models\Proyecto;
 use Filament\Forms;
@@ -71,15 +72,7 @@ class ProyectoResource extends Resource
                                 ->label('Nombre de la marca')
                                 ->required()
                                 ->maxLength(255),
-                            Forms\Components\FileUpload::make('logo')
-                                ->label('Logo')
-                                ->image()
-                                ->directory('marcas/logos')
-                                ->disk('public')
-                                ->imageResizeMode('cover')
-                                ->imageCropAspectRatio('16:9')
-                                ->imageResizeTargetWidth(400)
-                                ->imageResizeTargetHeight(225),
+                            MarcaLogoUpload::make(),
                             Forms\Components\Toggle::make('activo')
                                 ->label('Activa')
                                 ->default(true),
@@ -90,32 +83,7 @@ class ProyectoResource extends Resource
                                 ->label('Nombre de la marca')
                                 ->required()
                                 ->maxLength(255),
-                            Forms\Components\FileUpload::make('logo')
-                                ->label('Logo')
-                                ->image()
-                                ->directory('marcas/logos')
-                                ->disk('public')
-                                ->imageResizeMode('cover')
-                                ->imageCropAspectRatio('16:9')
-                                ->imageResizeTargetWidth(400)
-                                ->imageResizeTargetHeight(225)
-                                ->getUploadedFileUsing(function ($component, string $file): ?array {
-                                    $storage = $component->getDisk();
-                                    if (!$storage->exists($file)) {
-                                        return null;
-                                    }
-                                    $mimeType = $storage->mimeType($file);
-                                    $content = $storage->get($file);
-                                    if ($content === false || $content === null) {
-                                        return null;
-                                    }
-                                    return [
-                                        'name' => basename($file),
-                                        'size' => $storage->size($file),
-                                        'type' => $mimeType,
-                                        'url'  => 'data:' . $mimeType . ';base64,' . base64_encode($content),
-                                    ];
-                                }),
+                            MarcaLogoUpload::make(),
                             Forms\Components\Toggle::make('activo')
                                 ->label('Activa')
                                 ->default(true),

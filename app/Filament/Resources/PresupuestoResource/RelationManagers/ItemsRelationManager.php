@@ -5,6 +5,7 @@ namespace App\Filament\Resources\PresupuestoResource\RelationManagers;
 use App\Models\Insumo;
 use App\Models\PresupuestoItem;
 use App\Models\PresupuestoItemEtapa;
+use App\Services\PresupuestoEntregaService;
 use App\Services\PresupuestoItemProduccionService;
 use App\Services\StockReservaService;
 use Filament\Forms;
@@ -64,7 +65,7 @@ class ItemsRelationManager extends RelationManager
                     ->placeholder('—'),
 
                 Tables\Columns\TextColumn::make('estado_finalizacion')
-                    ->label('Estado')
+                    ->label('Finalización')
                     ->badge()
                     ->getStateUsing(fn (PresupuestoItem $record): string =>
                         $record->estaFinalizado() ? 'Finalizado' : 'Pendiente'
@@ -72,6 +73,22 @@ class ItemsRelationManager extends RelationManager
                     ->color(fn (PresupuestoItem $record): string =>
                         $record->estaFinalizado() ? 'success' : 'gray'
                     ),
+
+                Tables\Columns\TextColumn::make('estado_entrega')
+                    ->label('Entrega')
+                    ->badge()
+                    ->color(fn (PresupuestoItem $record): string =>
+                        $record->estaEntregado() ? 'success' : 'gray'
+                    ),
+
+                Tables\Columns\TextColumn::make('entregado_at')
+                    ->label('Entregado el')
+                    ->dateTime('d/m/Y H:i')
+                    ->placeholder('—'),
+
+                Tables\Columns\TextColumn::make('entregadoPor.name')
+                    ->label('Entregado por')
+                    ->placeholder('—'),
 
                 Tables\Columns\TextColumn::make('finalizado_at')
                     ->label('Finalizado el')
@@ -90,7 +107,7 @@ class ItemsRelationManager extends RelationManager
                     ->color('info')
                     ->visible(fn (PresupuestoItem $record): bool =>
                         (bool) $record->mobiliario_id
-                        && in_array($this->ownerRecord->estado, ['confirmado', 'pagado'])
+                        && in_array($this->ownerRecord->estado, ['confirmado', 'pagado', 'entregado_parcial', 'entregado'])
                     )
                     ->modalHeading(fn (PresupuestoItem $record): string => "Etapas de producción - {$record->item_nombre}")
                     ->modalWidth('6xl')
@@ -183,13 +200,57 @@ class ItemsRelationManager extends RelationManager
                             ->send();
                     }),
 
+                Tables\Actions\Action::make('marcarEntregado')
+                    ->label('Marcar entregado')
+                    ->icon('heroicon-o-truck')
+                    ->color('success')
+                    ->visible(fn (PresupuestoItem $record): bool =>
+                        ! $record->estaEntregado()
+                        && $this->ownerRecord->puedeRegistrarEntrega()
+                    )
+                    ->form([
+                        Forms\Components\Textarea::make('entrega_observaciones')
+                            ->label('Observaciones de entrega')
+                            ->rows(2),
+                    ])
+                    ->action(function (PresupuestoItem $record, array $data): void {
+                        app(PresupuestoEntregaService::class)->toggleItemEntrega(
+                            $record,
+                            true,
+                            $data['entrega_observaciones'] ?? null,
+                        );
+
+                        Notification::make()
+                            ->title('Ítem marcado como entregado')
+                            ->success()
+                            ->send();
+                    }),
+
+                Tables\Actions\Action::make('desmarcarEntregado')
+                    ->label('Desmarcar entrega')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('gray')
+                    ->visible(fn (PresupuestoItem $record): bool =>
+                        $record->estaEntregado()
+                        && $this->ownerRecord->puedeRegistrarEntrega()
+                    )
+                    ->requiresConfirmation()
+                    ->action(function (PresupuestoItem $record): void {
+                        app(PresupuestoEntregaService::class)->toggleItemEntrega($record, false);
+
+                        Notification::make()
+                            ->title('Entrega del ítem revertida')
+                            ->success()
+                            ->send();
+                    }),
+
                 Tables\Actions\Action::make('confirmarFinalizacion')
                     ->label('Confirmar finalización')
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
                     ->visible(fn (PresupuestoItem $record): bool =>
                         ! $record->estaFinalizado()
-                        && in_array($this->ownerRecord->estado, ['confirmado', 'pagado'])
+                        && in_array($this->ownerRecord->estado, ['confirmado', 'pagado', 'entregado_parcial', 'entregado'])
                     )
                     ->requiresConfirmation()
                     ->modalHeading('Confirmar finalización')

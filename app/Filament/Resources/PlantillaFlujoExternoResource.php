@@ -40,9 +40,18 @@ class PlantillaFlujoExternoResource extends Resource
                 Forms\Components\Select::make('entidad_id')
                     ->label('Item')
                     ->options(fn (Forms\Get $get) => match ($get('entidad_tipo')) {
-                        'insumo'     => Insumo::where('activo', true)->orderBy('nombre')->pluck('nombre', 'id'),
-                        'mobiliario' => Mobiliario::orderBy('nombre')->pluck('nombre', 'id'),
-                        default      => [],
+                        'insumo' => Insumo::where('activo', true)
+                            ->orderBy('nombre')
+                            ->get()
+                            ->mapWithKeys(fn (Insumo $insumo): array => [
+                                $insumo->id => "[{$insumo->codigo}] {$insumo->nombre}",
+                            ]),
+                        'mobiliario' => Mobiliario::orderBy('nombre')
+                            ->get()
+                            ->mapWithKeys(fn (Mobiliario $mobiliario): array => [
+                                $mobiliario->id => "[{$mobiliario->codigo_interno}] {$mobiliario->nombre}",
+                            ]),
+                        default => [],
                     })
                     ->searchable()
                     ->required()

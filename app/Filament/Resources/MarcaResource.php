@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\MarcaResource\Pages;
+use App\Filament\Support\MarcaLogoUpload;
 use App\Models\Marca;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -31,38 +32,7 @@ class MarcaResource extends Resource
                     ->maxLength(255)
                     ->columnSpan(2),
 
-                Forms\Components\FileUpload::make('logo')
-                    ->image()
-                    ->directory('marcas/logos')
-                    ->disk('public')
-                    ->imageEditor()
-                    ->imageEditorAspectRatios([
-                        null,
-                        '16:9',
-                        '4:3',
-                        '1:1',
-                    ])
-                    ->imageResizeMode('contain')
-                    ->imageResizeTargetWidth(400)
-                    ->imageResizeTargetHeight(225)
-                    ->helperText('Podés editar la imagen antes de guardar. Se ajustará sin recortar.')
-                    ->getUploadedFileUsing(function ($component, string $file): ?array {
-                        $storage = $component->getDisk();
-                        if (!$storage->exists($file)) {
-                            return null;
-                        }
-                        $mimeType = $storage->mimeType($file);
-                        $content = $storage->get($file);
-                        if ($content === false || $content === null) {
-                            return null;
-                        }
-                        return [
-                            'name' => basename($file),
-                            'size' => $storage->size($file),
-                            'type' => $mimeType,
-                            'url'  => 'data:' . $mimeType . ';base64,' . base64_encode($content),
-                        ];
-                    })
+                MarcaLogoUpload::make()
                     ->columnSpan(2),
 
                 Forms\Components\Toggle::make('activo')

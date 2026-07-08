@@ -15,23 +15,27 @@ class Presupuesto extends Model
     use SoftDeletes, LogsActivity;
 
     const ESTADOS = [
-        'borrador'    => 'Borrador',
-        'en_revision' => 'En Revisión',
-        'aprobado'    => 'Aprobado',
-        'confirmado'  => 'Confirmado',
-        'pagado'      => 'Pagado',
-        'rechazado'   => 'Rechazado',
-        'cancelado'   => 'Cancelado',
+        'borrador'          => 'Borrador',
+        'en_revision'       => 'En Revisión',
+        'aprobado'          => 'Aprobado',
+        'confirmado'        => 'Confirmado',
+        'pagado'            => 'Pagado',
+        'entregado_parcial' => 'Entregado parcial',
+        'entregado'         => 'Entregado',
+        'rechazado'         => 'Rechazado',
+        'cancelado'         => 'Cancelado',
     ];
 
     const ESTADO_COLORS = [
-        'borrador'    => 'gray',
-        'en_revision' => 'warning',
-        'aprobado'    => 'success',
-        'confirmado'  => 'info',
-        'pagado'      => 'success',
-        'rechazado'   => 'danger',
-        'cancelado'   => 'gray',
+        'borrador'          => 'gray',
+        'en_revision'       => 'warning',
+        'aprobado'          => 'success',
+        'confirmado'        => 'info',
+        'pagado'            => 'success',
+        'entregado_parcial' => 'warning',
+        'entregado'         => 'success',
+        'rechazado'         => 'danger',
+        'cancelado'         => 'gray',
     ];
 
     protected $fillable = [
@@ -131,7 +135,48 @@ class Presupuesto extends Model
 
     public function puedeCancelar(): bool
     {
-        return in_array($this->estado, ['borrador', 'en_revision', 'aprobado', 'confirmado']);
+        return in_array($this->estado, ['borrador', 'en_revision', 'aprobado', 'confirmado'], true);
+    }
+
+    public function puedeRegistrarEntrega(): bool
+    {
+        return in_array($this->estado, ['confirmado', 'pagado', 'entregado_parcial', 'entregado'], true);
+    }
+
+    public function getItemsEntregadosCountAttribute(): int
+    {
+        $items = $this->relationLoaded('items') ? $this->items : $this->items()->get();
+
+        return $items->filter(fn (PresupuestoItem $item) => $item->estaEntregado())->count();
+    }
+
+    public function getProgresoEntregaAttribute(): string
+    {
+        $items = $this->relationLoaded('items') ? $this->items : $this->items()->get();
+        $total = $items->count();
+
+        if ($total === 0) {
+            return '0/0';
+        }
+
+        return $this->items_entregados_count . '/' . $total;
+    }
+
+    public function getResumenEntregaAttribute(): string
+    {
+        $items = $this->relationLoaded('items') ? $this->items : $this->items()->get();
+        $total = $items->count();
+        $entregados = $this->items_entregados_count;
+
+        if ($total === 0 || $entregados === 0) {
+            return 'Sin entregas';
+        }
+
+        if ($entregados === $total) {
+            return 'Entrega completa';
+        }
+
+        return 'Entrega parcial';
     }
 
     public function puedeEditar(): bool
@@ -196,6 +241,6 @@ class Presupuesto extends Model
 
     public function esConfirmado(): bool
     {
-        return in_array($this->estado, ['confirmado', 'pagado']);
+        return in_array($this->estado, ['confirmado', 'pagado', 'entregado_parcial', 'entregado'], true);
     }
 }
