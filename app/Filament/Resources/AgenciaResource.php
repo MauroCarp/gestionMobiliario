@@ -147,10 +147,10 @@ class AgenciaResource extends Resource
                     ->relationship('proyecto', 'codigo_interno')
                     ->searchable()
                     ->preload(),
-                Tables\Filters\SelectFilter::make('prioridad')
-                    ->options([1 => 'Alta', 2 => 'Media', 3 => 'Baja']),
-                Tables\Filters\TernaryFilter::make('activo')->label('Estado'),
-                Tables\Filters\TrashedFilter::make(),
+                // Tables\Filters\SelectFilter::make('prioridad')
+                //     ->options([1 => 'Alta', 2 => 'Media', 3 => 'Baja']),
+                // Tables\Filters\TernaryFilter::make('activo')->label('Estado'),
+                // Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

@@ -18,6 +18,8 @@ class EditPresupuesto extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            PresupuestoResource::clonarPageAction(fn () => $this->record),
+
             Actions\Action::make('pdf')
                 ->label('PDF')
                 ->icon('heroicon-o-document-text')

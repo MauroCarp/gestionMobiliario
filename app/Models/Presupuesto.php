@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 
@@ -114,6 +115,42 @@ class Presupuesto extends Model
             'motivo_cambio'  => $motivo,
             'creado_por'     => auth()->check() ? auth()->id() : null,
         ]);
+    }
+
+    public function clonarConItems(): self
+    {
+        return DB::transaction(function (): self {
+            $clon = self::create([
+                'agencia_id'         => $this->agencia_id,
+                'responsable_id'     => $this->responsable_id,
+                'estado'             => 'borrador',
+                'version'            => 1,
+                'fecha_emision'      => $this->fecha_emision,
+                'fecha_vencimiento'  => $this->fecha_vencimiento,
+                'observaciones'      => $this->observaciones,
+                'notas_internas'     => $this->notas_internas,
+                'datos_adicionales'  => $this->datos_adicionales,
+            ]);
+
+            $this->items()
+                ->orderBy('orden')
+                ->get()
+                ->each(function (PresupuestoItem $item) use ($clon): void {
+                    $clon->items()->create([
+                        'mobiliario_id'          => $item->mobiliario_id,
+                        'insumo_id'              => $item->insumo_id,
+                        'sector_id'              => $item->sector_id,
+                        'cantidad'               => $item->cantidad,
+                        'precio_unitario'        => $item->precio_unitario,
+                        'descripcion_override'   => $item->descripcion_override,
+                        'observaciones'          => $item->observaciones,
+                        'notas_manuales'         => $item->notas_manuales,
+                        'orden'                  => $item->orden,
+                    ]);
+                });
+
+            return $clon;
+        });
     }
 
     // ─── State helpers ────────────────────────────────────────────────────────

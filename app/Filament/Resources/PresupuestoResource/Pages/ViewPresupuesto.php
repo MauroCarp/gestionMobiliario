@@ -21,6 +21,8 @@ class ViewPresupuesto extends ViewRecord
             Actions\EditAction::make(),
                 // ->visible(fn (): bool => $this->record->puedeEditar()),
 
+            PresupuestoResource::clonarPageAction(fn () => $this->record),
+
             Actions\Action::make('pdf')
                 ->label('PDF')
                 ->icon('heroicon-o-document-text')

@@ -11,6 +11,7 @@ use App\Models\Presupuesto;
 use App\Models\PresupuestoItem;
 use App\Models\Sector;
 use App\Services\PresupuestoEntregaService;
+use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -31,6 +32,48 @@ class PresupuestoResource extends Resource
     protected static ?int    $navigationSort   = 2;
     protected static ?string $modelLabel       = 'Presupuesto';
     protected static ?string $pluralModelLabel = 'Presupuestos';
+
+    public static function clonarTableAction(): Tables\Actions\Action
+    {
+        return Tables\Actions\Action::make('clonar')
+            ->label('Clonar')
+            ->icon('heroicon-o-document-duplicate')
+            ->color('gray')
+            ->requiresConfirmation()
+            ->modalHeading('Clonar presupuesto')
+            ->modalDescription('Se creará un nuevo presupuesto en borrador con los datos generales y los ítems de este presupuesto.')
+            ->action(function (Presupuesto $record) {
+                $clon = $record->clonarConItems();
+
+                Notification::make()
+                    ->success()
+                    ->title("Presupuesto clonado: {$clon->codigo}")
+                    ->send();
+
+                return redirect(static::getUrl('edit', ['record' => $clon]));
+            });
+    }
+
+    public static function clonarPageAction(\Closure $getRecord): Actions\Action
+    {
+        return Actions\Action::make('clonar')
+            ->label('Clonar')
+            ->icon('heroicon-o-document-duplicate')
+            ->color('gray')
+            ->requiresConfirmation()
+            ->modalHeading('Clonar presupuesto')
+            ->modalDescription('Se creará un nuevo presupuesto en borrador con los datos generales y los ítems de este presupuesto.')
+            ->action(function () use ($getRecord) {
+                $clon = $getRecord()->clonarConItems();
+
+                Notification::make()
+                    ->success()
+                    ->title("Presupuesto clonado: {$clon->codigo}")
+                    ->send();
+
+                return redirect(static::getUrl('edit', ['record' => $clon]));
+            });
+    }
 
     // ─── Form ─────────────────────────────────────────────────────────────────
 
@@ -508,6 +551,8 @@ class PresupuestoResource extends Resource
                 // ── Resto de acciones en el menú desplegable ────────────────
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\EditAction::make(),
+
+                    static::clonarTableAction(),
 
                     Tables\Actions\Action::make('pdf')
                         ->label('Exportar PDF')
