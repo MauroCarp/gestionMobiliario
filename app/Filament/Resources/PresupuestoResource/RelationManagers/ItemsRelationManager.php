@@ -86,18 +86,24 @@ class ItemsRelationManager extends RelationManager
                     ->dateTime('d/m/Y H:i')
                     ->placeholder('—'),
 
-                Tables\Columns\TextColumn::make('entregadoPor.name')
-                    ->label('Entregado por')
-                    ->placeholder('—'),
-
+                    
+                    // Tables\Columns\TextColumn::make('entregadoPor.name')
+                    //     ->label('Entregado por')
+                    //     ->placeholder('—'),
+                    
                 Tables\Columns\TextColumn::make('finalizado_at')
-                    ->label('Finalizado el')
-                    ->dateTime('d/m/Y H:i')
-                    ->placeholder('—'),
-
-                Tables\Columns\TextColumn::make('finalizadoPor.name')
-                    ->label('Finalizado por')
-                    ->placeholder('—'),
+                ->label('Finalizado el')
+                ->dateTime('d/m/Y H:i')
+                ->placeholder('—'),
+                
+                Tables\Columns\TextColumn::make('entrega_observaciones')
+                    ->label('Observaciones entrega')
+                    ->placeholder('—')
+                    ->wrap()
+                    ->toggleable(),
+                // Tables\Columns\TextColumn::make('finalizadoPor.name')
+                //     ->label('Finalizado por')
+                //     ->placeholder('—'),
             ])
             ->headerActions([])
             ->actions([

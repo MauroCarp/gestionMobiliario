@@ -156,23 +156,23 @@ class PresupuestoResource extends Resource
                                 ->options(function (Get $get) {
                                     $agenciaId = $get('../../agencia_id');
 
-                                    // Mobiliarios: del proyecto si hay agencia, o todos activos
-                                    if ($agenciaId) {
-                                        $agencia = Agencia::find($agenciaId);
-                                        $proyecto = $agencia?->proyecto;
-                                        if ($proyecto) {
-                                            $mobiliarios = $proyecto->mobiliarios()
-                                                ->where('estado', 'activo')
-                                                ->orderBy('nombre')
-                                                ->get()
-                                                ->mapWithKeys(fn ($m) => [
-                                                    'mob_' . $m->id => "[{$m->codigo_interno}] {$m->nombre}",
-                                                ])
-                                                ->toArray();
-                                        }
-                                    }
+                                    $agencia = $agenciaId
+                                        ? Agencia::with('proyecto.marca')->find($agenciaId)
+                                        : null;
+                                    $proyecto = $agencia?->proyecto;
+                                    $marcaId = $proyecto?->marca_id;
 
-                                    if (!isset($mobiliarios)) {
+                                    // Mobiliarios: del proyecto si hay agencia, o todos activos
+                                    if ($proyecto) {
+                                        $mobiliarios = $proyecto->mobiliarios()
+                                            ->where('estado', 'activo')
+                                            ->orderBy('nombre')
+                                            ->get()
+                                            ->mapWithKeys(fn ($m) => [
+                                                'mob_' . $m->id => "[{$m->codigo_interno}] {$m->nombre}",
+                                            ])
+                                            ->toArray();
+                                    } elseif (! $agenciaId) {
                                         $mobiliarios = \App\Models\Mobiliario::where('estado', 'activo')
                                             ->orderBy('nombre')
                                             ->get()
@@ -180,19 +180,32 @@ class PresupuestoResource extends Resource
                                                 'mob_' . $m->id => "[{$m->codigo_interno}] {$m->nombre}",
                                             ])
                                             ->toArray();
+                                    } else {
+                                        $mobiliarios = [];
                                     }
 
-                                    // Insumos de categoría Sillas
-                                    $sillas = Insumo::whereHas('categoriasInsumo', fn ($q) =>
-                                            $q->where('nombre', 'like', '%silla%')
-                                        )
-                                        ->where('activo', true)
-                                        ->orderBy('nombre')
-                                        ->get()
-                                        ->mapWithKeys(fn ($i) => [
-                                            'ins_' . $i->id => "[SILLA] [{$i->codigo}] {$i->nombre}",
-                                        ])
-                                        ->toArray();
+                                    $sillas = [];
+
+                                    if ($marcaId) {
+                                        $sillas = Insumo::query()
+                                            ->whereHas('categoriasInsumo', fn ($q) =>
+                                                $q->where('nombre', 'like', '%silla%')
+                                            )
+                                            ->where('activo', true)
+                                            ->whereHas('marcasSilla', fn ($q) => $q->where('marca_id', $marcaId))
+                                            ->with(['marcasSilla' => fn ($q) => $q->where('marca_id', $marcaId)])
+                                            ->orderBy('nombre')
+                                            ->get()
+                                            ->mapWithKeys(function (Insumo $insumo) use ($marcaId): array {
+                                                $datos = $insumo->nombreYCodigoParaMarca($marcaId);
+                                                $label = filled($datos['codigo'])
+                                                    ? "[SILLA] [{$datos['codigo']}] {$datos['nombre']}"
+                                                    : "[SILLA] {$datos['nombre']}";
+
+                                                return ['ins_' . $insumo->id => $label];
+                                            })
+                                            ->toArray();
+                                    }
 
                                     return array_merge($mobiliarios, $sillas);
                                 })

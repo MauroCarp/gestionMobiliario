@@ -45,6 +45,10 @@ class CreateMobiliario extends CreateRecord
             $media->copy($this->record, 'imagenes');
         }
 
+        foreach ($source->getMedia('galeria') as $media) {
+            $media->copy($this->record, 'galeria');
+        }
+
         foreach ($source->getMedia('documentos') as $media) {
             $media->copy($this->record, 'documentos');
         }

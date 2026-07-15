@@ -296,6 +296,40 @@ class MobiliarioResource extends Resource
                 ])
                 ->hiddenOn('create')
                 ->collapsible(),
+
+            Forms\Components\Section::make('Galería de imágenes')
+                ->schema([
+                    Forms\Components\Placeholder::make('galeria_carousel')
+                        ->label('')
+                        ->content(fn (?Mobiliario $record): HtmlString => new HtmlString(
+                            view('filament.mobiliarios.galeria-carousel', [
+                                'imagenes' => $record?->getMedia('galeria') ?? collect(),
+                            ])->render(),
+                        ))
+                        ->visibleOn('view')
+                        ->columnSpanFull(),
+
+                    Forms\Components\SpatieMediaLibraryFileUpload::make('galeria')
+                        ->label('Imágenes')
+                        ->collection('galeria')
+                        ->image()
+                        ->multiple()
+                        ->reorderable()
+                        ->appendFiles()
+                        ->imageEditor()
+                        ->imageEditorAspectRatios([
+                            null,
+                            '4:3',
+                            '3:4',
+                            '1:1',
+                            '16:9',
+                        ])
+                        ->helperText('Podés cargar varias imágenes para mostrar como galería del mobiliario.')
+                        ->visibleOn('edit')
+                        ->columnSpanFull(),
+                ])
+                ->hiddenOn('create')
+                ->collapsible(),
         ]);
     }
 
@@ -356,6 +390,7 @@ class MobiliarioResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
                 Tables\Actions\RestoreAction::make(),
@@ -385,10 +420,11 @@ class MobiliarioResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListMobiliarios::route('/'),
-            'create' => Pages\CreateMobiliario::route('/create'),
-            'view'   => Pages\ViewMobiliario::route('/{record}'),
-            'edit'   => Pages\EditMobiliario::route('/{record}/edit'),
+            'index'              => Pages\ListMobiliarios::route('/'),
+            'pendientes-entrega' => Pages\PendientesEntregaMobiliarios::route('/pendientes-entrega'),
+            'create'             => Pages\CreateMobiliario::route('/create'),
+            'view'               => Pages\ViewMobiliario::route('/{record}'),
+            'edit'               => Pages\EditMobiliario::route('/{record}/edit'),
         ];
     }
 }

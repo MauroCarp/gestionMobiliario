@@ -59,6 +59,10 @@ class Mobiliario extends Model implements HasMedia
             ->singleFile()
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp']);
 
+        $this->addMediaCollection('galeria')
+            ->useDisk('public')
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp']);
+
         $this->addMediaCollection('documentos')
             ->useDisk('public');
     }
@@ -135,5 +139,21 @@ class Mobiliario extends Model implements HasMedia
         return $this->belongsToMany(Proyecto::class, 'proyecto_mobiliario')
             ->withPivot('cantidad', 'observaciones')
             ->withTimestamps();
+    }
+
+    public function presupuestoItems(): HasMany
+    {
+        return $this->hasMany(PresupuestoItem::class, 'mobiliario_id');
+    }
+
+    public function presupuestoItemsPendientesEntrega(): HasMany
+    {
+        return $this->presupuestoItems()
+            ->whereNull('entregado_at')
+            ->whereHas('presupuesto', fn ($query) => $query->whereIn('estado', [
+                'confirmado',
+                'pagado',
+                'entregado_parcial',
+            ]));
     }
 }
