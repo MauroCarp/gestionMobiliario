@@ -20,7 +20,8 @@ class PresupuestoPdfController extends Controller
             'responsable',
             'aprobadoPor',
             'items' => fn ($q) => $q->orderBy('sector_id')->orderBy('orden')->with([
-                'mobiliario',
+                'mobiliario.atributos',
+                'mobiliario.media',
                 'sector',
                 'insumo.media',
                 'insumo.marcasSilla',
@@ -137,6 +138,8 @@ class PresupuestoPdfController extends Controller
             'items' => fn ($q) => $q->orderBy('sector_id')->orderBy('orden')
                 ->with([
                     'mobiliario.categoria',
+                    'mobiliario.atributos',
+                    'mobiliario.media',
                     'mobiliario.composicionTecnica.insumo.unidadMedida',
                     'mobiliario.plantillaFlujos' => fn ($q) => $q
                         ->where('activo', true)

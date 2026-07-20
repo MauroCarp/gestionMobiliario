@@ -78,7 +78,7 @@
 
         .item-num    { color: #6B7280; font-size: 10px; font-weight: bold; }
         .item-img-cell { overflow: hidden; }
-        .item-img    { width: 120px; height: auto; display: block; }
+        .item-img    { width: 180px; height: auto; display: block; }
         .item-no-img {
             width: 80px; height: 70px;
             background: #F3F4F6;
@@ -87,6 +87,7 @@
             text-align: center; line-height: 70px;
         }
         .item-code  { font-size: 11px; color: #9CA3AF; margin-top: 2px; }
+        .item-attrs { font-size: 12px; color: #000000; margin-top: 2px; line-height: 1.3; }
         .item-desc  { font-size: 14px; color: #000000; margin-top: 3px; line-height: 1.4; text-transform: uppercase;}
         .item-qty   { font-size: 16px; font-weight: bold; }
 
@@ -293,6 +294,26 @@
             $nombreItem    = $mob?->nombre ?? $insumoNombreOriginal['nombre'] ?? '—';
             $codigoItem    = $mob?->codigo_interno ?? $insumoCodigoFantasia ?? '';
             $categoriaItem = $mob?->categoria?->nombre ?? ($insumo && ! $esSillaInsumo ? 'Insumo' : '');
+            $atributosItem = $mob?->atributos?->isNotEmpty()
+                ? $mob->atributos
+                    ->map(function ($atributo) {
+                        $clave = mb_strtolower(trim($atributo->clave));
+                        $abbr = match (true) {
+                            str_contains($clave, 'altura'), $clave === 'alto' => 'Alt.',
+                            str_contains($clave, 'ancho') => 'An.',
+                            str_contains($clave, 'prof') => 'Prof.',
+                            str_contains($clave, 'largo') => 'L.',
+                            str_contains($clave, 'espesor') => 'Esp.',
+                            str_contains($clave, 'diam') => 'Diam.',
+                            str_contains($clave, 'color') => 'Col.',
+                            str_contains($clave, 'material') => 'Mat.',
+                            default => mb_strtoupper(mb_substr($atributo->clave, 0, 3)) . '.',
+                        };
+
+                        return $abbr . ' ' . $atributo->valor;
+                    })
+                    ->join(' · ')
+                : null;
         @endphp
         <tr>
             {{-- <td class="center"><span class="item-num">{{ $globalIndex++ }}</span></td> --}}
@@ -307,6 +328,9 @@
                 <strong>{{ $nombreItem }}</strong>
                 @if($codigoItem)
                     <div class="item-code" style="font-size: 14px;color:black;font-weight: bold;">Cód: {{ $codigoItem }}</div>
+                @endif
+                @if($atributosItem)
+                    <div class="item-attrs">{{ $atributosItem }}</div>
                 @endif
                 @if($categoriaItem)
                     <div class="item-code">{{ $categoriaItem }}</div>

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\PresupuestoPdfController;
+use App\Http\Controllers\MobiliarioPendientesEntregaPdfController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -25,4 +26,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/presupuesto/{presupuesto}/produccion/excel', [PresupuestoPdfController::class, 'produccionExcel'])
         ->name('presupuesto.produccion.excel');
+
+    Route::get('/mobiliarios/pendientes-entrega/pdf', MobiliarioPendientesEntregaPdfController::class)
+        ->name('mobiliarios.pendientes-entrega.pdf');
 });

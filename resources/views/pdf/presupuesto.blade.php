@@ -90,6 +90,7 @@
             text-align: center; line-height: 90px;
         }
         .item-code   { font-size: 12px; color: #9CA3AF; margin-top: 2px; }
+        .item-attrs  { font-size: 12px; color: #000000; margin-top: 2px; line-height: 1.3; }
         .item-desc   { font-size: 12px; color: #6B7280; margin-top: 3px; line-height: 1.4; }
         .item-obs    { font-size: 12px; color: #374151; margin-top: 3px; }
         .item-qty    { font-size: 13px; font-weight: bold; }
@@ -290,6 +291,26 @@
             $nombreItem = $mob?->nombre ?? $insumoDisplay['nombre'] ?? '—';
             $codigoItem = $mob?->codigo_interno ?? $insumoDisplay['codigo'] ?? '';
             $categoriaItem = $mob?->categoria?->nombre ?? ($insumo && ! $esSillaInsumo ? 'Insumo' : '');
+            $atributosItem = $mob?->atributos?->isNotEmpty()
+                ? $mob->atributos
+                    ->map(function ($atributo) {
+                        $clave = mb_strtolower(trim($atributo->clave));
+                        $abbr = match (true) {
+                            str_contains($clave, 'altura'), $clave === 'alto' => 'Alt.',
+                            str_contains($clave, 'ancho') => 'An.',
+                            str_contains($clave, 'prof') => 'Prof.',
+                            str_contains($clave, 'largo') => 'L.',
+                            str_contains($clave, 'espesor') => 'Esp.',
+                            str_contains($clave, 'diam') => 'Diam.',
+                            str_contains($clave, 'color') => 'Col.',
+                            str_contains($clave, 'material') => 'Mat.',
+                            default => mb_strtoupper(mb_substr($atributo->clave, 0, 3)) . '.',
+                        };
+
+                        return $abbr . ' ' . $atributo->valor;
+                    })
+                    ->join(' · ')
+                : null;
         @endphp
         <tr class="{{ $rowClass }}">
 
@@ -309,6 +330,9 @@
                 <strong>{{ $nombreItem }}</strong>
                 @if($codigoItem)
                     <div class="item-code">Cód: {{ $codigoItem }}</div>
+                @endif
+                @if($atributosItem)
+                    <div class="item-attrs">{{ $atributosItem }}</div>
                 @endif
                 @if($categoriaItem)
                     <div class="item-code">{{ $categoriaItem }}</div>
