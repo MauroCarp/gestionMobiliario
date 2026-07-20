@@ -11,6 +11,6 @@ class EditInsumo extends EditRecord
     protected static string $resource = InsumoResource::class;
     protected function getHeaderActions(): array
     {
-        return [Actions\DeleteAction::make(), Actions\RestoreAction::make()];
+        return [Actions\DeleteAction::make()];
     }
 }

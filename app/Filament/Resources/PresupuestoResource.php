@@ -22,7 +22,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class PresupuestoResource extends Resource
 {
@@ -468,7 +467,6 @@ class PresupuestoResource extends Resource
                     ->searchable()
                     ->preload(),
 
-                Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
                 // ── Botones de estado visibles directamente en la fila ──────
@@ -651,13 +649,11 @@ class PresupuestoResource extends Resource
                         }),
 
                     Tables\Actions\DeleteAction::make(),
-                    Tables\Actions\RestoreAction::make(),
                 ]),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\RestoreBulkAction::make(),
                 ]),
             ]);
     }
@@ -685,9 +681,4 @@ class PresupuestoResource extends Resource
         ];
     }
 
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()
-            ->withoutGlobalScopes([SoftDeletingScope::class]);
-    }
 }

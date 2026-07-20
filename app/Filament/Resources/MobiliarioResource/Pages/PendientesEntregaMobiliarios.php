@@ -3,13 +3,14 @@
 namespace App\Filament\Resources\MobiliarioResource\Pages;
 
 use App\Filament\Resources\MobiliarioResource;
+use App\Models\Marca;
 use App\Models\Mobiliario;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Resources\Pages\ListRecords\Tab;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class PendientesEntregaMobiliarios extends ListRecords
 {
@@ -18,6 +19,12 @@ class PendientesEntregaMobiliarios extends ListRecords
     protected static ?string $title = 'Pendientes de Entrega';
 
     protected static ?string $navigationLabel = 'Pendientes de Entrega';
+
+    private const ESTADOS_PRESUPUESTO_PENDIENTES_ENTREGA = [
+        'confirmado',
+        'pagado',
+        'entregado_parcial',
+    ];
 
     public static function getNavigationLabel(): string
     {
@@ -37,12 +44,54 @@ class PendientesEntregaMobiliarios extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('pdf')
+                ->label('Generar PDF')
+                ->icon('heroicon-o-document-text')
+                ->color('danger')
+                ->url(fn (): string => route('mobiliarios.pendientes-entrega.pdf', [
+                    'marca' => $this->activeTab,
+                ]))
+                ->openUrlInNewTab(),
+
             Actions\Action::make('volver')
                 ->label('Volver a Mobiliarios')
                 ->icon('heroicon-o-arrow-left')
                 ->color('gray')
                 ->url(MobiliarioResource::getUrl('index')),
         ];
+    }
+
+    public function getTabs(): array
+    {
+        $baseQuery = $this->getPendientesEntregaBaseQuery();
+
+        $counts = (clone $baseQuery)
+            ->selectRaw('marca_id, count(*) as aggregate')
+            ->groupBy('marca_id')
+            ->pluck('aggregate', 'marca_id');
+
+        $tabs = [
+            'todos' => Tab::make('Todos')
+                ->badge((clone $baseQuery)->count()),
+        ];
+
+        Marca::query()
+            ->whereIn('id', $counts->keys()->filter()->all())
+            ->orderBy('nombre')
+            ->get()
+            ->each(function (Marca $marca) use (&$tabs, $counts): void {
+                $tabs['marca_' . $marca->id] = Tab::make($marca->nombre)
+                    ->modifyQueryUsing(fn (Builder $query) => $query->where('marca_id', $marca->id))
+                    ->badge($counts[$marca->id] ?? 0);
+            });
+
+        if (($counts[null] ?? 0) > 0) {
+            $tabs['sin_marca'] = Tab::make('Sin marca')
+                ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('marca_id'))
+                ->badge($counts[null]);
+        }
+
+        return $tabs;
     }
 
     public function table(Table $table): Table
@@ -121,26 +170,28 @@ class PendientesEntregaMobiliarios extends ListRecords
 
     protected function getTableQuery(): ?Builder
     {
-        return Mobiliario::query()
-            ->withoutGlobalScopes([SoftDeletingScope::class])
+        return $this->getPendientesEntregaBaseQuery()
             ->with(['atributos', 'marca', 'media'])
-            ->whereHas('presupuestoItems', function (Builder $query): void {
-                $query
-                    ->whereNull('entregado_at')
-                    ->whereHas('presupuesto', fn (Builder $presupuestoQuery) => $presupuestoQuery->whereIn('estado', [
-                        'confirmado',
-                        'pagado',
-                        'entregado_parcial',
-                    ]));
-            })
             ->withSum(['presupuestoItems as cantidad_pendiente_entrega' => function (Builder $query): void {
-                $query
-                    ->whereNull('entregado_at')
-                    ->whereHas('presupuesto', fn (Builder $presupuestoQuery) => $presupuestoQuery->whereIn('estado', [
-                        'confirmado',
-                        'pagado',
-                        'entregado_parcial',
-                    ]));
+                $this->applyPendienteEntregaConstraint($query);
             }], 'cantidad');
+    }
+
+    protected function getPendientesEntregaBaseQuery(): Builder
+    {
+        return Mobiliario::query()
+            ->whereHas('presupuestoItems', function (Builder $query): void {
+                $this->applyPendienteEntregaConstraint($query);
+            });
+    }
+
+    protected function applyPendienteEntregaConstraint(Builder $query): void
+    {
+        $query
+            ->whereNull('entregado_at')
+            ->whereHas('presupuesto', fn (Builder $presupuestoQuery) => $presupuestoQuery->whereIn(
+                'estado',
+                self::ESTADOS_PRESUPUESTO_PENDIENTES_ENTREGA,
+            ));
     }
 }

@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
@@ -13,7 +12,7 @@ use Spatie\Activitylog\LogOptions;
 
 class Presupuesto extends Model
 {
-    use SoftDeletes, LogsActivity;
+    use LogsActivity;
 
     const ESTADOS = [
         'borrador'          => 'Borrador',
@@ -71,9 +70,17 @@ class Presupuesto extends Model
     {
         static::creating(function (self $presupuesto): void {
             if (empty($presupuesto->codigo)) {
-                $year  = now()->year;
-                $count = static::whereYear('created_at', $year)->withTrashed()->count() + 1;
-                $presupuesto->codigo = sprintf('PRES-%d-%04d', $year, $count);
+                $year = now()->year;
+                $ultimoCodigo = static::query()
+                    ->where('codigo', 'like', "PRES-{$year}-%")
+                    ->orderByDesc('codigo')
+                    ->value('codigo');
+
+                $ultimoNumero = $ultimoCodigo && preg_match('/^PRES-\d{4}-(\d+)$/', $ultimoCodigo, $matches)
+                    ? (int) $matches[1]
+                    : 0;
+
+                $presupuesto->codigo = sprintf('PRES-%d-%04d', $year, $ultimoNumero + 1);
             }
             if (empty($presupuesto->fecha_emision)) {
                 $presupuesto->fecha_emision = now()->toDateString();

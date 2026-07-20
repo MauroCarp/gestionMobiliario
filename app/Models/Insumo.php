@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -20,7 +19,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Insumo extends Model implements HasMedia
 {
-    use HasFactory, SoftDeletes, LogsActivity, InteractsWithMedia;
+    use HasFactory, LogsActivity, InteractsWithMedia;
 
     protected $table = 'insumos';
 
@@ -54,7 +53,7 @@ class Insumo extends Model implements HasMedia
 
         static::creating(function (Insumo $insumo): void {
             if (empty($insumo->codigo)) {
-                $next = (static::withTrashed()->max('id') ?? 0) + 1;
+                $next = (static::max('id') ?? 0) + 1;
                 $insumo->codigo = 'INS-' . str_pad($next, 4, '0', STR_PAD_LEFT);
             }
         });

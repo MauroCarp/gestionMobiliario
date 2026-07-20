@@ -12,6 +12,6 @@ class EditAgencia extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [Actions\DeleteAction::make(), Actions\RestoreAction::make()];
+        return [Actions\DeleteAction::make()];
     }
 }

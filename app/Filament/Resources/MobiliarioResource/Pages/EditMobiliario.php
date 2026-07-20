@@ -13,7 +13,7 @@ class EditMobiliario extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [Actions\DeleteAction::make(), Actions\RestoreAction::make()];
+        return [Actions\DeleteAction::make()];
     }
 
     protected function getFormActions(): array
