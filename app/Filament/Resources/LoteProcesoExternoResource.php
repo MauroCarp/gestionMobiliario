@@ -137,10 +137,77 @@ class LoteProcesoExternoResource extends Resource
                     ->label('Plantilla')
                     ->placeholder('—'),
                 Infolists\Components\TextEntry::make('observaciones')
+                    ->formatStateUsing(fn (?string $state): string => self::formatObservaciones($state))
+                    ->html()
                     ->placeholder('—')
                     ->columnSpanFull(),
             ])->columns(4),
         ]);
+    }
+
+    private static function formatObservaciones(?string $state): string
+    {
+        if (blank($state)) {
+            return '';
+        }
+
+        $trimmed = trim($state);
+        $decoded = json_decode($trimmed, true);
+
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            $parsed = self::formatObservacionJson($decoded);
+
+            return nl2br(e($parsed ?: $state), false);
+        }
+
+        $parsed = preg_replace_callback(
+            '/\{(?:[^{}]|(?R))*\}/',
+            fn (array $matches): string => self::jsonObservationDisplayName($matches[0]) ?? $matches[0],
+            $state
+        );
+
+        return nl2br(e($parsed ?? $state), false);
+    }
+
+    private static function formatObservacionJson(array $data): ?string
+    {
+        $agencia = self::jsonObservationAgencyName($data);
+        $marca = self::jsonObservationBrandName($data);
+
+        return match (true) {
+            filled($agencia) && filled($marca) => "Agencia: {$agencia}\nMarca: {$marca}",
+            filled($agencia) => "Agencia: {$agencia}",
+            filled($marca) => "Marca: {$marca}",
+            default => null,
+        };
+    }
+
+    private static function jsonObservationDisplayName(string $json): ?string
+    {
+        $data = json_decode($json, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || ! is_array($data)) {
+            return null;
+        }
+
+        return self::jsonObservationAgencyName($data)
+            ?? self::jsonObservationBrandName($data);
+    }
+
+    private static function jsonObservationAgencyName(array $data): ?string
+    {
+        if (array_key_exists('proyecto_id', $data) || array_key_exists('proyecto', $data)) {
+            return $data['nombre'] ?? null;
+        }
+
+        return null;
+    }
+
+    private static function jsonObservationBrandName(array $data): ?string
+    {
+        return $data['proyecto']['marca']['nombre']
+            ?? $data['marca']['nombre']
+            ?? (array_key_exists('logo', $data) ? ($data['nombre'] ?? null) : null);
     }
 
     public static function table(Table $table): Table
