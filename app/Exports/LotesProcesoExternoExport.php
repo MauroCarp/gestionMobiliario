@@ -15,7 +15,11 @@ class LotesProcesoExternoExport implements FromQuery, WithHeadings, WithMapping,
 
     public function query(): Builder
     {
-        return $this->query->with(['etapas.tipoProceso']);
+        return $this->query->with([
+            'etapas.tipoProceso',
+            'ordenCompraOrigen.presupuesto.agencia',
+            'presupuestoDirectoOrigen.agencia',
+        ]);
     }
 
     public function headings(): array
@@ -25,6 +29,8 @@ class LotesProcesoExternoExport implements FromQuery, WithHeadings, WithMapping,
             'Código Mobiliario',
             'Item',
             'Tipo',
+            'Agencia',
+            'Presupuesto',
             'Cantidad',
             'Estado',
             'Etapa actual',
@@ -47,6 +53,8 @@ class LotesProcesoExternoExport implements FromQuery, WithHeadings, WithMapping,
                 'mobiliario' => 'Mobiliario',
                 default      => $lote->entidad_tipo,
             },
+            $lote->agencia_origen_nombre,
+            $lote->presupuesto_origen_codigo,
             $lote->cantidad,
             LoteProcesoExterno::ESTADOS[$lote->estado] ?? $lote->estado,
             $lote->etapa_actual?->tipoProceso?->nombre,

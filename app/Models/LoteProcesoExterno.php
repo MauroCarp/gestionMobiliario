@@ -78,6 +78,43 @@ class LoteProcesoExterno extends Model
         return $this->hasMany(LoteEtapa::class, 'lote_id')->orderBy('orden')->orderBy('id');
     }
 
+    public function ordenCompraOrigen(): BelongsTo
+    {
+        return $this->belongsTo(OrdenCompra::class, 'origen_id');
+    }
+
+    public function presupuestoDirectoOrigen(): BelongsTo
+    {
+        return $this->belongsTo(Presupuesto::class, 'origen_id');
+    }
+
+    public function getPresupuestoOrigenAttribute(): ?Presupuesto
+    {
+        if (! $this->origen_id) {
+            return null;
+        }
+
+        return match ($this->origen_tipo) {
+            'orden_compra' => $this->relationLoaded('ordenCompraOrigen')
+                ? $this->ordenCompraOrigen?->presupuesto
+                : OrdenCompra::with('presupuesto')->find($this->origen_id)?->presupuesto,
+            'manual' => $this->relationLoaded('presupuestoDirectoOrigen')
+                ? $this->presupuestoDirectoOrigen
+                : Presupuesto::find($this->origen_id),
+            default => null,
+        };
+    }
+
+    public function getPresupuestoOrigenCodigoAttribute(): ?string
+    {
+        return $this->presupuesto_origen?->codigo;
+    }
+
+    public function getAgenciaOrigenNombreAttribute(): ?string
+    {
+        return $this->presupuesto_origen?->agencia?->nombre;
+    }
+
     public function getEntidadNombreAttribute(): string
     {
         return match ($this->entidad_tipo) {

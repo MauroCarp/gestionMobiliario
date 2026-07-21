@@ -7,7 +7,9 @@ use App\Filament\Resources\LoteProcesoExternoResource\RelationManagers\EtapasRel
 use App\Models\Insumo;
 use App\Models\LoteProcesoExterno;
 use App\Models\Mobiliario;
+use App\Models\OrdenCompra;
 use App\Models\PlantillaFlujoExterno;
+use App\Models\Presupuesto;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Infolists;
@@ -182,6 +184,52 @@ class LoteProcesoExternoResource extends Resource
                         'mobiliario' => 'Mobiliario',
                         default      => $state,
                     }),
+                Tables\Columns\TextColumn::make('agencia_origen_nombre')
+                    ->label('Agencia')
+                    ->placeholder('—')
+                    ->searchable(query: fn ($query, string $search) => $query->where(function ($q) use ($search): void {
+                        $q->where(function ($manual) use ($search): void {
+                            $manual->where('origen_tipo', 'manual')
+                                ->whereIn(
+                                    'origen_id',
+                                    Presupuesto::whereHas('agencia', fn ($agencia) => $agencia->where('nombre', 'like', "%{$search}%"))
+                                        ->pluck('id')
+                                );
+                        })->orWhere(function ($oc) use ($search): void {
+                            $oc->where('origen_tipo', 'orden_compra')
+                                ->whereIn(
+                                    'origen_id',
+                                    OrdenCompra::whereHas('presupuesto.agencia', fn ($agencia) => $agencia->where('nombre', 'like', "%{$search}%"))
+                                        ->pluck('id')
+                                );
+                        });
+                    }))
+                    ->sortable(false),
+                Tables\Columns\TextColumn::make('presupuesto_origen_codigo')
+                    ->label('Presupuesto')
+                    ->placeholder('—')
+                    ->badge()
+                    ->color('primary')
+                    ->url(fn (LoteProcesoExterno $record): ?string => $record->presupuesto_origen
+                        ? PresupuestoResource::getUrl('view', ['record' => $record->presupuesto_origen])
+                        : null)
+                    ->searchable(query: fn ($query, string $search) => $query->where(function ($q) use ($search): void {
+                        $q->where(function ($manual) use ($search): void {
+                            $manual->where('origen_tipo', 'manual')
+                                ->whereIn(
+                                    'origen_id',
+                                    Presupuesto::where('codigo', 'like', "%{$search}%")->pluck('id')
+                                );
+                        })->orWhere(function ($oc) use ($search): void {
+                            $oc->where('origen_tipo', 'orden_compra')
+                                ->whereIn(
+                                    'origen_id',
+                                    OrdenCompra::whereHas('presupuesto', fn ($presupuesto) => $presupuesto->where('codigo', 'like', "%{$search}%"))
+                                        ->pluck('id')
+                                );
+                        });
+                    }))
+                    ->sortable(false),
                 Tables\Columns\TextColumn::make('cantidad')
                     ->numeric(2)
                     ->alignCenter(),
@@ -242,7 +290,11 @@ class LoteProcesoExternoResource extends Resource
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         return parent::getEloquentQuery()
-            ->withoutGlobalScopes([SoftDeletingScope::class]);
+            ->withoutGlobalScopes([SoftDeletingScope::class])
+            ->with([
+                'ordenCompraOrigen.presupuesto.agencia',
+                'presupuestoDirectoOrigen.agencia',
+            ]);
     }
 
     public static function getPages(): array

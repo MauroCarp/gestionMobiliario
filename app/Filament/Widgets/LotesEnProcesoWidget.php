@@ -23,6 +23,8 @@ class LotesEnProcesoWidget extends BaseWidget
                     ->with([
                         'etapas.tipoProceso',
                         'etapas.tercero',
+                        'ordenCompraOrigen.presupuesto.agencia',
+                        'presupuestoDirectoOrigen.agencia',
                     ])
                     ->latest('fecha_inicio')
             )
@@ -48,6 +50,16 @@ class LotesEnProcesoWidget extends BaseWidget
                     ->getStateUsing(fn (LoteProcesoExterno $record): string => $record->entidad_nombre ?? '—')
                     ->searchable(false)
                     ->weight('semibold'),
+
+                Tables\Columns\TextColumn::make('agencia_origen_nombre')
+                    ->label('Agencia')
+                    ->placeholder('—'),
+
+                Tables\Columns\TextColumn::make('presupuesto_origen_codigo')
+                    ->label('Presupuesto')
+                    ->placeholder('—')
+                    ->badge()
+                    ->color('primary'),
 
                 Tables\Columns\TextColumn::make('cantidad')
                     ->label('Cantidad')
