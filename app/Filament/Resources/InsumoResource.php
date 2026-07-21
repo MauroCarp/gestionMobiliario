@@ -255,13 +255,22 @@ class InsumoResource extends Resource
                     ->color('primary')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('stock_actual')
-                    ->label('Stock actual')->numeric(0),
+                    ->label('Stock actual')
+                    ->tooltip('Stock físico disponible en depósito.')
+                    ->numeric(0),
                 Tables\Columns\TextColumn::make('stock_comprometido')
-                    ->label('Cantidad Comprometida')->numeric(0),
+                    ->label('Cantidad Comprometida')
+                    ->tooltip('Suma de reservas activas de presupuestos vigentes.')
+                    ->numeric(0),
                 Tables\Columns\TextColumn::make('pendiente_recepcion')
-                    ->label('Cantidad en Compra')->numeric(0),
+                    ->label('Cantidad en Compra')
+                    ->tooltip('Lotes en proceso más órdenes de compra pendientes de recepción.')
+                    ->numeric(0),
                 Tables\Columns\TextColumn::make('stock_proyectado')
-                    ->label('Stock proyectado')->numeric(0),
+                    ->label('Stock proyectado')
+                    ->tooltip('Stock actual + cantidad en compra - cantidad comprometida.')
+                    ->color(fn ($state): string => $state < 0 ? 'danger' : 'success')
+                    ->numeric(0),
                 Tables\Columns\TextColumn::make('precio_costo')
                     ->label('Ultimo Precio')->numeric(0),
                 Tables\Columns\TextColumn::make('ubicacion')->label('Ubicación'),

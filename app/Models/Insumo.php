@@ -100,6 +100,30 @@ class Insumo extends Model implements HasMedia
         return (float) $this->reservasActivas()->sum('cantidad_reservada');
     }
 
+    public function getStockComprometidoAttribute(): float
+    {
+        return $this->stock_reservado;
+    }
+
+    public function getPendienteRecepcionAttribute(): float
+    {
+        $enLotes = (float) $this->lotesProcesoExterno()
+            ->whereIn('estado', ['pendiente', 'en_proceso'])
+            ->sum('cantidad');
+
+        $enOrdenesCompra = (float) $this->ordenCompraItems()
+            ->whereHas('ordenCompra', fn ($query) => $query->whereNotIn('estado', ['recibida', 'cancelada']))
+            ->get(['cantidad_solicitada', 'cantidad_recibida'])
+            ->sum(fn (OrdenCompraItem $item): float => $item->pendiente);
+
+        return $enLotes + $enOrdenesCompra;
+    }
+
+    public function getStockProyectadoAttribute(): float
+    {
+        return ($this->stock_actual ?? 0) + $this->pendiente_recepcion - $this->stock_comprometido;
+    }
+
     public function getStockDisponibleAttribute(): float
     {
         return max(0, ($this->stock_actual ?? 0) - $this->stock_reservado);
@@ -120,6 +144,11 @@ class Insumo extends Model implements HasMedia
     {
         return $this->hasMany(LoteProcesoExterno::class, 'entidad_id')
             ->where('entidad_tipo', 'insumo');
+    }
+
+    public function ordenCompraItems(): HasMany
+    {
+        return $this->hasMany(OrdenCompraItem::class, 'insumo_id');
     }
 
     public function tipoSilla(): BelongsTo
