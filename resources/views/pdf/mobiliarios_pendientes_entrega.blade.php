@@ -76,6 +76,10 @@
             font-size: 8px;
             font-weight: bold;
         }
+        .badge-finished {
+            background: #DCFCE7;
+            color: #166534;
+        }
         .page-break-avoid { page-break-inside: avoid; }
     </style>
 </head>
@@ -156,7 +160,11 @@
                         </td>
                         <td class="center">{{ $item->cantidad }}</td>
                         <td>
-                            <span class="badge">Pendiente</span><br>
+                            <span class="badge">Pendiente</span>
+                            @if ($item->estaFinalizado())
+                                <span class="badge badge-finished">Finalizado</span>
+                            @endif
+                            <br>
                             <strong>Etapa actual:</strong> {{ $item->etapa_actual_produccion }}<br>
                             <strong>Progreso:</strong> {{ $item->progreso_produccion }}
                             @if ($item->sector)
