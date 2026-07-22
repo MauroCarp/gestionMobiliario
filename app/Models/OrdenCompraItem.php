@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OrdenCompraItem extends Model
 {
@@ -32,6 +33,11 @@ class OrdenCompraItem extends Model
     public function insumo(): BelongsTo
     {
         return $this->belongsTo(Insumo::class);
+    }
+
+    public function recepciones(): HasMany
+    {
+        return $this->hasMany(OrdenCompraItemRecepcion::class);
     }
 
     public function getPendienteAttribute(): float

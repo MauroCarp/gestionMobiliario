@@ -69,11 +69,14 @@ class AnalisisDemanda extends Page implements HasForms
         }
 
         $presupuesto = Presupuesto::find($this->presupuesto_id);
-        $orden = app(StockReservaService::class)->generarOrdenCompraAutomatica($presupuesto);
+        $ordenes = app(StockReservaService::class)->generarOrdenCompraAutomatica($presupuesto);
 
-        if ($orden) {
+        if (! empty($ordenes)) {
+            $codigos = collect($ordenes)->pluck('codigo')->implode(', ');
             Notification::make()
-                ->title("Orden {$orden->codigo} creada con prioridad {$orden->prioridad}")
+                ->title(count($ordenes) === 1
+                    ? "Orden {$codigos} creada"
+                    : 'Órdenes creadas: ' . $codigos)
                 ->success()
                 ->send();
         } else {

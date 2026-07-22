@@ -129,90 +129,140 @@ class StockReservaService
     }
 
     /**
-     * Genera una orden de compra automática con los insumos cuyo stock está por debajo
-     * del mínimo configurado, usando la cantidad COMPLETA que necesita el presupuesto.
+     * Genera órdenes de compra automáticas agrupadas por proveedor.
+     * Si ya existe una OC sugerida/pendiente para el proveedor, agrega los ítems allí.
      * Si el insumo tiene un flujo externo activo, crea también el LoteProcesoExterno.
      * Para mobiliarios del presupuesto con flujo externo activo, crea lotes directamente.
+     *
+     * @return array<int, OrdenCompra>
      */
-    public function generarOrdenCompraAutomatica(Presupuesto $presupuesto): ?OrdenCompra
+    public function generarOrdenCompraAutomatica(Presupuesto $presupuesto): array
     {
-        // Idempotente: no duplicar OC si ya existe una sugerida/pendiente para este presupuesto
         if (OrdenCompra::where('presupuesto_id', $presupuesto->id)
-                ->whereIn('estado', ['sugerida', 'pendiente'])
-                ->exists()) {
+            ->where('generado_automaticamente', true)
+            ->exists()) {
             $this->crearLotesExternosMobiliarios($presupuesto);
-            return null;
+
+            return [];
         }
 
         $demanda = $this->calcularDemandaPresupuesto($presupuesto);
 
         if (empty($demanda)) {
             $this->crearLotesExternosMobiliarios($presupuesto);
-            return null;
+
+            return [];
         }
 
-        // Cargar insumos con stock y plantillas de flujo activas
         $insumos = Insumo::whereIn('id', array_keys($demanda))
             ->with(['plantillaFlujos' => fn ($q) => $q->where('activo', true)->with('etapas')])
             ->get()
             ->keyBy('id');
 
-        // Solo insumos con stock actual por debajo del mínimo configurado
         $insumosLowStock = $insumos->filter(
             fn (Insumo $insumo) => $insumo->stock_actual < $insumo->stock_minimo
         );
 
-        $orden = null;
+        $ordenes = [];
 
         if ($insumosLowStock->isNotEmpty()) {
-            $esCritico = $insumosLowStock->contains(fn (Insumo $i) => ($i->stock_disponible ?? 0) <= 0);
-            $prioridad = $esCritico ? 'critica' : 'alta';
+            $porProveedor = $insumosLowStock->groupBy(fn (Insumo $insumo) => $insumo->proveedor_id ?? 'sin_proveedor');
 
-            $orden = DB::transaction(function () use ($presupuesto, $insumosLowStock, $demanda, $prioridad) {
-                $oc = OrdenCompra::create([
-                    'estado'                   => 'sugerida',
-                    'prioridad'                => $prioridad,
-                    'generado_automaticamente' => true,
-                    'presupuesto_id'           => $presupuesto->id,
-                    'observaciones'            => "Generada automáticamente para presupuesto {$presupuesto->codigo}",
-                ]);
+            foreach ($porProveedor as $proveedorKey => $insumosGrupo) {
+                $proveedorId = $proveedorKey === 'sin_proveedor' ? null : (int) $proveedorKey;
 
-                foreach ($insumosLowStock as $insumo) {
-                    $cantidad = $demanda[$insumo->id];
+                $esCritico = $insumosGrupo->contains(fn (Insumo $i) => ($i->stock_disponible ?? 0) <= 0);
+                $prioridad = $esCritico ? 'critica' : 'alta';
 
-                    OrdenCompraItem::create([
-                        'orden_compra_id'     => $oc->id,
-                        'insumo_id'           => $insumo->id,
-                        'cantidad_solicitada' => $cantidad,
-                        'precio_unitario'     => $insumo->precio_costo,
-                    ]);
+                $orden = DB::transaction(function () use ($presupuesto, $insumosGrupo, $demanda, $prioridad, $proveedorId) {
+                    $oc = OrdenCompra::where('proveedor_id', $proveedorId)
+                        ->whereIn('estado', ['sugerida', 'pendiente'])
+                        ->first();
 
-                    // Si el insumo tiene un flujo externo activo, crear el lote en estado pendiente
-                    $plantilla = $insumo->plantillaFlujos->first();
-                    if ($plantilla) {
-                        $lote = LoteProcesoExterno::create([
-                            'plantilla_id'  => $plantilla->id,
-                            'entidad_tipo'  => 'insumo',
-                            'entidad_id'    => $insumo->id,
-                            'cantidad'      => $cantidad,
-                            'origen_tipo'   => 'orden_compra',
-                            'origen_id'     => $oc->id,
-                            'estado'        => 'pendiente',
-                            'fecha_inicio'  => now()->toDateString(),
-                            'observaciones' => "Generado al confirmar {$presupuesto->codigo}. Activar al recibir la OC.",
+                    if (! $oc) {
+                        $oc = OrdenCompra::create([
+                            'estado'                   => 'sugerida',
+                            'prioridad'                => $prioridad,
+                            'generado_automaticamente' => true,
+                            'presupuesto_id'           => $presupuesto->id,
+                            'proveedor_id'             => $proveedorId,
+                            'observaciones'            => "Generada automáticamente para presupuesto {$presupuesto->codigo}",
                         ]);
-                        $lote->crearEtapasDesde($plantilla);
+                    } elseif ($oc->prioridad !== 'critica' && $prioridad === 'critica') {
+                        $oc->update(['prioridad' => 'critica']);
                     }
-                }
 
-                return $oc;
-            });
+                    foreach ($insumosGrupo as $insumo) {
+                        $cantidad = $demanda[$insumo->id];
+
+                        $itemExistente = OrdenCompraItem::where('orden_compra_id', $oc->id)
+                            ->where('insumo_id', $insumo->id)
+                            ->first();
+
+                        if ($itemExistente) {
+                            $itemExistente->update([
+                                'cantidad_solicitada' => $itemExistente->cantidad_solicitada + $cantidad,
+                                'precio_unitario'     => $insumo->precio_costo,
+                            ]);
+                        } else {
+                            OrdenCompraItem::create([
+                                'orden_compra_id'     => $oc->id,
+                                'insumo_id'           => $insumo->id,
+                                'cantidad_solicitada' => $cantidad,
+                                'precio_unitario'     => $insumo->precio_costo,
+                            ]);
+                        }
+
+                        $this->crearLotePendienteSiCorresponde($insumo, $cantidad, $oc, $presupuesto);
+                    }
+
+                    return $oc;
+                });
+
+                $ordenes[] = $orden;
+            }
         }
 
-        // Crear lotes para mobiliarios del presupuesto que tengan flujo externo activo
         $this->crearLotesExternosMobiliarios($presupuesto);
 
-        return $orden;
+        return $ordenes;
+    }
+
+    private function crearLotePendienteSiCorresponde(
+        Insumo $insumo,
+        float $cantidad,
+        OrdenCompra $oc,
+        Presupuesto $presupuesto
+    ): void {
+        $plantilla = $insumo->plantillaFlujos->first();
+
+        if (! $plantilla) {
+            return;
+        }
+
+        $yaExiste = LoteProcesoExterno::where('entidad_tipo', 'insumo')
+            ->where('entidad_id', $insumo->id)
+            ->where('origen_tipo', 'orden_compra')
+            ->where('origen_id', $oc->id)
+            ->whereNotIn('estado', ['cancelado'])
+            ->exists();
+
+        if ($yaExiste) {
+            return;
+        }
+
+        $lote = LoteProcesoExterno::create([
+            'plantilla_id'  => $plantilla->id,
+            'entidad_tipo'  => 'insumo',
+            'entidad_id'    => $insumo->id,
+            'cantidad'      => $cantidad,
+            'origen_tipo'   => 'orden_compra',
+            'origen_id'     => $oc->id,
+            'estado'        => 'pendiente',
+            'fecha_inicio'  => now()->toDateString(),
+            'observaciones' => "Generado al confirmar {$presupuesto->codigo}. Activar al recibir la OC.",
+        ]);
+        $lote->crearEtapasDesde($plantilla);
     }
 
     /**

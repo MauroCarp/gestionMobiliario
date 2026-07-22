@@ -3,12 +3,13 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\OrdenCompraResource\Pages;
+use App\Filament\Resources\OrdenCompraResource\RelationManagers\ItemsRelationManager;
 use App\Models\Insumo;
-use App\Models\LoteProcesoExterno;
 use App\Models\OrdenCompra;
-use App\Models\PlantillaFlujoExterno;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists;
+use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -46,12 +47,17 @@ class OrdenCompraResource extends Resource
                     ->required()
                     ->hiddenOn('create'),
 
-                Forms\Components\Select::make('presupuesto_id')
-                    ->label('Presupuesto')
-                    ->relationship('presupuesto', 'codigo')
+                Forms\Components\Select::make('proveedor_id')
+                    ->label('Proveedor')
+                    ->relationship('proveedor', 'razon_social')
                     ->searchable()
+                    ->preload()
                     ->nullable()
-                    ->hiddenOn('create'),
+                    ->disabled(fn (string $operation): bool => $operation === 'edit'),
+
+                Forms\Components\DatePicker::make('fecha_pactada_entrega')
+                    ->label('Fecha pactada de entrega')
+                    ->nullable(),
 
                 Forms\Components\Textarea::make('observaciones')
                     ->rows(2)
@@ -72,8 +78,12 @@ class OrdenCompraResource extends Resource
                             ->required()
                             ->live()
                             ->afterStateUpdated(function ($state, Forms\Set $set) {
-                                $precio = Insumo::find($state)?->precio_costo;
-                                $set('precio_unitario', $precio);
+                                $insumo = Insumo::find($state);
+                                $set('precio_unitario', $insumo?->precio_costo);
+
+                                if ($insumo?->proveedor_id) {
+                                    $set('../../proveedor_id', $insumo->proveedor_id);
+                                }
                             })
                             ->columnSpan(2),
 
@@ -89,6 +99,8 @@ class OrdenCompraResource extends Resource
                             ->numeric()
                             ->minValue(0)
                             ->default(0)
+                            ->disabled()
+                            ->dehydrated(false)
                             ->columnSpan(1),
 
                         Forms\Components\TextInput::make('precio_unitario')
@@ -108,6 +120,49 @@ class OrdenCompraResource extends Resource
                     ->defaultItems(0)
                     ->reorderable(false),
             ]),
+        ]);
+    }
+
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist->schema([
+            Infolists\Components\Section::make('Datos generales')->schema([
+                Infolists\Components\TextEntry::make('codigo')
+                    ->label('Código')
+                    ->badge()
+                    ->color('primary'),
+
+                Infolists\Components\TextEntry::make('estado')
+                    ->badge()
+                    ->color(fn (string $state): string => OrdenCompra::ESTADO_COLORS[$state] ?? 'gray')
+                    ->formatStateUsing(fn (string $state): string => OrdenCompra::ESTADOS[$state] ?? $state),
+
+                Infolists\Components\TextEntry::make('prioridad')
+                    ->badge()
+                    ->color(fn (string $state): string => OrdenCompra::PRIORIDAD_COLORS[$state] ?? 'gray')
+                    ->formatStateUsing(fn (string $state): string => OrdenCompra::PRIORIDADES[$state] ?? $state),
+
+                Infolists\Components\TextEntry::make('proveedor.razon_social')
+                    ->label('Proveedor')
+                    ->placeholder('—'),
+
+                Infolists\Components\TextEntry::make('fecha_pactada_entrega')
+                    ->label('Fecha pactada de entrega')
+                    ->date('d/m/Y')
+                    ->placeholder('—'),
+
+                Infolists\Components\IconEntry::make('generado_automaticamente')
+                    ->label('Generada automáticamente')
+                    ->boolean(),
+
+                Infolists\Components\TextEntry::make('created_at')
+                    ->label('Creada')
+                    ->date('d/m/Y'),
+
+                Infolists\Components\TextEntry::make('observaciones')
+                    ->placeholder('—')
+                    ->columnSpanFull(),
+            ])->columns(3),
         ]);
     }
 
@@ -132,9 +187,17 @@ class OrdenCompraResource extends Resource
                     ->formatStateUsing(fn (string $state): string => OrdenCompra::PRIORIDADES[$state] ?? $state)
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('presupuesto.codigo')
-                    ->label('Presupuesto')
-                    ->placeholder('—'),
+                Tables\Columns\TextColumn::make('proveedor.razon_social')
+                    ->label('Proveedor')
+                    ->placeholder('—')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('fecha_pactada_entrega')
+                    ->label('Entrega pactada')
+                    ->date('d/m/Y')
+                    ->placeholder('—')
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('items_count')
                     ->label('Items')
@@ -159,11 +222,19 @@ class OrdenCompraResource extends Resource
                 Tables\Filters\SelectFilter::make('prioridad')
                     ->options(OrdenCompra::PRIORIDADES),
 
+                Tables\Filters\SelectFilter::make('proveedor_id')
+                    ->label('Proveedor')
+                    ->relationship('proveedor', 'razon_social')
+                    ->searchable()
+                    ->preload(),
+
                 Tables\Filters\Filter::make('automaticas')
                     ->label('Solo automáticas')
                     ->query(fn ($query) => $query->where('generado_automaticamente', true)),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
+
                 Tables\Actions\Action::make('aprobar')
                     ->label('Aprobar')
                     ->icon('heroicon-o-check-circle')
@@ -173,74 +244,6 @@ class OrdenCompraResource extends Resource
                     ->action(function (OrdenCompra $record) {
                         $record->update(['estado' => 'aprobada']);
                         Notification::make()->title('Orden aprobada')->success()->send();
-                    }),
-
-                Tables\Actions\Action::make('recibida')
-                    ->label('Marcar recibida')
-                    ->icon('heroicon-o-inbox-arrow-down')
-                    ->color('info')
-                    ->visible(fn (OrdenCompra $r) => $r->estado === 'aprobada')
-                    ->requiresConfirmation()
-                    ->action(function (OrdenCompra $record): void {
-                        $lotesCreados   = 0;
-                        $lotesActivados = 0;
-
-                        foreach ($record->items()->with('insumo')->get() as $item) {
-                            $item->update(['cantidad_recibida' => $item->cantidad_solicitada]);
-
-                            // Si ya existe un lote pendiente creado al confirmar el presupuesto, activarlo
-                            $loteExistente = LoteProcesoExterno::where('entidad_tipo', 'insumo')
-                                ->where('entidad_id', $item->insumo_id)
-                                ->where('origen_tipo', 'orden_compra')
-                                ->where('origen_id', $record->id)
-                                ->where('estado', 'pendiente')
-                                ->first();
-
-                            if ($loteExistente) {
-                                $loteExistente->update(['estado' => 'en_proceso']);
-                                $lotesActivados++;
-                                continue;
-                            }
-
-                            // Sin lote previo: comportamiento original
-                            $plantilla = PlantillaFlujoExterno::where('entidad_tipo', 'insumo')
-                                ->where('entidad_id', $item->insumo_id)
-                                ->where('activo', true)
-                                ->first();
-
-                            if ($plantilla) {
-                                $lote = LoteProcesoExterno::create([
-                                    'entidad_tipo' => 'insumo',
-                                    'entidad_id'   => $item->insumo_id,
-                                    'plantilla_id' => $plantilla->id,
-                                    'cantidad'     => $item->cantidad_solicitada,
-                                    'origen_tipo'  => 'orden_compra',
-                                    'origen_id'    => $record->id,
-                                    'estado'       => 'en_proceso',
-                                    'fecha_inicio' => now()->toDateString(),
-                                ]);
-                                $lote->crearEtapasDesde($plantilla);
-                                $lotesCreados++;
-                            } else {
-                                $item->insumo->increment('stock_actual', $item->cantidad_solicitada);
-                            }
-                        }
-
-                        $record->update(['estado' => 'recibida']);
-
-                        $partes = [];
-                        if ($lotesActivados > 0) {
-                            $partes[] = "{$lotesActivados} lote(s) activado(s)";
-                        }
-                        if ($lotesCreados > 0) {
-                            $partes[] = "{$lotesCreados} lote(s) creado(s)";
-                        }
-
-                        $message = empty($partes)
-                            ? 'Stock actualizado'
-                            : 'Stock actualizado. ' . implode(', ', $partes) . '.';
-
-                        Notification::make()->title($message)->success()->send();
                     }),
 
                 Tables\Actions\EditAction::make(),
@@ -253,11 +256,19 @@ class OrdenCompraResource extends Resource
             ]);
     }
 
+    public static function getRelations(): array
+    {
+        return [
+            ItemsRelationManager::class,
+        ];
+    }
+
     public static function getPages(): array
     {
         return [
             'index'  => Pages\ListOrdenesCompra::route('/'),
             'create' => Pages\CreateOrdenCompra::route('/create'),
+            'view'   => Pages\ViewOrdenCompra::route('/{record}'),
             'edit'   => Pages\EditOrdenCompra::route('/{record}/edit'),
         ];
     }

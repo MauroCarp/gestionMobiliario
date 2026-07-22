@@ -27,6 +27,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/presupuesto/{presupuesto}/produccion/excel', [PresupuestoPdfController::class, 'produccionExcel'])
         ->name('presupuesto.produccion.excel');
 
+    Route::get('/presupuesto/{presupuesto}/layout', [PresupuestoPdfController::class, 'layout'])
+        ->name('presupuesto.layout');
+
     Route::get('/mobiliarios/pendientes-entrega/pdf', MobiliarioPendientesEntregaPdfController::class)
         ->name('mobiliarios.pendientes-entrega.pdf');
 });
