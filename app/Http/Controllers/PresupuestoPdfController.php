@@ -228,33 +228,29 @@ class PresupuestoPdfController extends Controller
         $codigo   = $presupuesto->codigo;
         $pdfUrl   = route('presupuesto.produccion.pdf', $presupuesto);
         $filename = "produccion-{$codigo}.pdf";
+        $planoUrl = $presupuesto->layoutUrl();
 
         $agencia    = $presupuesto->agencia;
-        $planoUrl   = null;
         $planoDebug = [
             'agencia_id'         => $agencia?->id,
             'agencia_nombre'     => $agencia?->nombre,
             'total_media'        => $agencia?->media->count(),
             'media_collections'  => $agencia?->media->pluck('collection_name', 'id'),
             'media_filenames'    => $agencia?->media->pluck('file_name', 'id'),
+            'plano_found'        => $planoUrl !== null,
         ];
 
-        $planoMedia = $agencia?->getFirstMedia('planos');
-        if ($planoMedia) {
-            $rawUrl   = $planoMedia->getUrl();
-            $absUrl   = url($rawUrl);
-            $diskPath = $planoMedia->getPath();
-            $planoUrl = $absUrl;
-            $planoDebug['plano_found']     = true;
-            $planoDebug['plano_raw_url']   = $rawUrl;
-            $planoDebug['plano_abs_url']   = $absUrl;
-            $planoDebug['plano_disk_path'] = $diskPath;
-            $planoDebug['plano_file_exists'] = file_exists($diskPath);
-            $planoDebug['plano_mime']      = $planoMedia->mime_type;
-        } else {
-            $planoDebug['plano_found'] = false;
+        return view('pdf.produccion_viewer', compact('codigo', 'pdfUrl', 'filename', 'planoUrl', 'planoDebug'));
+    }
+
+    public function layout(Presupuesto $presupuesto)
+    {
+        $url = $presupuesto->layoutUrl();
+
+        if (! $url) {
+            abort(404, 'No hay layout asociado a la agencia de este presupuesto.');
         }
 
-        return view('pdf.produccion_viewer', compact('codigo', 'pdfUrl', 'filename', 'planoUrl', 'planoDebug'));
+        return redirect($url);
     }
 }

@@ -74,6 +74,28 @@ class PresupuestoResource extends Resource
             });
     }
 
+    public static function layoutPageAction(\Closure $getRecord): Actions\Action
+    {
+        return Actions\Action::make('layout')
+            ->label('Layout')
+            ->icon('heroicon-o-map')
+            ->color('primary')
+            ->visible(fn (): bool => $getRecord()->tieneLayout())
+            ->url(fn (): string => route('presupuesto.layout', $getRecord()->id))
+            ->openUrlInNewTab();
+    }
+
+    public static function layoutTableAction(): Tables\Actions\Action
+    {
+        return Tables\Actions\Action::make('layout')
+            ->label('Layout')
+            ->icon('heroicon-o-map')
+            ->color('primary')
+            ->visible(fn (Presupuesto $record): bool => $record->tieneLayout())
+            ->url(fn (Presupuesto $record): string => route('presupuesto.layout', $record->id))
+            ->openUrlInNewTab();
+    }
+
     // ─── Form ─────────────────────────────────────────────────────────────────
 
     public static function form(Form $form): Form
@@ -571,6 +593,8 @@ class PresupuestoResource extends Resource
                         ->color('danger')
                         ->url(fn (Presupuesto $record) => route('presupuesto.pdf.viewer', $record->id))
                         ->openUrlInNewTab(),
+
+                    static::layoutTableAction(),
 
                     Tables\Actions\Action::make('excel')
                         ->label('Exportar Excel')

@@ -30,6 +30,8 @@ class ViewPresupuesto extends ViewRecord
                 ->url(fn () => route('presupuesto.pdf.viewer', $this->record->id))
                 ->openUrlInNewTab(),
 
+            PresupuestoResource::layoutPageAction(fn () => $this->record),
+
             Actions\Action::make('produccionPdf')
                 ->label('Produccion PDF')
                 ->icon('heroicon-o-cog-6-tooth')

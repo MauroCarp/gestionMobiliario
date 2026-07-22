@@ -287,4 +287,21 @@ class Presupuesto extends Model
     {
         return in_array($this->estado, ['confirmado', 'pagado', 'entregado_parcial', 'entregado'], true);
     }
+
+    public function layoutMedia(): ?\Spatie\MediaLibrary\MediaCollections\Models\Media
+    {
+        return $this->agencia?->getFirstMedia('planos');
+    }
+
+    public function tieneLayout(): bool
+    {
+        return $this->layoutMedia() !== null;
+    }
+
+    public function layoutUrl(): ?string
+    {
+        $media = $this->layoutMedia();
+
+        return $media ? url($media->getUrl()) : null;
+    }
 }
