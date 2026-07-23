@@ -12,6 +12,8 @@ use App\Models\Marca;
 use App\Models\Proveedor;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -27,6 +29,38 @@ class InsumoResource extends Resource
     protected static ?int $navigationSort = 4;
     // protected static bool $shouldRegisterNavigation = false;
 
+    public static function verImagenPageAction(\Closure $getRecord): \Filament\Actions\Action
+    {
+        return \Filament\Actions\Action::make('ver_imagen')
+            ->label('Ver imagen')
+            ->icon('heroicon-o-photo')
+            ->color('info')
+            ->visible(fn (): bool => $getRecord()->tieneImagen())
+            ->url(fn (): string => $getRecord()->imagenUrl())
+            ->openUrlInNewTab();
+    }
+
+    public static function verPlanoPageAction(\Closure $getRecord): \Filament\Actions\Action
+    {
+        return \Filament\Actions\Action::make('ver_plano')
+            ->label('Ver plano')
+            ->icon('heroicon-o-document-text')
+            ->color('warning')
+            ->visible(fn (): bool => $getRecord()->tienePlano())
+            ->url(fn (): string => $getRecord()->planoUrl())
+            ->openUrlInNewTab();
+    }
+
+    public static function verPlanoTableAction(): Tables\Actions\Action
+    {
+        return Tables\Actions\Action::make('verPlano')
+            ->label('Ver plano')
+            ->icon('heroicon-o-document-text')
+            ->color('info')
+            ->url(fn (Insumo $record): string => $record->planoUrl())
+            ->openUrlInNewTab()
+            ->visible(fn (Insumo $record): bool => $record->tienePlano());
+    }
 
     public static function form(Form $form): Form
     {
@@ -236,6 +270,120 @@ class InsumoResource extends Resource
         ]);
     }
 
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist->schema([
+            Infolists\Components\Section::make('Datos del insumo')->schema([
+                Infolists\Components\TextEntry::make('codigo')
+                    ->label('Código')
+                    ->badge()
+                    ->color('primary'),
+
+                Infolists\Components\TextEntry::make('nombre')
+                    ->label('Nombre'),
+
+                Infolists\Components\TextEntry::make('categoriasInsumo.nombre')
+                    ->label('Categorías')
+                    ->badge()
+                    ->placeholder('—'),
+
+                Infolists\Components\TextEntry::make('unidadMedida.nombre')
+                    ->label('Unidad de medida')
+                    ->placeholder('—'),
+
+                Infolists\Components\IconEntry::make('activo')
+                    ->label('Activo')
+                    ->boolean(),
+
+                Infolists\Components\TextEntry::make('ubicacion')
+                    ->label('Ubicación')
+                    ->placeholder('—'),
+
+                Infolists\Components\TextEntry::make('precio_costo')
+                    ->label('Precio de costo')
+                    ->money('ARS')
+                    ->placeholder('—'),
+
+                Infolists\Components\TextEntry::make('observaciones')
+                    ->placeholder('—')
+                    ->columnSpanFull(),
+            ])->columns(3),
+
+            Infolists\Components\Section::make('Stock')->schema([
+                Infolists\Components\TextEntry::make('stock_actual')
+                    ->label('Stock actual')
+                    ->numeric(2),
+
+                Infolists\Components\TextEntry::make('stock_minimo')
+                    ->label('Stock mínimo')
+                    ->numeric(2),
+
+                Infolists\Components\TextEntry::make('stock_comprometido')
+                    ->label('Cantidad comprometida')
+                    ->numeric(2),
+
+                Infolists\Components\TextEntry::make('pendiente_recepcion')
+                    ->label('Cantidad en compra')
+                    ->numeric(2),
+
+                Infolists\Components\TextEntry::make('stock_proyectado')
+                    ->label('Stock proyectado')
+                    ->numeric(2)
+                    ->color(fn (Insumo $record): string => $record->stock_proyectado < 0 ? 'danger' : 'success'),
+
+                Infolists\Components\TextEntry::make('es_critico')
+                    ->label('Estado de stock')
+                    ->badge()
+                    ->getStateUsing(fn (Insumo $record): string => $record->es_critico ? 'Crítico' : 'Normal')
+                    ->color(fn (Insumo $record): string => $record->es_critico ? 'danger' : 'success'),
+            ])->columns(3),
+
+            Infolists\Components\Section::make('Datos de silla')
+                ->schema([
+                    Infolists\Components\TextEntry::make('proveedor.razon_social')
+                        ->label('Proveedor')
+                        ->placeholder('—'),
+
+                    Infolists\Components\TextEntry::make('tipoSilla.nombre')
+                        ->label('Tipo de silla')
+                        ->placeholder('—'),
+
+                    Infolists\Components\TextEntry::make('descripcion')
+                        ->label('Descripción')
+                        ->placeholder('—')
+                        ->columnSpanFull(),
+
+                    Infolists\Components\TextEntry::make('marcas_silla_resumen')
+                        ->label('Marcas y nombre de fantasía')
+                        ->getStateUsing(function (Insumo $record): string {
+                            $record->loadMissing('marcasSilla.marca');
+
+                            if ($record->marcasSilla->isEmpty()) {
+                                return '—';
+                            }
+
+                            return $record->marcasSilla
+                                ->map(fn ($item): string => trim(
+                                    ($item->marca?->nombre ?? 'Marca') .
+                                    ($item->nombre_fantasia ? ': ' . $item->nombre_fantasia : '')
+                                ))
+                                ->implode(' · ');
+                        })
+                        ->columnSpanFull(),
+                ])
+                ->columns(2)
+                ->visible(fn (Insumo $record): bool => $record->esSilla()),
+
+            Infolists\Components\Section::make('Imagen y plano')
+                ->schema([
+                    Infolists\Components\ViewEntry::make('media_preview')
+                        ->label('')
+                        ->view('filament.insumo.media-preview'),
+                ])
+                ->columnSpanFull(),
+        ]);
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -282,13 +430,10 @@ class InsumoResource extends Resource
                 Tables\Filters\TernaryFilter::make('activo'),
             ])
             ->actions([
-                Tables\Actions\Action::make('verPlano')
-                    ->label('Ver plano')
-                    ->icon('heroicon-o-document-text')
-                    ->color('info')
-                    ->url(fn ($record) => $record->getFirstMediaUrl('plano'))
-                    ->openUrlInNewTab()
-                    ->visible(fn ($record) => $record->getFirstMedia('plano') !== null),
+                Tables\Actions\ViewAction::make(),
+
+                static::verPlanoTableAction(),
+
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
@@ -311,6 +456,7 @@ class InsumoResource extends Resource
         return [
             'index'  => Pages\ListInsumos::route('/'),
             'create' => Pages\CreateInsumo::route('/create'),
+            'view'   => Pages\ViewInsumo::route('/{record}'),
             'edit'   => Pages\EditInsumo::route('/{record}/edit'),
         ];
     }

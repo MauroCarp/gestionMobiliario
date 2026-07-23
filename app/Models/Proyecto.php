@@ -97,4 +97,9 @@ class Proyecto extends Model
     {
         return self::ESTADOS[$this->estado] ?? $this->estado;
     }
+
+    public function tieneManuales(): bool
+    {
+        return ! empty($this->manual_pdf);
+    }
 }

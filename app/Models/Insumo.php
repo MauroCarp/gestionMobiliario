@@ -235,4 +235,28 @@ class Insumo extends Model implements HasMedia
 
         return trim($matches[1]);
     }
+
+    public function tieneImagen(): bool
+    {
+        return $this->getFirstMedia('imagen') !== null;
+    }
+
+    public function tienePlano(): bool
+    {
+        return $this->getFirstMedia('plano') !== null;
+    }
+
+    public function imagenUrl(): ?string
+    {
+        $url = $this->getFirstMediaUrl('imagen');
+
+        return filled($url) ? $url : null;
+    }
+
+    public function planoUrl(): ?string
+    {
+        $url = $this->getFirstMediaUrl('plano');
+
+        return filled($url) ? $url : null;
+    }
 }

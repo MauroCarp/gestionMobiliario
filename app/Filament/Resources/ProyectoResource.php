@@ -10,6 +10,8 @@ use App\Models\Proyecto;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
+use Filament\Infolists;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -26,6 +28,57 @@ class ProyectoResource extends Resource
     protected static ?string $modelLabel = 'Proyecto';
     protected static ?string $pluralModelLabel = 'Proyectos';
     protected static ?int $navigationSort = 1;
+
+    public static function manualesParaVista(Proyecto $proyecto): array
+    {
+        return collect((array) $proyecto->manual_pdf)
+            ->filter()
+            ->map(function (string $file): array {
+                $base = basename($file);
+                $displayName = strlen($base) > 37 ? substr($base, 37) : $base;
+
+                return [
+                    'url'    => Storage::disk('public')->url($file),
+                    'nombre' => $displayName,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    public static function verManualesPageAction(\Closure $getRecord): \Filament\Actions\Action
+    {
+        return \Filament\Actions\Action::make('ver_manuales')
+            ->label('Ver manuales')
+            ->icon('heroicon-o-document-text')
+            ->color('info')
+            ->visible(fn (): bool => $getRecord()->tieneManuales())
+            ->modalHeading(fn (): string => 'Manuales de marca — ' . ($getRecord()->marca?->nombre ?? $getRecord()->codigo_interno))
+            ->modalContent(fn (): HtmlString => new HtmlString(
+                view('filament.proyecto.manuales-list', [
+                    'manuales' => static::manualesParaVista($getRecord()),
+                ])->render()
+            ))
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel('Cerrar');
+    }
+
+    public static function verManualesTableAction(): Tables\Actions\Action
+    {
+        return Tables\Actions\Action::make('ver_manuales')
+            ->label('Ver manuales')
+            ->icon('heroicon-o-document-text')
+            ->color('info')
+            ->visible(fn (Proyecto $record): bool => $record->tieneManuales())
+            ->modalHeading(fn (Proyecto $record): string => 'Manuales de marca — ' . ($record->marca?->nombre ?? $record->codigo_interno))
+            ->modalContent(fn (Proyecto $record): HtmlString => new HtmlString(
+                view('filament.proyecto.manuales-list', [
+                    'manuales' => static::manualesParaVista($record),
+                ])->render()
+            ))
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel('Cerrar');
+    }
 
     public static function form(Form $form): Form
     {
@@ -185,6 +238,59 @@ class ProyectoResource extends Resource
         ]);
     }
 
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist->schema([
+            Infolists\Components\Section::make('Datos del proyecto')->schema([
+                Infolists\Components\TextEntry::make('codigo_interno')
+                    ->label('Código interno')
+                    ->badge()
+                    ->color('primary'),
+
+                Infolists\Components\TextEntry::make('marca.nombre')
+                    ->label('Marca')
+                    ->placeholder('—'),
+
+                Infolists\Components\ImageEntry::make('marca.logo')
+                    ->label('Logo de la marca')
+                    ->disk('public')
+                    ->height(80)
+                    ->visible(fn (Proyecto $record): bool => filled($record->marca?->logo)),
+
+                Infolists\Components\TextEntry::make('manuales_resumen')
+                    ->label('Manuales de marca')
+                    ->getStateUsing(function (Proyecto $record): string {
+                        $manuales = static::manualesParaVista($record);
+
+                        if (empty($manuales)) {
+                            return 'Sin manuales cargados';
+                        }
+
+                        return count($manuales) . ' archivo(s): ' . collect($manuales)
+                            ->pluck('nombre')
+                            ->implode(', ');
+                    })
+                    ->placeholder('Sin manuales cargados'),
+
+                Infolists\Components\TextEntry::make('mobiliarios_count')
+                    ->label('Mobiliarios asignados')
+                    ->getStateUsing(fn (Proyecto $record): string => (string) $record->mobiliariosPivot()->count()),
+
+                Infolists\Components\TextEntry::make('agencias_count')
+                    ->label('Agencias')
+                    ->getStateUsing(fn (Proyecto $record): string => (string) $record->agencias()->count()),
+
+                Infolists\Components\TextEntry::make('created_at')
+                    ->label('Creado')
+                    ->date('d/m/Y'),
+
+                Infolists\Components\TextEntry::make('observaciones')
+                    ->placeholder('—')
+                    ->columnSpanFull(),
+            ])->columns(3),
+        ]);
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -214,34 +320,10 @@ class ProyectoResource extends Resource
                     ->preload(),
             ])
             ->actions([
-                Tables\Actions\Action::make('ver_manuales')
-                    ->label('Ver manuales')
-                    ->icon('heroicon-o-document-text')
-                    ->color('info')
-                    ->visible(fn (Proyecto $record): bool => !empty($record->manual_pdf))
-                    ->modalHeading(fn (Proyecto $record): string => 'Manuales — ' . ($record->marca?->nombre ?? $record->codigo_interno))
-                    ->modalContent(fn (Proyecto $record): HtmlString => new HtmlString(
-                        '<div class="space-y-2 py-2">' .
-                        collect((array) $record->manual_pdf)
-                            ->map(function (string $file): string {
-                                $base = basename($file);
-                                // El archivo se guarda como "{uuid}_{nombre_original}"
-                                // UUID = 36 chars + 1 guión bajo = saltar 37 chars
-                                $displayName = strlen($base) > 37 ? substr($base, 37) : $base;
-                                return '<a href="' . e(Storage::disk('public')->url($file)) . '" '
-                                    . 'target="_blank" rel="noopener noreferrer" '
-                                    . 'class="flex items-center gap-2 p-3 rounded-lg border border-gray-200 '
-                                    . 'hover:bg-gray-50 text-sm font-medium text-blue-600 hover:text-blue-800">'
-                                    . '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>'
-                                    . '<span>' . e($displayName) . '</span>'
-                                    . '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-auto shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>'
-                                    . '</a>';
-                            })
-                            ->implode('')
-                        . '</div>'
-                    ))
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel('Cerrar'),
+                Tables\Actions\ViewAction::make(),
+
+                static::verManualesTableAction(),
+
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
@@ -265,6 +347,7 @@ class ProyectoResource extends Resource
         return [
             'index'  => Pages\ListProyectos::route('/'),
             'create' => Pages\CreateProyecto::route('/create'),
+            'view'   => Pages\ViewProyecto::route('/{record}'),
             'edit'   => Pages\EditProyecto::route('/{record}/edit'),
         ];
     }
