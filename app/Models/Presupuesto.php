@@ -38,6 +38,13 @@ class Presupuesto extends Model
         'cancelado'         => 'gray',
     ];
 
+    const METODOS_PAGO = [
+        'defecto'       => 'Defecto',
+        'transferencia' => 'Transferencia',
+    ];
+
+    const TEXTO_PAGO_DEFECTO = '50% MEDIANTE TRANSFERENCIA y 50% ENVIANDO E-CHEQ A 15-30-45 DÍAS AL CONFIRMAR EL PEDIDO.';
+
     protected $fillable = [
         'codigo',
         'agencia_id',
@@ -46,6 +53,8 @@ class Presupuesto extends Model
         'version',
         'fecha_emision',
         'fecha_vencimiento',
+        'metodo_pago',
+        'dias_entrega',
         'observaciones',
         'notas_internas',
         'aprobado_por',
@@ -59,6 +68,7 @@ class Presupuesto extends Model
         'aprobado_at'       => 'datetime',
         'datos_adicionales' => 'array',
         'version'           => 'integer',
+        'dias_entrega'      => 'integer',
     ];
 
     public function getActivitylogOptions(): LogOptions
@@ -303,5 +313,17 @@ class Presupuesto extends Model
         $media = $this->layoutMedia();
 
         return $media ? url($media->getUrl()) : null;
+    }
+
+    public function getTextoMetodoPagoAttribute(): string
+    {
+        return $this->metodo_pago === 'transferencia'
+            ? 'TRANSFERENCIA.'
+            : self::TEXTO_PAGO_DEFECTO;
+    }
+
+    public function getDiasEntregaPdfAttribute(): int
+    {
+        return $this->dias_entrega ?: 50;
     }
 }

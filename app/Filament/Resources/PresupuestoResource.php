@@ -164,6 +164,21 @@ class PresupuestoResource extends Resource
                         ->required()
                         ->default(now())
                         ->columnSpan(1),
+
+                    Forms\Components\Select::make('metodo_pago')
+                        ->label('Método de pago')
+                        ->options(Presupuesto::METODOS_PAGO)
+                        ->default('defecto')
+                        ->required()
+                        ->columnSpan(1),
+
+                    Forms\Components\TextInput::make('dias_entrega')
+                        ->label('Días de entrega')
+                        ->numeric()
+                        ->minValue(1)
+                        ->default(50)
+                        ->required()
+                        ->columnSpan(1),
                 ])
                 ->columns(3),
 
@@ -375,6 +390,12 @@ class PresupuestoResource extends Resource
                     ->label('Fecha de vencimiento')
                     ->date('d/m/Y')
                     ->placeholder('—'),
+                Infolists\Components\TextEntry::make('metodo_pago')
+                    ->label('Método de pago')
+                    ->formatStateUsing(fn (?string $state): string => Presupuesto::METODOS_PAGO[$state ?? 'defecto'] ?? 'Defecto'),
+                Infolists\Components\TextEntry::make('dias_entrega')
+                    ->label('Días de entrega')
+                    ->formatStateUsing(fn (?int $state): string => ($state ?: 50) . ' días'),
                 Infolists\Components\TextEntry::make('aprobadoPor.name')
                     ->label('Aprobado por')
                     ->placeholder('—'),
