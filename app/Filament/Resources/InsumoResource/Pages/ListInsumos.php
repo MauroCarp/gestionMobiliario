@@ -4,8 +4,12 @@ namespace App\Filament\Resources\InsumoResource\Pages;
 
 use App\Exports\InsumosExport;
 use App\Filament\Resources\InsumoResource;
+use App\Imports\InsumosStockImport;
 use Filament\Actions;
+use Filament\Forms;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ListInsumos extends ListRecords
@@ -15,6 +19,55 @@ class ListInsumos extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('importarStock')
+                ->label('Importar stock')
+                ->icon('heroicon-o-arrow-up-tray')
+                ->color('warning')
+                ->form([
+                    Forms\Components\FileUpload::make('archivo')
+                        ->label('Archivo Excel')
+                        ->helperText('Columnas requeridas: Codigo, Cantidad. La cantidad reemplaza el stock actual del insumo (0 es válido).')
+                        ->disk('local')
+                        ->directory('imports/insumos-stock')
+                        ->acceptedFileTypes([
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'application/vnd.ms-excel',
+                        ])
+                        ->required(),
+                ])
+                ->action(function (array $data): void {
+                    $path = Storage::disk('local')->path($data['archivo']);
+
+                    try {
+                        $import = new InsumosStockImport();
+                        Excel::import($import, $path);
+
+                        Storage::disk('local')->delete($data['archivo']);
+
+                        $notification = Notification::make()
+                            ->title('Importación de stock finalizada')
+                            ->body($import->getResumenMensaje());
+
+                        if ($import->actualizados > 0 && $import->omitidos === 0) {
+                            $notification->success();
+                        } else {
+                            $notification->warning();
+                        }
+
+                        $notification->send();
+                    } catch (\Throwable $e) {
+                        if (isset($data['archivo'])) {
+                            Storage::disk('local')->delete($data['archivo']);
+                        }
+
+                        Notification::make()
+                            ->title('Error al importar stock')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
+                }),
+
             Actions\Action::make('exportarExcel')
                 ->label('Exportar Excel')
                 ->icon('heroicon-o-arrow-down-tray')
