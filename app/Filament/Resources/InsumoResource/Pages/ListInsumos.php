@@ -26,7 +26,7 @@ class ListInsumos extends ListRecords
                 ->form([
                     Forms\Components\FileUpload::make('archivo')
                         ->label('Archivo Excel')
-                        ->helperText('Columnas requeridas: Codigo, Cantidad. La cantidad reemplaza el stock actual del insumo (0 es válido).')
+                        ->helperText('Columnas: Codigo + Cantidad (o Stock actual si exportó desde el sistema). Vacía o 0 = stock en cero. Log en storage/app/logs/imports/insumos-stock/.')
                         ->disk('local')
                         ->directory('imports/insumos-stock')
                         ->acceptedFileTypes([
@@ -39,14 +39,17 @@ class ListInsumos extends ListRecords
                     $path = Storage::disk('local')->path($data['archivo']);
 
                     try {
-                        $import = new InsumosStockImport();
+                        $import = (new InsumosStockImport())
+                            ->setArchivoOrigen(basename($data['archivo']));
                         Excel::import($import, $path);
 
                         Storage::disk('local')->delete($data['archivo']);
 
+                        $rutaLog = $import->guardarLog();
+
                         $notification = Notification::make()
                             ->title('Importación de stock finalizada')
-                            ->body($import->getResumenMensaje());
+                            ->body($import->getResumenMensaje() . ' Log: storage/app/' . $rutaLog);
 
                         if ($import->actualizados > 0 && $import->omitidos === 0) {
                             $notification->success();

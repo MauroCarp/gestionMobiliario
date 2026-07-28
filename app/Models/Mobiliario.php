@@ -38,11 +38,17 @@ class Mobiliario extends Model implements HasMedia
         'observaciones',
         'estado',
         'precio',
+        'stock_actual',
         'version_actual',
+    ];
+
+    protected $attributes = [
+        'stock_actual' => 0,
     ];
 
     protected $casts = [
         'version_actual' => 'integer',
+        'stock_actual'   => 'integer',
         'precio'         => 'float',
     ];
 

@@ -6,6 +6,7 @@ use App\Filament\Resources\PresupuestoResource\Pages;
 use App\Filament\Resources\PresupuestoResource\RelationManagers;
 use App\Models\Agencia;
 use App\Models\Insumo;
+use App\Models\Mobiliario;
 use App\Models\CategoriaInsumo;
 use App\Models\Presupuesto;
 use App\Models\PresupuestoItem;
@@ -297,7 +298,27 @@ class PresupuestoResource extends Resource
                                 ->minValue(1)
                                 ->default(1)
                                 ->required()
+                                ->live()
                                 ->columnSpan(1),
+
+                            Forms\Components\Placeholder::make('_stock_info')
+                                ->label('Stock / Fabricación estimada')
+                                ->content(function (Get $get): string {
+                                    $mobiliarioId = $get('mobiliario_id');
+                                    $cantidad     = max(1, (int) ($get('cantidad') ?? 1));
+
+                                    if (! $mobiliarioId) {
+                                        return '—';
+                                    }
+
+                                    $stock      = (int) (Mobiliario::find($mobiliarioId)?->stock_actual ?? 0);
+                                    $desdeStock = min($cantidad, $stock);
+                                    $aFabricar  = $cantidad - $desdeStock;
+
+                                    return "Stock disponible: {$stock} · Desde stock: {$desdeStock} · A fabricar: {$aFabricar}";
+                                })
+                                ->visible(fn (Get $get): bool => filled($get('mobiliario_id')))
+                                ->columnSpan(2),
 
                             Forms\Components\TextInput::make('precio_unitario')
                                 ->label('Precio Unit. $')

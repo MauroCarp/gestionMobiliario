@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\Presupuesto;
 use App\Services\AnalisisPresupuestoService;
 use App\Services\PresupuestoItemProduccionService;
+use App\Services\StockMobiliarioService;
 use App\Services\StockReservaService;
 use Illuminate\Support\Facades\Log;
 
@@ -12,6 +13,7 @@ class PresupuestoObserver
 {
     public function __construct(
         private readonly StockReservaService $stockService,
+        private readonly StockMobiliarioService $stockMobiliarioService,
         private readonly AnalisisPresupuestoService $analisisService,
         private readonly PresupuestoItemProduccionService $produccionService,
     ) {}
@@ -45,6 +47,7 @@ class PresupuestoObserver
 
     private function alConfirmar(Presupuesto $presupuesto): void
     {
+        $this->stockMobiliarioService->asignarStockPresupuesto($presupuesto);
         $this->stockService->reservar($presupuesto);
         $this->stockService->generarOrdenCompraAutomatica($presupuesto);
         $this->produccionService->crearEtapasParaPresupuesto($presupuesto);
@@ -52,7 +55,10 @@ class PresupuestoObserver
 
     private function alPagar(Presupuesto $presupuesto): void
     {
-        // Si no fue confirmado antes, reservar primero
+        if (! $presupuesto->items()->whereNotNull('stock_descontado_at')->exists()) {
+            $this->stockMobiliarioService->asignarStockPresupuesto($presupuesto);
+        }
+
         if (! $presupuesto->reservasStock()->where('estado', 'activa')->exists()) {
             $this->stockService->reservar($presupuesto);
         }
@@ -62,6 +68,7 @@ class PresupuestoObserver
 
     private function alCancelar(Presupuesto $presupuesto): void
     {
+        $this->stockMobiliarioService->reintegrarStockPresupuesto($presupuesto);
         $this->stockService->liberar($presupuesto);
     }
 }

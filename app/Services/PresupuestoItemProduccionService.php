@@ -32,7 +32,7 @@ class PresupuestoItemProduccionService
 
     public function crearEtapasParaItem(PresupuestoItem $item): void
     {
-        if (! $item->mobiliario_id) {
+        if (! $item->mobiliario_id || $item->cantidadParaFabricacion() <= 0) {
             return;
         }
 
@@ -52,7 +52,7 @@ class PresupuestoItemProduccionService
 
     public function actualizarEtapas(PresupuestoItem $item, array $etapas): void
     {
-        if (! $item->mobiliario_id) {
+        if (! $item->mobiliario_id || $item->cantidadParaFabricacion() <= 0) {
             return;
         }
 

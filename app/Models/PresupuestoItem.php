@@ -16,6 +16,10 @@ class PresupuestoItem extends Model
         'insumo_id',
         'sector_id',
         'cantidad',
+        'cantidad_desde_stock',
+        'cantidad_a_fabricar',
+        'stock_descontado_at',
+        'stock_reintegrado_at',
         'precio_unitario',
         'descripcion_override',
         'observaciones',
@@ -34,11 +38,15 @@ class PresupuestoItem extends Model
     ];
 
     protected $casts = [
-        'cantidad'        => 'integer',
-        'precio_unitario' => 'decimal:2',
-        'orden'           => 'integer',
-        'finalizado_at'   => 'datetime',
-        'entregado_at'    => 'datetime',
+        'cantidad'              => 'integer',
+        'cantidad_desde_stock'  => 'integer',
+        'cantidad_a_fabricar'   => 'integer',
+        'precio_unitario'       => 'decimal:2',
+        'orden'                 => 'integer',
+        'stock_descontado_at'   => 'datetime',
+        'stock_reintegrado_at'  => 'datetime',
+        'finalizado_at'         => 'datetime',
+        'entregado_at'          => 'datetime',
     ];
 
     public function getSubtotalAttribute(): ?float
@@ -106,6 +114,36 @@ class PresupuestoItem extends Model
         return ! is_null($this->entregado_at);
     }
 
+    public function requiereFabricacion(): bool
+    {
+        if ($this->insumo_id) {
+            return true;
+        }
+
+        if (! $this->mobiliario_id) {
+            return false;
+        }
+
+        return $this->cantidadParaFabricacion() > 0;
+    }
+
+    public function cantidadParaFabricacion(): int
+    {
+        if ($this->insumo_id) {
+            return (int) $this->cantidad;
+        }
+
+        if (! $this->mobiliario_id) {
+            return 0;
+        }
+
+        if ($this->stock_descontado_at !== null) {
+            return (int) $this->cantidad_a_fabricar;
+        }
+
+        return (int) $this->cantidad;
+    }
+
     public function getEstadoEntregaAttribute(): string
     {
         return $this->estaEntregado() ? 'Entregado' : 'Pendiente';
@@ -155,13 +193,19 @@ class PresupuestoItem extends Model
             return [];
         }
 
+        $cantidadFabricar = $this->cantidadParaFabricacion();
+
+        if ($cantidadFabricar <= 0) {
+            return [];
+        }
+
         $this->loadMissing('mobiliario.composicionTecnica');
 
         $demanda = [];
 
         foreach ($this->mobiliario?->composicionTecnica ?? [] as $comp) {
             $demanda[$comp->insumo_id] = ($demanda[$comp->insumo_id] ?? 0)
-                + ($comp->cantidad * (int) $this->cantidad);
+                + ($comp->cantidad * $cantidadFabricar);
         }
 
         return $demanda;

@@ -106,6 +106,14 @@ class MobiliarioResource extends Resource
                 Forms\Components\Textarea::make('observaciones')
                     ->label('Observaciones')
                     ->rows(3),
+                Forms\Components\TextInput::make('stock_actual')
+                    ->label('Stock actual')
+                    ->numeric()
+                    ->integer()
+                    ->minValue(0)
+                    ->default(0)
+                    ->required()
+                    ->helperText('Cantidad de unidades terminadas disponibles. Solo se modifica manualmente desde aquí.'),
             ])->columns(2),
 
             Forms\Components\Section::make('Imagen principal')->schema([
@@ -352,6 +360,10 @@ class MobiliarioResource extends Resource
                     ->badge()
                     ->color('gray')
                     ->placeholder('—'),
+                Tables\Columns\TextColumn::make('stock_actual')
+                    ->label('Stock')
+                    ->alignCenter()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('atributos_resumen')
                     ->label('Atributos')
                     ->getStateUsing(fn ($record) =>

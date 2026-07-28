@@ -149,17 +149,8 @@ class AnalisisPresupuestoService
 
         foreach ($presupuestos as $presupuesto) {
             foreach ($presupuesto->items as $item) {
-                $cantItem = (int) $item->cantidad;
-
-                // Ítem de silla (insumo directo) → la demanda ES el insumo × cantidad
-                if ($item->insumo_id) {
-                    $demanda[$item->insumo_id] = ($demanda[$item->insumo_id] ?? 0) + $cantItem;
-                    continue;
-                }
-
-                foreach ($item->mobiliario->composicionTecnica as $comp) {
-                    $id = $comp->insumo_id;
-                    $demanda[$id] = ($demanda[$id] ?? 0) + ($comp->cantidad * $cantItem);
+                foreach ($item->demandaInsumos() as $insumoId => $cantidad) {
+                    $demanda[$insumoId] = ($demanda[$insumoId] ?? 0) + $cantidad;
                 }
             }
         }

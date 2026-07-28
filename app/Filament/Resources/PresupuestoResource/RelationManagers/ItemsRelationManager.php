@@ -48,8 +48,24 @@ class ItemsRelationManager extends RelationManager
                     ),
 
                 Tables\Columns\TextColumn::make('cantidad')
-                    ->label('Cantidad')
+                    ->label('Solicitado')
                     ->alignCenter(),
+
+                Tables\Columns\TextColumn::make('cantidad_desde_stock')
+                    ->label('Desde stock')
+                    ->alignCenter()
+                    ->placeholder('—')
+                    ->visible(fn (): bool => in_array($this->ownerRecord->estado, [
+                        'confirmado', 'pagado', 'entregado_parcial', 'entregado',
+                    ])),
+
+                Tables\Columns\TextColumn::make('cantidad_a_fabricar')
+                    ->label('A fabricar')
+                    ->alignCenter()
+                    ->placeholder('—')
+                    ->visible(fn (): bool => in_array($this->ownerRecord->estado, [
+                        'confirmado', 'pagado', 'entregado_parcial', 'entregado',
+                    ])),
 
                 Tables\Columns\TextColumn::make('sector.nombre')
                     ->label('Sector')
@@ -67,12 +83,20 @@ class ItemsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('estado_finalizacion')
                     ->label('Finalización')
                     ->badge()
-                    ->getStateUsing(fn (PresupuestoItem $record): string =>
-                        $record->estaFinalizado() ? 'Finalizado' : 'Pendiente'
-                    )
-                    ->color(fn (PresupuestoItem $record): string =>
-                        $record->estaFinalizado() ? 'success' : 'gray'
-                    ),
+                    ->getStateUsing(function (PresupuestoItem $record): string {
+                        if ($record->mobiliario_id && ! $record->requiereFabricacion()) {
+                            return 'No requiere fabricación';
+                        }
+
+                        return $record->estaFinalizado() ? 'Finalizado' : 'Pendiente';
+                    })
+                    ->color(function (PresupuestoItem $record): string {
+                        if ($record->mobiliario_id && ! $record->requiereFabricacion()) {
+                            return 'info';
+                        }
+
+                        return $record->estaFinalizado() ? 'success' : 'gray';
+                    }),
 
                 Tables\Columns\TextColumn::make('estado_entrega')
                     ->label('Entrega')
@@ -113,6 +137,7 @@ class ItemsRelationManager extends RelationManager
                     ->color('info')
                     ->visible(fn (PresupuestoItem $record): bool =>
                         (bool) $record->mobiliario_id
+                        && $record->cantidadParaFabricacion() > 0
                         && in_array($this->ownerRecord->estado, ['confirmado', 'pagado', 'entregado_parcial', 'entregado'])
                     )
                     ->modalHeading(fn (PresupuestoItem $record): string => "Etapas de producción - {$record->item_nombre}")
@@ -256,6 +281,7 @@ class ItemsRelationManager extends RelationManager
                     ->color('success')
                     ->visible(fn (PresupuestoItem $record): bool =>
                         ! $record->estaFinalizado()
+                        && $record->requiereFabricacion()
                         && in_array($this->ownerRecord->estado, ['confirmado', 'pagado', 'entregado_parcial', 'entregado'])
                     )
                     ->requiresConfirmation()
