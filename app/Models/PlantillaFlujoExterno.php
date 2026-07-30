@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PlantillaFlujoExterno extends Model
@@ -10,7 +12,7 @@ class PlantillaFlujoExterno extends Model
     protected $table = 'plantillas_flujo_externo';
 
     const ENTIDAD_TIPOS = [
-        'insumo'     => 'Insumo',
+        'insumo' => 'Insumo',
         'mobiliario' => 'Mobiliario',
     ];
 
@@ -19,11 +21,43 @@ class PlantillaFlujoExterno extends Model
         'entidad_tipo',
         'entidad_id',
         'activo',
+        'stock_casco',
+    ];
+
+    protected $attributes = [
+        'stock_casco' => 0,
     ];
 
     protected $casts = [
         'activo' => 'boolean',
+        'stock_casco' => 'integer',
     ];
+
+    public function mobiliario(): BelongsTo
+    {
+        return $this->belongsTo(Mobiliario::class, 'entidad_id');
+    }
+
+    public function scopeCascosSilla(Builder $query): Builder
+    {
+        return $query
+            ->where('entidad_tipo', 'mobiliario')
+            ->whereHas('mobiliario.categoria', fn (Builder $q) => $q->where('nombre', 'like', '%silla%'));
+    }
+
+    public function esCascoSilla(): bool
+    {
+        if ($this->entidad_tipo !== 'mobiliario') {
+            return false;
+        }
+
+        $this->loadMissing('mobiliario.categoria');
+
+        return str_contains(
+            mb_strtolower($this->mobiliario?->categoria?->nombre ?? ''),
+            'silla',
+        );
+    }
 
     public function etapas(): HasMany
     {
@@ -38,9 +72,9 @@ class PlantillaFlujoExterno extends Model
     public function getEntidadNombreAttribute(): string
     {
         return match ($this->entidad_tipo) {
-            'insumo'     => Insumo::find($this->entidad_id)?->nombre ?? '—',
+            'insumo' => Insumo::find($this->entidad_id)?->nombre ?? '—',
             'mobiliario' => Mobiliario::find($this->entidad_id)?->nombre ?? '—',
-            default      => '—',
+            default => '—',
         };
     }
 }

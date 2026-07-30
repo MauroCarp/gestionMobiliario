@@ -4,9 +4,9 @@ namespace App\Filament\Resources\LoteProcesoExternoResource\RelationManagers;
 
 use App\Models\Insumo;
 use App\Models\LoteEtapa;
-use App\Models\LoteProcesoExterno;
-use App\Models\TipoProcesoExterno;
+use App\Models\PlantillaFlujoExterno;
 use App\Models\Tercero;
+use App\Models\TipoProcesoExterno;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -17,6 +17,7 @@ use Filament\Tables\Table;
 class EtapasRelationManager extends RelationManager
 {
     protected static string $relationship = 'etapas';
+
     protected static ?string $title = 'Etapas del proceso';
 
     public function form(Form $form): Form
@@ -113,8 +114,7 @@ class EtapasRelationManager extends RelationManager
                     ->label('Enviar')
                     ->icon('heroicon-o-truck')
                     ->color('info')
-                    ->visible(fn (LoteEtapa $record): bool =>
-                        $record->estado === 'pendiente' &&
+                    ->visible(fn (LoteEtapa $record): bool => $record->estado === 'pendiente' &&
                         ! in_array($this->ownerRecord->estado, ['completado', 'cancelado'])
                     )
                     ->form([
@@ -133,19 +133,20 @@ class EtapasRelationManager extends RelationManager
                                 ->body('Hay etapas anteriores sin completar.')
                                 ->warning()
                                 ->send();
+
                             return;
                         }
 
                         $record->update([
-                            'estado'       => 'en_transito',
-                            'fecha_envio'  => $data['fecha_envio'],
-                            'observaciones'=> $data['observaciones'] ?? $record->observaciones,
-                            'usuario_id'   => auth()->id(),
+                            'estado' => 'en_transito',
+                            'fecha_envio' => $data['fecha_envio'],
+                            'observaciones' => $data['observaciones'] ?? $record->observaciones,
+                            'usuario_id' => auth()->id(),
                         ]);
 
                         if ($this->ownerRecord->estado === 'pendiente') {
                             $this->ownerRecord->update([
-                                'estado'       => 'en_proceso',
+                                'estado' => 'en_proceso',
                                 'fecha_inicio' => now()->toDateString(),
                             ]);
                         }
@@ -158,13 +159,12 @@ class EtapasRelationManager extends RelationManager
                     ->label('En proceso')
                     ->icon('heroicon-o-wrench-screwdriver')
                     ->color('warning')
-                    ->visible(fn (LoteEtapa $record): bool =>
-                        $record->estado === 'en_transito' &&
+                    ->visible(fn (LoteEtapa $record): bool => $record->estado === 'en_transito' &&
                         ! in_array($this->ownerRecord->estado, ['completado', 'cancelado'])
                     )
                     ->action(function (LoteEtapa $record): void {
                         $record->update([
-                            'estado'     => 'en_proceso',
+                            'estado' => 'en_proceso',
                             'usuario_id' => auth()->id(),
                         ]);
                         Notification::make()->title('Etapa en proceso')->success()->send();
@@ -175,8 +175,7 @@ class EtapasRelationManager extends RelationManager
                     ->label('Completar')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(fn (LoteEtapa $record): bool =>
-                        $record->estado === 'en_proceso' &&
+                    ->visible(fn (LoteEtapa $record): bool => $record->estado === 'en_proceso' &&
                         ! in_array($this->ownerRecord->estado, ['completado', 'cancelado'])
                     )
                     ->form([
@@ -195,11 +194,11 @@ class EtapasRelationManager extends RelationManager
                     ])
                     ->action(function (LoteEtapa $record, array $data): void {
                         $record->update([
-                            'estado'               => 'completado',
+                            'estado' => 'completado',
                             'fecha_recepcion_real' => $data['fecha_recepcion_real'],
-                            'costo'                => $data['costo'] ?? null,
-                            'observaciones'        => $data['observaciones'] ?? $record->observaciones,
-                            'usuario_id'           => auth()->id(),
+                            'costo' => $data['costo'] ?? null,
+                            'observaciones' => $data['observaciones'] ?? $record->observaciones,
+                            'usuario_id' => auth()->id(),
                         ]);
 
                         $this->verificarCompletitudLote();
@@ -216,7 +215,7 @@ class EtapasRelationManager extends RelationManager
 
         if ($lote->etapas->every(fn ($e) => $e->estado === 'completado')) {
             $lote->update([
-                'estado'                  => 'completado',
+                'estado' => 'completado',
                 'fecha_finalizacion_real' => now()->toDateString(),
             ]);
 
@@ -229,11 +228,23 @@ class EtapasRelationManager extends RelationManager
                     ->success()
                     ->send();
             } else {
-                Notification::make()
-                    ->title('¡Lote completado!')
-                    ->body('El mobiliario ha finalizado todos sus procesos externos.')
-                    ->success()
-                    ->send();
+                $plantilla = $lote->plantilla ?? PlantillaFlujoExterno::find($lote->plantilla_id);
+
+                if ($plantilla?->esCascoSilla()) {
+                    $plantilla->increment('stock_casco', (int) $lote->cantidad);
+
+                    Notification::make()
+                        ->title('¡Lote completado!')
+                        ->body("Se agregaron {$lote->cantidad} unidades al stock del casco.")
+                        ->success()
+                        ->send();
+                } else {
+                    Notification::make()
+                        ->title('¡Lote completado!')
+                        ->body('El mobiliario ha finalizado todos sus procesos externos.')
+                        ->success()
+                        ->send();
+                }
             }
         } else {
             Notification::make()->title('Etapa completada')->success()->send();
