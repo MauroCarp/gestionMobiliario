@@ -60,6 +60,93 @@ class StockReservaService
     }
 
     /**
+     * Recalcula la demanda de insumos del presupuesto contra la composición
+     * técnica actual y sincroniza las reservas activas.
+     * Solo considera ítems sin finalizado_at (los finalizados ya consumieron stock).
+     * No toca stock_actual ni órdenes de compra.
+     *
+     * @return array{creadas:int, actualizadas:int, liberadas:int}
+     */
+    public function recalcularInsumos(Presupuesto $presupuesto): array
+    {
+        $demanda = $this->calcularDemandaPendiente($presupuesto);
+
+        return DB::transaction(function () use ($presupuesto, $demanda) {
+            $reservasActivas = ReservaStock::where('presupuesto_id', $presupuesto->id)
+                ->where('estado', 'activa')
+                ->lockForUpdate()
+                ->get()
+                ->groupBy('insumo_id');
+
+            $creadas = 0;
+            $actualizadas = 0;
+            $liberadas = 0;
+
+            foreach ($demanda as $insumoId => $cantidad) {
+                $cantidad = (float) $cantidad;
+
+                if ($cantidad <= 0) {
+                    continue;
+                }
+
+                $grupo = $reservasActivas->get($insumoId);
+
+                if ($grupo === null || $grupo->isEmpty()) {
+                    ReservaStock::create([
+                        'presupuesto_id'     => $presupuesto->id,
+                        'insumo_id'          => $insumoId,
+                        'cantidad_reservada' => $cantidad,
+                        'estado'             => 'activa',
+                    ]);
+                    $creadas++;
+
+                    continue;
+                }
+
+                /** @var \Illuminate\Support\Collection<int, ReservaStock> $grupo */
+                $principal = $grupo->first();
+
+                foreach ($grupo->slice(1) as $extra) {
+                    $extra->update(['estado' => 'liberada']);
+                    $liberadas++;
+                }
+
+                if (abs((float) $principal->cantidad_reservada - $cantidad) > 0.01) {
+                    $principal->update(['cantidad_reservada' => $cantidad]);
+                    $actualizadas++;
+                }
+            }
+
+            $insumosConDemanda = array_map(
+                'intval',
+                array_keys(array_filter(
+                    $demanda,
+                    fn ($c) => (float) $c > 0
+                ))
+            );
+
+            foreach ($reservasActivas as $insumoId => $grupo) {
+                if (in_array((int) $insumoId, $insumosConDemanda, true)) {
+                    continue;
+                }
+
+                foreach ($grupo as $reserva) {
+                    if ($reserva->estado === 'activa') {
+                        $reserva->update(['estado' => 'liberada']);
+                        $liberadas++;
+                    }
+                }
+            }
+
+            return [
+                'creadas'      => $creadas,
+                'actualizadas' => $actualizadas,
+                'liberadas'    => $liberadas,
+            ];
+        });
+    }
+
+    /**
      * Descuenta el stock real y marca reservas como consumidas (presupuesto pagado).
      * @deprecated Usar finalizarItem() por línea de ítem.
      */
@@ -329,6 +416,25 @@ class StockReservaService
         $demanda = [];
 
         foreach ($presupuesto->items as $item) {
+            foreach ($item->demandaInsumos() as $insumoId => $cantidad) {
+                $demanda[$insumoId] = ($demanda[$insumoId] ?? 0) + $cantidad;
+            }
+        }
+
+        return $demanda;
+    }
+
+    /** Demanda de insumos solo para ítems aún no finalizados. */
+    private function calcularDemandaPendiente(Presupuesto $presupuesto): array
+    {
+        $presupuesto->loadMissing([
+            'items.mobiliario.composicionTecnica',
+            'items.insumo',
+        ]);
+
+        $demanda = [];
+
+        foreach ($presupuesto->items->whereNull('finalizado_at') as $item) {
             foreach ($item->demandaInsumos() as $insumoId => $cantidad) {
                 $demanda[$insumoId] = ($demanda[$insumoId] ?? 0) + $cantidad;
             }

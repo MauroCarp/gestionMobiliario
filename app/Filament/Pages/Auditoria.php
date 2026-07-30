@@ -2,23 +2,72 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\User;
+use App\Services\DatabaseBackupService;
+use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Table;
 use Spatie\Activitylog\Models\Activity;
 
 class Auditoria extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    protected static ?string $navigationIcon  = 'heroicon-o-clipboard-document-list';
+    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
+
     protected static ?string $navigationGroup = 'Administración';
+
     protected static ?string $navigationLabel = 'Auditoría';
-    protected static ?string $title           = 'Auditoría del sistema';
-    protected static ?int    $navigationSort  = 10;
-    protected static string  $view            = 'filament.pages.auditoria';
+
+    protected static ?string $title = 'Auditoría del sistema';
+
+    protected static ?int $navigationSort = 10;
+
+    protected static string $view = 'filament.pages.auditoria';
+
+    protected function getHeaderActions(): array
+    {
+        $destino = config('backup.path');
+
+        return [
+            Action::make('backupBaseDatos')
+                ->label('Backup de base de datos')
+                ->icon('heroicon-o-circle-stack')
+                ->color('warning')
+                ->visible(fn (): bool => auth()->user()?->hasRole('Administrador') ?? false)
+                ->requiresConfirmation()
+                ->modalHeading('Generar backup de la base de datos')
+                ->modalDescription("Se creará un archivo .sql en:\n{$destino}")
+                ->action(function () use ($destino): void {
+                    try {
+                        $resultado = app(DatabaseBackupService::class)->ejecutar();
+
+                        activity()
+                            ->causedBy(auth()->user())
+                            ->log('Backup de base de datos: '.$resultado['archivo']);
+
+                        $tamano = number_format($resultado['bytes'] / 1024 / 1024, 2, ',', '.');
+
+                        Notification::make()
+                            ->success()
+                            ->title('Backup generado')
+                            ->body("{$resultado['archivo']} ({$tamano} MB)\n{$destino}")
+                            ->send();
+                    } catch (\Throwable $e) {
+                        Notification::make()
+                            ->danger()
+                            ->title('No se pudo generar el backup')
+                            ->body($e->getMessage())
+                            ->send();
+                    }
+                }),
+        ];
+    }
 
     public function table(Table $table): Table
     {
@@ -42,13 +91,13 @@ class Auditoria extends Page implements HasTable
                         'created' => 'success',
                         'updated' => 'info',
                         'deleted' => 'danger',
-                        default   => 'gray',
+                        default => 'gray',
                     })
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         'created' => 'Creado',
                         'updated' => 'Modificado',
                         'deleted' => 'Eliminado',
-                        default   => $state,
+                        default => $state,
                     }),
 
                 Tables\Columns\TextColumn::make('subject_type')
@@ -74,6 +123,7 @@ class Auditoria extends Page implements HasTable
                         }
                         $data = is_array($state) ? $state : json_decode($state, true);
                         $changed = array_keys($data['attributes'] ?? $data ?? []);
+
                         return implode(', ', array_slice($changed, 0, 5));
                     })
                     ->wrap()
@@ -90,7 +140,7 @@ class Auditoria extends Page implements HasTable
 
                 Tables\Filters\SelectFilter::make('causer_id')
                     ->label('Usuario')
-                    ->options(fn () => \App\Models\User::orderBy('name')->pluck('name', 'id')->toArray()),
+                    ->options(fn () => User::orderBy('name')->pluck('name', 'id')->toArray()),
 
                 Tables\Filters\SelectFilter::make('subject_type')
                     ->label('Modelo')
@@ -104,8 +154,8 @@ class Auditoria extends Page implements HasTable
 
                 Tables\Filters\Filter::make('created_at')
                     ->form([
-                        \Filament\Forms\Components\DatePicker::make('desde')->label('Desde'),
-                        \Filament\Forms\Components\DatePicker::make('hasta')->label('Hasta'),
+                        DatePicker::make('desde')->label('Desde'),
+                        DatePicker::make('hasta')->label('Hasta'),
                     ])
                     ->query(function ($query, array $data) {
                         return $query

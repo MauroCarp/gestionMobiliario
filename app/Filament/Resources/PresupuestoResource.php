@@ -12,6 +12,7 @@ use App\Models\Presupuesto;
 use App\Models\PresupuestoItem;
 use App\Models\Sector;
 use App\Services\PresupuestoEntregaService;
+use App\Services\StockReservaService;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -712,6 +713,30 @@ class PresupuestoResource extends Resource
                             Notification::make()->success()
                                 ->title("Nueva versión creada: v{$nuevoNumero}")
                                 ->send();
+                        }),
+
+                    Tables\Actions\Action::make('recalcularInsumos')
+                        ->label('Recalcular insumos')
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('info')
+                        ->visible(false) // Oculto hasta nuevo aviso
+                        ->requiresConfirmation()
+                        ->modalHeading('Recalcular insumos del presupuesto')
+                        ->modalDescription('Se recalculará la demanda de insumos con la composición técnica actual de los mobiliarios, considerando solo los ítems no finalizados. Se ajustarán las reservas activas (crear, actualizar o liberar). No se descuenta stock ni se modifican las órdenes de compra.')
+                        ->action(function (Presupuesto $record): void {
+                            try {
+                                $resumen = app(StockReservaService::class)->recalcularInsumos($record);
+
+                                Notification::make()->success()
+                                    ->title('Insumos recalculados')
+                                    ->body("Reservas creadas: {$resumen['creadas']} · actualizadas: {$resumen['actualizadas']} · liberadas: {$resumen['liberadas']}")
+                                    ->send();
+                            } catch (\Throwable $e) {
+                                Notification::make()->danger()
+                                    ->title('No se pudieron recalcular los insumos')
+                                    ->body($e->getMessage())
+                                    ->send();
+                            }
                         }),
 
                     Tables\Actions\DeleteAction::make(),
