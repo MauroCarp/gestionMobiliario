@@ -271,11 +271,12 @@
         <tr>
             <th style="width:18px;" class="center">#</th>
             <th style="width:122px;" class="center">Imagen</th>
-            <th style="width:17%;">Mobiliario</th>
-            <th>Descripción / Observaciones</th>
+            <th>Mobiliario</th>
+            <th style="width:400px;">Descripción / Observaciones</th>
             <th style="width:36px;" class="center">Cant.</th>
             <th style="width:90px;">Notas</th>
             <th style="width:72px;" class="right">Precio</th>
+            <th style="width:78px;" class="right">Subtotal precio</th>
         </tr>
     </thead>
     <tbody>
@@ -369,6 +370,12 @@
                 @endif
             </td>
 
+            <td class="right item-price">
+                @if($item->subtotal !== null)
+                    ${{ number_format((float)$item->subtotal, 2, ',', '.') }}
+                @endif
+            </td>
+
         </tr>
         @endforeach
     </tbody>
@@ -377,7 +384,7 @@
     @if($sectorTotal > 0)
     <tfoot>
         <tr class="sector-total-row">
-            <td colspan="6" style="padding:5px 10px; text-align:right;">
+            <td colspan="7" style="padding:5px 10px; text-align:right;">
                 Subtotal {{ $labelSector }}:
             </td>
             <td style="padding:5px 10px; text-align:right;">
@@ -389,15 +396,36 @@
 </table>
 @endforeach
 
-{{-- ── TOTAL GENERAL ──────────────────────────────────────────── --}}
+{{-- ── SUB-TOTAL, IVA Y TOTAL GENERAL ─────────────────────────── --}}
 @if($hayPrecios && $grandTotal > 0)
+@php
+    $subTotalGeneral = round((float) $grandTotal, 2);
+    $ivaGeneral = round($subTotalGeneral * 0.21, 2);
+    $totalGeneral = round($subTotalGeneral + $ivaGeneral, 2);
+@endphp
 <table style="width:100%; border-collapse:collapse; margin-bottom:14px;">
+    <tr style="background:#1E3A8A; color:#FFFFFF;">
+        <td style="padding:8px 10px; text-align:right; font-weight:bold; font-size:12px;">
+            SUB-TOTAL GENERAL:
+        </td>
+        <td style="padding:8px 10px; text-align:right; font-size:13px; font-weight:bold; width:120px;">
+            ${{ number_format($subTotalGeneral, 2, ',', '.') }}
+        </td>
+    </tr>
+    <tr style="background:#1E3A8A; color:#FFFFFF;">
+        <td style="padding:8px 10px; text-align:right; font-weight:bold; font-size:12px;">
+            IVA 21%:
+        </td>
+        <td style="padding:8px 10px; text-align:right; font-size:13px; font-weight:bold; width:120px;">
+            ${{ number_format($ivaGeneral, 2, ',', '.') }}
+        </td>
+    </tr>
     <tr style="background:#1E3A8A; color:#FFFFFF;">
         <td style="padding:8px 10px; text-align:right; font-weight:bold; font-size:12px;">
             TOTAL GENERAL:
         </td>
         <td style="padding:8px 10px; text-align:right; font-size:13px; font-weight:bold; width:120px;">
-            ${{ number_format($grandTotal, 2, ',', '.') }}
+            ${{ number_format($totalGeneral, 2, ',', '.') }}
         </td>
     </tr>
 </table>
