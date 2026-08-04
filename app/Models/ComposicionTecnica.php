@@ -16,12 +16,14 @@ class ComposicionTecnica extends Model
         'version',
         'observaciones',
         'activo',
+        'es_componente_casco',
     ];
 
     protected $casts = [
         'cantidad' => 'float',
         'version'  => 'integer',
         'activo'   => 'boolean',
+        'es_componente_casco' => 'boolean',
     ];
 
     public function mobiliario(): BelongsTo

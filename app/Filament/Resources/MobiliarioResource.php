@@ -10,6 +10,7 @@ use App\Models\Insumo;
 use App\Models\Marca;
 use App\Models\Mobiliario;
 use App\Models\UnidadMedida;
+use App\Services\StockCascoService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -247,6 +248,13 @@ class MobiliarioResource extends Resource
                                     ->find($id)?->unidadMedida?->nombre ?? '—';
                             })
                             ->columnSpan(1),
+
+                        Forms\Components\Toggle::make('es_componente_casco')
+                            ->label('Componente del casco')
+                            ->helperText('Solo aplica a sillas: este insumo se reserva según los cascos faltantes, no por cada unidad del mobiliario.')
+                            ->default(false)
+                            ->visible(fn (Get $get): bool => static::formCategoriaEsSillas($get))
+                            ->columnSpan(2),
                     ])
                     ->columns(4)
                     ->addActionLabel('Agregar insumo')
@@ -416,6 +424,17 @@ class MobiliarioResource extends Resource
         return [
             RelationManagers\PlantillaFlujosRelationManager::class,
         ];
+    }
+
+    public static function formCategoriaEsSillas(Get $get): bool
+    {
+        $categoriaId = $get('../../categoria_id') ?? $get('categoria_id');
+
+        if (! $categoriaId) {
+            return false;
+        }
+
+        return CategoriaMobiliario::find($categoriaId)?->nombre === StockCascoService::CATEGORIA_SILLAS;
     }
 
     public static function getEloquentQuery(): Builder
