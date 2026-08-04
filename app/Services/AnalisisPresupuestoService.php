@@ -141,6 +141,7 @@ class AnalisisPresupuestoService
 
     /**
      * Suma la demanda de insumos de una colección de presupuestos.
+     * Omite ítems con finalizado_at (ya no consumen insumos).
      * Retorna: [insumo_id => cantidad_total]
      */
     private function calcularDemanda(Collection $presupuestos): array
@@ -148,7 +149,7 @@ class AnalisisPresupuestoService
         $demanda = [];
 
         foreach ($presupuestos as $presupuesto) {
-            foreach ($presupuesto->items as $item) {
+            foreach ($presupuesto->items->whereNull('finalizado_at') as $item) {
                 foreach ($item->demandaInsumos() as $insumoId => $cantidad) {
                     $demanda[$insumoId] = ($demanda[$insumoId] ?? 0) + $cantidad;
                 }

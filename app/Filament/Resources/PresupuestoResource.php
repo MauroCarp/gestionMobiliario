@@ -181,6 +181,26 @@ class PresupuestoResource extends Resource
                         ->default(50)
                         ->required()
                         ->columnSpan(1),
+
+                    Forms\Components\Checkbox::make('logistica_instalacion_propia')
+                        ->label('Logística e instalación propia')
+                        ->default(true)
+                        ->live()
+                        ->columnSpan(1),
+
+                    Forms\Components\TextInput::make('logistica_costo')
+                        ->label('Costo')
+                        ->numeric()
+                        ->minValue(0)
+                        ->default(0)
+                        ->required(),
+
+                    Forms\Components\Textarea::make('logistica_leyenda')
+                        ->label('Leyenda para planilla impresa')
+                        ->rows(3)
+                        ->nullable()
+                        ->required(fn (Get $get): bool => ! $get('logistica_instalacion_propia'))
+                        ->visible(fn (Get $get): bool => ! $get('logistica_instalacion_propia')),
                 ])
                 ->columns(3),
 
@@ -418,6 +438,14 @@ class PresupuestoResource extends Resource
                 Infolists\Components\TextEntry::make('dias_entrega')
                     ->label('Días de entrega')
                     ->formatStateUsing(fn (?int $state): string => ($state ?: 50) . ' días'),
+                Infolists\Components\IconEntry::make('logistica_instalacion_propia')
+                    ->label('Logística e instalación propia')
+                    ->boolean(),
+                Infolists\Components\TextEntry::make('leyenda_logistica_efectiva')
+                    ->label('Leyenda logística'),
+                Infolists\Components\TextEntry::make('logistica_costo')
+                    ->label('Costo logística')
+                    ->money('ARS'),
                 Infolists\Components\TextEntry::make('aprobadoPor.name')
                     ->label('Aprobado por')
                     ->placeholder('—'),

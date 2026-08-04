@@ -84,8 +84,25 @@
     </tr>
     @endforeach
 
+    @php
+        $costoLogistica = $presupuesto->logistica_costo_numerico;
+        $leyendaLogistica = $presupuesto->leyenda_logistica_efectiva;
+        $indiceLogistica = $presupuesto->items->count() + 1;
+    @endphp
+    <tr>
+        <td>{{ $indiceLogistica }}</td>
+        <td></td>
+        <td>{{ $leyendaLogistica }}</td>
+        <td></td>
+        <td>1</td>
+        <td>{{ $costoLogistica > 0 ? $costoLogistica : '' }}</td>
+        <td>{{ $costoLogistica > 0 ? $costoLogistica : '' }}</td>
+        <td></td>
+        <td></td>
+    </tr>
+
     {{-- ── TOTAL ──────────────────────────────────────────────────── --}}
-    @php $total = $presupuesto->items->sum(fn($i) => $i->subtotal ?? 0); @endphp
+    @php $total = $presupuesto->items->sum(fn($i) => $i->subtotal ?? 0) + $costoLogistica; @endphp
     @if($total > 0)
     <tr>
         <td colspan="6" style="font-weight: bold; text-align: right;">Total estimado:</td>

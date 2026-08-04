@@ -396,6 +396,46 @@
 </table>
 @endforeach
 
+@php
+    $costoLogistica = $presupuesto->logistica_costo_numerico;
+    $leyendaLogistica = $presupuesto->leyenda_logistica_efectiva;
+    $grandTotal += $costoLogistica;
+    if ($costoLogistica > 0) {
+        $hayPrecios = true;
+    }
+@endphp
+
+<table class="items-table" cellpadding="0" cellspacing="0" style="margin-top: 0;padding-top: 0;">
+    <tbody>
+        <tr>
+            <td class="center" style="width:18px;">
+                <span class="item-num">{{ $globalIndex++ }}</span>
+            </td>
+            <td class="center item-img-cell" style="width:122px;">
+                <div class="item-no-img">—</div>
+            </td>
+            <td>
+                <strong>{{ $leyendaLogistica }}</strong>
+            </td>
+            <td style="width:400px;"></td>
+            <td class="center" style="width:36px;">
+                <span class="item-qty">1</span>
+            </td>
+            <td style="width:90px;"></td>
+            <td class="right item-price" style="width:72px;">
+                @if($costoLogistica > 0)
+                    ${{ number_format($costoLogistica, 2, ',', '.') }}
+                @endif
+            </td>
+            <td class="right item-price" style="width:78px;">
+                @if($costoLogistica > 0)
+                    ${{ number_format($costoLogistica, 2, ',', '.') }}
+                @endif
+            </td>
+        </tr>
+    </tbody>
+</table>
+
 {{-- ── SUB-TOTAL, IVA Y TOTAL GENERAL ─────────────────────────── --}}
 @if($hayPrecios && $grandTotal > 0)
 @php

@@ -45,6 +45,8 @@ class Presupuesto extends Model
 
     const TEXTO_PAGO_DEFECTO = '50% MEDIANTE TRANSFERENCIA y 50% ENVIANDO E-CHEQ A 15-30-45 DÍAS AL CONFIRMAR EL PEDIDO.';
 
+    const LEYENDA_LOGISTICA_PROPIA = 'Logística e instalación propia';
+
     protected $fillable = [
         'codigo',
         'agencia_id',
@@ -55,6 +57,9 @@ class Presupuesto extends Model
         'fecha_vencimiento',
         'metodo_pago',
         'dias_entrega',
+        'logistica_instalacion_propia',
+        'logistica_leyenda',
+        'logistica_costo',
         'observaciones',
         'notas_internas',
         'aprobado_por',
@@ -69,6 +74,8 @@ class Presupuesto extends Model
         'datos_adicionales' => 'array',
         'version'           => 'integer',
         'dias_entrega'      => 'integer',
+        'logistica_instalacion_propia' => 'boolean',
+        'logistica_costo'   => 'decimal:2',
     ];
 
     public function getActivitylogOptions(): LogOptions
@@ -144,6 +151,11 @@ class Presupuesto extends Model
                 'version'            => 1,
                 'fecha_emision'      => $this->fecha_emision,
                 'fecha_vencimiento'  => $this->fecha_vencimiento,
+                'metodo_pago'        => $this->metodo_pago,
+                'dias_entrega'       => $this->dias_entrega,
+                'logistica_instalacion_propia' => $this->logistica_instalacion_propia,
+                'logistica_leyenda'  => $this->logistica_leyenda,
+                'logistica_costo'    => $this->logistica_costo,
                 'observaciones'      => $this->observaciones,
                 'notas_internas'     => $this->notas_internas,
                 'datos_adicionales'  => $this->datos_adicionales,
@@ -325,5 +337,19 @@ class Presupuesto extends Model
     public function getDiasEntregaPdfAttribute(): int
     {
         return $this->dias_entrega ?: 50;
+    }
+
+    public function getLeyendaLogisticaEfectivaAttribute(): string
+    {
+        if ($this->logistica_instalacion_propia) {
+            return self::LEYENDA_LOGISTICA_PROPIA;
+        }
+
+        return trim((string) ($this->logistica_leyenda ?? ''));
+    }
+
+    public function getLogisticaCostoNumericoAttribute(): float
+    {
+        return round((float) ($this->logistica_costo ?? 0), 2);
     }
 }
