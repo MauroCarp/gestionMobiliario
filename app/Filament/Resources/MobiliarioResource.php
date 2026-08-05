@@ -249,12 +249,12 @@ class MobiliarioResource extends Resource
                             })
                             ->columnSpan(1),
 
-                        Forms\Components\Toggle::make('es_componente_casco')
-                            ->label('Componente del casco')
-                            ->helperText('Solo aplica a sillas: este insumo se reserva según los cascos faltantes, no por cada unidad del mobiliario.')
-                            ->default(false)
-                            ->visible(fn (Get $get): bool => static::formCategoriaEsSillas($get))
-                            ->columnSpan(2),
+                        // Forms\Components\Toggle::make('es_componente_casco')
+                        //     ->label('Componente del casco')
+                        //     ->helperText('Solo aplica a sillas: este insumo se reserva según los cascos faltantes, no por cada unidad del mobiliario.')
+                        //     ->default(false)
+                        //     // ->visible(fn (Get $get): bool => static::formCategoriaEsSillas($get))
+                        //     ->columnSpan(2),
                     ])
                     ->columns(4)
                     ->addActionLabel('Agregar insumo')
@@ -426,16 +426,16 @@ class MobiliarioResource extends Resource
         ];
     }
 
-    public static function formCategoriaEsSillas(Get $get): bool
-    {
-        $categoriaId = $get('../../categoria_id') ?? $get('categoria_id');
+    // public static function formCategoriaEsSillas(Get $get): bool
+    // {
+    //     $categoriaId = $get('../../categoria_id') ?? $get('categoria_id');
 
-        if (! $categoriaId) {
-            return false;
-        }
+    //     if (! $categoriaId) {
+    //         return false;
+    //     }
 
-        return CategoriaMobiliario::find($categoriaId)?->nombre === StockCascoService::CATEGORIA_SILLAS;
-    }
+    //     return CategoriaMobiliario::find($categoriaId)?->nombre === StockCascoService::CATEGORIA_SILLAS;
+    // }
 
     public static function getEloquentQuery(): Builder
     {
