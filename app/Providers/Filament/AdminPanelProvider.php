@@ -7,7 +7,7 @@ use App\Filament\Widgets\InsumosUrgentesWidget;
 use App\Filament\Widgets\LotesEnProcesoWidget;
 // use App\Filament\Widgets\OrdenesCompraWidget;
 // use App\Filament\Widgets\ProyectosActivosWidget;
-use App\Filament\Widgets\PresupuestosRecientesWidget;
+use App\Filament\Widgets\PresupuestosPendientesEntregaWidget;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -56,10 +56,10 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 // Widgets\AccountWidget::class,
                 AnalisisGlobalWidget::class,
+                PresupuestosPendientesEntregaWidget::class,
                 InsumosUrgentesWidget::class,
                 // OrdenesCompraWidget::class,
                 // ProyectosActivosWidget::class,
-                PresupuestosRecientesWidget::class,
                 LotesEnProcesoWidget::class,
             ])
             ->navigationGroups([
