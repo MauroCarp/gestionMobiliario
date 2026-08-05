@@ -58,14 +58,14 @@ class PresupuestosPendientesEntregaWidget extends BaseWidget
                     ->label('Fecha vencimiento')
                     ->date('d/m/Y')
                     ->badge()
-                    ->color(fn ($record) => match (true) {
+                    ->extraAttributes(['class' => 'mi-badge-grande'])                    ->color(fn ($record) => match (true) {
                         $record->fecha_vencimiento === null                        => 'gray',
                         $record->fecha_vencimiento->isPast()                      => 'danger',
                         $record->fecha_vencimiento->diffInDays(now(), absolute: true) <= 10       => 'danger',
                         $record->fecha_vencimiento->diffInDays(now(), absolute: true) >= 15       => 'warning',
                         default                                                   => 'success',
                     })
-                    ->placeholder('Sin vencimiento'),
+                    ->placeholder('Fecha no definida'),
             ])
             ->actions([
                 Tables\Actions\Action::make('ver')

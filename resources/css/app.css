@@ -29,7 +29,9 @@
     height: auto;
     object-fit: contain;
 }
-
+.mi-badge-grande {
+    font-size: 1rem !important;
+}
 .mobiliario-galeria__thumbs {
     margin-top: 0.25rem;
 }
