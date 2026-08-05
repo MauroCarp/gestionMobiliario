@@ -150,7 +150,7 @@ class PresupuestoResource extends Resource
                         ->required()
                         ->live()
                         ->helperText('La marca y el listado de mobiliarios se obtienen del proyecto asignado a la agencia.')
-                        ->columnSpan(2),
+                        ->columnSpan(1),
 
                     Forms\Components\Select::make('responsable_id')
                         ->label('Responsable')
@@ -159,6 +159,10 @@ class PresupuestoResource extends Resource
                         ->preload()
                         ->required()
                         ->default(fn () => auth()->id())
+                        ->columnSpan(1),
+                    Forms\Components\DatePicker::make('fecha_vencimiento')
+                        ->label('Posible fecha de entrega')
+                        ->default(now()->addDays(45))
                         ->columnSpan(1),
 
                     Forms\Components\DatePicker::make('fecha_emision')
@@ -429,7 +433,7 @@ class PresupuestoResource extends Resource
                     ->label('Fecha de emisión')
                     ->date('d/m/Y'),
                 Infolists\Components\TextEntry::make('fecha_vencimiento')
-                    ->label('Fecha de vencimiento')
+                    ->label('Fecha posible de entrega')
                     ->date('d/m/Y')
                     ->placeholder('—'),
                 Infolists\Components\TextEntry::make('metodo_pago')
