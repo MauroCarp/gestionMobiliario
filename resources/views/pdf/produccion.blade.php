@@ -522,16 +522,9 @@
 </table>
 @endif
 
-{{-- ── OBSERVACIONES GENERALES ────────────────────────────────── --}} 
-@if($presupuesto->observaciones)
-<div style="border:1px solid #FCD34D; background:#FFFBEB; padding:7px 10px; margin-top:14px;">
-    <div style="font-weight:bold; font-size:10px; color:#92400E; margin-bottom:3px;">Observaciones generales</div>
-    <div style="font-size:10px; line-height:1.5;">{{ $presupuesto->observaciones }}</div>
-</div>
-@endif
 
 {{-- ── PIE DE EMPRESA ──────────────────────────────────────────── --}}
-<div style="text-align:center; font-size:10px; color:#000000; padding:5px 0;
+<div style="text-align:center; font-size:25px; color:#000000; padding:5px 0;
             border-top:1px solid #9CA3AF; margin-top:10px; line-height:1.6;">
     Chacabuco 80 (S2500CHB) Cañada de Gómez, Santa Fe, Argentina. &nbsp;&nbsp; Tel: 03471 – 422983 / 15575476<br>
     WhatsApp: 3471575476 &nbsp;&nbsp;&nbsp; Seguinos en Facebook: Pierantonimuebles<br>

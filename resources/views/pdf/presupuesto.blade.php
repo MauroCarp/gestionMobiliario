@@ -108,7 +108,7 @@
 
         /* ── BASES Y CONDICIONES ──────────────────────────────── */
         .bases-title {
-            font-size: 10px;
+            font-size: 16px;
             font-weight: bold;
             color: #1E3A8A;
             text-transform: uppercase;
@@ -121,7 +121,7 @@
         .bases-list {
             margin: 0;
             padding-left: 20px;
-            font-size: 8.5px;
+            font-size: 14px;
             color: #1F2937;
             line-height: 1.6;
         }
@@ -381,7 +381,7 @@
     </tbody>
 
     {{-- Subtotal por sector --}}
-    @if($sectorTotal > 0)
+    {{-- @if($sectorTotal > 0)
     <tfoot>
         <tr class="sector-total-row">
             <td colspan="7" style="padding:5px 10px; text-align:right;">
@@ -392,7 +392,7 @@
             </td>
         </tr>
     </tfoot>
-    @endif
+    @endif --}}
 </table>
 @endforeach
 
@@ -412,7 +412,11 @@
                 <span class="item-num">{{ $globalIndex++ }}</span>
             </td>
             <td class="center item-img-cell" style="width:122px;">
-                <div class="item-no-img">—</div>
+                @if($logisticaImagenBase64)
+                    <img src="{{ $logisticaImagenBase64 }}" class="item-img">
+                @else
+                    <div class="item-no-img">—</div>
+                @endif
             </td>
             <td>
                 <strong>{{ $leyendaLogistica }}</strong>
@@ -475,7 +479,7 @@
 @if($presupuesto->observaciones)
 <div class="obs-box">
     <div class="obs-title">Observaciones generales</div>
-    <div style="font-size:10px; line-height:1.5;">{{ $presupuesto->observaciones }}</div>
+    <div style="font-size:16px!important;">{{ $presupuesto->observaciones }}</div>
 </div>
 @endif
 

@@ -52,6 +52,13 @@ class PresupuestoPdfController extends Controller
             $logoEmpresaBase64 = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($logoEmpresaPath));
         }
 
+        $logisticaImagenBase64 = null;
+        $logisticaImagenPath = storage_path('app/public/logistica_instalacion/logistica_instalacion.png');
+        if (file_exists($logisticaImagenPath)) {
+            $mime = mime_content_type($logisticaImagenPath) ?: 'image/png';
+            $logisticaImagenBase64 = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($logisticaImagenPath));
+        }
+
         // Items con imagen en base64, agrupados por sector
         $items = $presupuesto->items->map(function ($item) {
             $imagenBase64 = null;
@@ -82,7 +89,7 @@ class PresupuestoPdfController extends Controller
         });
 
         $pdf = Pdf::loadView('pdf.presupuesto', compact(
-            'presupuesto', 'proyecto', 'agencia', 'marca', 'logoBase64', 'logoEmpresaBase64', 'items', 'itemsPorSector'
+            'presupuesto', 'proyecto', 'agencia', 'marca', 'logoBase64', 'logoEmpresaBase64', 'logisticaImagenBase64', 'items', 'itemsPorSector'
         ))
         ->setPaper('a4', 'portrait')
         ->setOptions([

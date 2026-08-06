@@ -51,6 +51,7 @@ class PresupuestoLogisticaViewsTest extends TestCase
             'marca' => null,
             'logoBase64' => null,
             'logoEmpresaBase64' => null,
+            'logisticaImagenBase64' => null,
             'itemsPorSector' => new Collection,
         ])->render();
 
