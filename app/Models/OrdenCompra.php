@@ -64,9 +64,17 @@ class OrdenCompra extends Model
 
         static::creating(function (OrdenCompra $orden): void {
             if (empty($orden->codigo)) {
-                $year  = now()->year;
-                $count = static::whereYear('created_at', $year)->count() + 1;
-                $orden->codigo = sprintf('OC-%d-%04d', $year, $count);
+                $year = now()->year;
+                $ultimoCodigo = static::query()
+                    ->where('codigo', 'like', "OC-{$year}-%")
+                    ->orderByDesc('codigo')
+                    ->value('codigo');
+
+                $ultimoNumero = $ultimoCodigo && preg_match('/^OC-\d{4}-(\d+)$/', $ultimoCodigo, $m)
+                    ? (int) $m[1]
+                    : 0;
+
+                $orden->codigo = sprintf('OC-%d-%04d', $year, $ultimoNumero + 1);
             }
         });
     }
