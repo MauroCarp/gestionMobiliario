@@ -21,7 +21,8 @@ use Illuminate\Support\Facades\DB;
 class StockReservaService
 {
     public function __construct(
-        private readonly AnalisisPresupuestoService $analisis
+        private readonly AnalisisPresupuestoService $analisis,
+        private readonly StockCascoService $stockCasco,
     ) {}
 
     /**
@@ -57,6 +58,21 @@ class StockReservaService
         $presupuesto->reservasStock()
             ->where('estado', 'activa')
             ->update(['estado' => 'liberada']);
+
+        $this->cancelarLotesAbiertosDelPresupuesto($presupuesto);
+    }
+
+    /**
+     * Cancela lotes externos abiertos originados por este presupuesto
+     * para que dejen de contar en la cobertura de cascos.
+     */
+    public function cancelarLotesAbiertosDelPresupuesto(Presupuesto $presupuesto): void
+    {
+        LoteProcesoExterno::query()
+            ->where('origen_id', $presupuesto->id)
+            ->where('origen_tipo', 'manual')
+            ->whereIn('estado', StockCascoService::LOTES_ABIERTOS)
+            ->update(['estado' => 'cancelado']);
     }
 
     /**
@@ -179,6 +195,7 @@ class StockReservaService
             return;
         }
 
+        // demandaInsumos() ya excluye es_componente_casco
         $demanda = $item->demandaInsumos();
 
         DB::transaction(function () use ($item, $demanda) {
@@ -186,25 +203,18 @@ class StockReservaService
                 Insumo::where('id', $insumoId)
                     ->decrement('stock_actual', $cantidad);
 
-                $reserva = ReservaStock::where('presupuesto_id', $item->presupuesto_id)
-                    ->where('insumo_id', $insumoId)
-                    ->where('estado', 'activa')
-                    ->lockForUpdate()
-                    ->first();
+                $this->reducirReservaActiva(
+                    (int) $item->presupuesto_id,
+                    (int) $insumoId,
+                    (float) $cantidad,
+                );
+            }
 
-                if (! $reserva) {
-                    continue;
-                }
+            if ($item->mobiliario_id) {
+                $plantilla = $this->stockCasco->plantillaCascoActiva((int) $item->mobiliario_id);
 
-                $nuevaCantidad = max(0, (float) $reserva->cantidad_reservada - $cantidad);
-
-                if ($nuevaCantidad <= 0) {
-                    $reserva->update([
-                        'cantidad_reservada' => 0,
-                        'estado'             => 'consumida',
-                    ]);
-                } else {
-                    $reserva->update(['cantidad_reservada' => $nuevaCantidad]);
+                if ($plantilla?->esCascoSilla()) {
+                    $plantilla->decrement('stock_casco', (int) $item->cantidad);
                 }
             }
 
@@ -213,6 +223,57 @@ class StockReservaService
                 'finalizado_por'   => auth()->id(),
             ]);
         });
+    }
+
+    /**
+     * Descuenta insumos de casco y reduce reservas al completar un lote externo.
+     *
+     * @param  array<int, float>  $demanda
+     */
+    public function consumirInsumosCascoDeLote(LoteProcesoExterno $lote, array $demanda): void
+    {
+        if (empty($demanda)) {
+            return;
+        }
+
+        DB::transaction(function () use ($lote, $demanda) {
+            foreach ($demanda as $insumoId => $cantidad) {
+                Insumo::where('id', $insumoId)
+                    ->decrement('stock_actual', $cantidad);
+
+                if ($lote->origen_id) {
+                    $this->reducirReservaActiva(
+                        (int) $lote->origen_id,
+                        (int) $insumoId,
+                        (float) $cantidad,
+                    );
+                }
+            }
+        });
+    }
+
+    private function reducirReservaActiva(int $presupuestoId, int $insumoId, float $cantidad): void
+    {
+        $reserva = ReservaStock::where('presupuesto_id', $presupuestoId)
+            ->where('insumo_id', $insumoId)
+            ->where('estado', 'activa')
+            ->lockForUpdate()
+            ->first();
+
+        if (! $reserva) {
+            return;
+        }
+
+        $nuevaCantidad = max(0, (float) $reserva->cantidad_reservada - $cantidad);
+
+        if ($nuevaCantidad <= 0) {
+            $reserva->update([
+                'cantidad_reservada' => 0,
+                'estado'             => 'consumida',
+            ]);
+        } else {
+            $reserva->update(['cantidad_reservada' => $nuevaCantidad]);
+        }
     }
 
     /**
@@ -356,18 +417,25 @@ class StockReservaService
      * Para cada mobiliario del presupuesto que tenga una PlantillaFlujoExterno activa,
      * crea un LoteProcesoExterno en estado pendiente.
      * Idempotente: no duplica si ya existe un lote activo para el mismo mobiliario/presupuesto.
+     * Para cascos de silla, la cantidad es el faltante global (demanda - stock - lotes abiertos).
      */
     private function crearLotesExternosMobiliarios(Presupuesto $presupuesto): void
     {
-        $presupuesto->loadMissing(['items.mobiliario']);
+        $presupuesto->loadMissing(['items.mobiliario.categoria', 'agencia.proyecto.marca']);
+
+        $mobiliariosProcesados = [];
 
         foreach ($presupuesto->items as $item) {
-            // Los ítems de silla (insumo directo) no tienen flujo externo de fabricación
-            if (!$item->mobiliario_id) {
+            if (! $item->mobiliario_id) {
                 continue;
             }
 
-            // Evitar duplicados usando origen_id para trazar el lote al presupuesto
+            if (isset($mobiliariosProcesados[$item->mobiliario_id])) {
+                continue;
+            }
+
+            $mobiliariosProcesados[$item->mobiliario_id] = true;
+
             $yaExiste = LoteProcesoExterno::where('entidad_tipo', 'mobiliario')
                 ->where('entidad_id', $item->mobiliario_id)
                 ->where('origen_id', $presupuesto->id)
@@ -379,7 +447,7 @@ class StockReservaService
             }
 
             $plantilla = $item->mobiliario
-                ->plantillaFlujos()
+                ?->plantillaFlujos()
                 ->where('activo', true)
                 ->with('etapas')
                 ->first();
@@ -388,16 +456,30 @@ class StockReservaService
                 continue;
             }
 
+            $esCasco = $plantilla->esCascoSilla();
+            $cantidad = $esCasco
+                ? $this->stockCasco->calcularCantidadAFabricar((int) $item->mobiliario_id)
+                : (int) $item->cantidad;
+
+            if ($cantidad <= 0) {
+                continue;
+            }
+
+            $marca = $presupuesto->agencia?->proyecto?->marca?->nombre ?? '';
+            $agencia = $presupuesto->agencia?->nombre ?? '';
+
             $lote = LoteProcesoExterno::create([
                 'plantilla_id'  => $plantilla->id,
                 'entidad_tipo'  => 'mobiliario',
                 'entidad_id'    => $item->mobiliario_id,
-                'cantidad'      => $item->cantidad,
+                'cantidad'      => $cantidad,
                 'origen_tipo'   => 'manual',
                 'origen_id'     => $presupuesto->id,
                 'estado'        => 'pendiente',
                 'fecha_inicio'  => now()->toDateString(),
-                'observaciones' => "Generado al confirmar presupuesto {$presupuesto->codigo} - {$presupuesto->agencia} - {$presupuesto->agencia->proyecto->marca}",
+                'observaciones' => $esCasco
+                    ? "Cascos a fabricar al confirmar {$presupuesto->codigo} ({$cantidad} uds) - {$agencia} - {$marca}"
+                    : "Generado al confirmar presupuesto {$presupuesto->codigo} - {$agencia} - {$marca}",
             ]);
 
             $lote->crearEtapasDesde($plantilla);
@@ -410,6 +492,7 @@ class StockReservaService
     {
         $presupuesto->loadMissing([
             'items.mobiliario.composicionTecnica',
+            'items.mobiliario.categoria',
             'items.insumo',
         ]);
 
@@ -421,6 +504,10 @@ class StockReservaService
             }
         }
 
+        foreach ($this->stockCasco->demandaInsumosCascoPresupuesto($presupuesto) as $insumoId => $cantidad) {
+            $demanda[$insumoId] = ($demanda[$insumoId] ?? 0) + $cantidad;
+        }
+
         return $demanda;
     }
 
@@ -429,6 +516,7 @@ class StockReservaService
     {
         $presupuesto->loadMissing([
             'items.mobiliario.composicionTecnica',
+            'items.mobiliario.categoria',
             'items.insumo',
         ]);
 
@@ -438,6 +526,10 @@ class StockReservaService
             foreach ($item->demandaInsumos() as $insumoId => $cantidad) {
                 $demanda[$insumoId] = ($demanda[$insumoId] ?? 0) + $cantidad;
             }
+        }
+
+        foreach ($this->stockCasco->demandaInsumosCascoPresupuesto($presupuesto) as $insumoId => $cantidad) {
+            $demanda[$insumoId] = ($demanda[$insumoId] ?? 0) + $cantidad;
         }
 
         return $demanda;

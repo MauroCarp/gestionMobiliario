@@ -204,6 +204,12 @@ class PresupuestoItem extends Model
         $demanda = [];
 
         foreach ($this->mobiliario?->composicionTecnica ?? [] as $comp) {
+            // Los insumos del casco se reservan/descuentan según el faltante de fabricación,
+            // no por la cantidad completa del ítem (ver StockCascoService).
+            if ($comp->es_componente_casco) {
+                continue;
+            }
+
             $demanda[$comp->insumo_id] = ($demanda[$comp->insumo_id] ?? 0)
                 + ($comp->cantidad * $cantidadFabricar);
         }

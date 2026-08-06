@@ -4,9 +4,12 @@ namespace App\Filament\Resources\LoteProcesoExternoResource\RelationManagers;
 
 use App\Models\Insumo;
 use App\Models\LoteEtapa;
+use App\Models\Mobiliario;
 use App\Models\PlantillaFlujoExterno;
 use App\Models\Tercero;
 use App\Models\TipoProcesoExterno;
+use App\Services\StockCascoService;
+use App\Services\StockReservaService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -231,11 +234,21 @@ class EtapasRelationManager extends RelationManager
                 $plantilla = $lote->plantilla ?? PlantillaFlujoExterno::find($lote->plantilla_id);
 
                 if ($plantilla?->esCascoSilla()) {
-                    $plantilla->increment('stock_casco', (int) $lote->cantidad);
+                    $cantidad = (int) $lote->cantidad;
+                    $plantilla->increment('stock_casco', $cantidad);
+
+                    $mobiliario = Mobiliario::with('composicionTecnica')->find($lote->entidad_id);
+                    if ($mobiliario) {
+                        $demandaCasco = app(StockCascoService::class)
+                            ->demandaInsumosCascoParaLote($mobiliario, $cantidad);
+
+                        app(StockReservaService::class)
+                            ->consumirInsumosCascoDeLote($lote, $demandaCasco);
+                    }
 
                     Notification::make()
                         ->title('¡Lote completado!')
-                        ->body("Se agregaron {$lote->cantidad} unidades al stock del casco.")
+                        ->body("Se agregaron {$cantidad} unidades al stock del casco y se descontaron los insumos del casco.")
                         ->success()
                         ->send();
                 } else {
