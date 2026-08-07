@@ -38,12 +38,24 @@ class CascoSillaResource extends Resource
                     ->content(fn (PlantillaFlujoExterno $record): string => $record->mobiliario?->nombre ?? $record->nombre),
 
                 Forms\Components\TextInput::make('stock_casco')
-                    ->label('Stock')
+                    ->label('Stock actual')
                     ->numeric()
                     ->integer()
                     ->minValue(0)
                     ->required()
                     ->helperText('Stock de cascos tapizados por tercero. También se incrementa al completar lotes externos.'),
+
+                Forms\Components\Placeholder::make('casco_comprometido')
+                    ->label('Cantidad comprometida')
+                    ->content(fn (PlantillaFlujoExterno $record): string => (string) $record->casco_comprometido),
+
+                Forms\Components\Placeholder::make('casco_en_fabricacion')
+                    ->label('Cantidad en fabricación')
+                    ->content(fn (PlantillaFlujoExterno $record): string => (string) $record->casco_en_fabricacion),
+
+                Forms\Components\Placeholder::make('stock_proyectado_casco')
+                    ->label('Stock proyectado')
+                    ->content(fn (PlantillaFlujoExterno $record): string => (string) $record->stock_proyectado_casco),
             ]),
         ]);
     }
@@ -89,9 +101,29 @@ class CascoSillaResource extends Resource
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('stock_casco')
-                    ->label('Stock')
+                    ->label('Stock actual')
+                    ->tooltip('Stock físico de cascos disponibles.')
                     ->alignCenter()
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('casco_comprometido')
+                    ->label('Cantidad comprometida')
+                    ->tooltip('Demanda de presupuestos activos (ítems no finalizados).')
+                    ->alignCenter()
+                    ->numeric(0),
+
+                Tables\Columns\TextColumn::make('casco_en_fabricacion')
+                    ->label('Cantidad en fabricación')
+                    ->tooltip('Unidades en lotes externos pendientes o en proceso.')
+                    ->alignCenter()
+                    ->numeric(0),
+
+                Tables\Columns\TextColumn::make('stock_proyectado_casco')
+                    ->label('Stock proyectado')
+                    ->tooltip('Stock actual + cantidad en fabricación − cantidad comprometida.')
+                    ->alignCenter()
+                    ->color(fn ($state): string => (int) $state < 0 ? 'danger' : 'success')
+                    ->numeric(0),
 
                 Tables\Columns\IconColumn::make('activo')
                     ->label('Plantilla activa')

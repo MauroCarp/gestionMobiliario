@@ -6,6 +6,7 @@ use App\Models\Insumo;
 use App\Models\LoteProcesoExterno;
 use App\Models\OrdenCompra;
 use App\Models\OrdenCompraItem;
+use App\Models\PlantillaFlujoExterno;
 use App\Models\Presupuesto;
 use App\Models\PresupuestoItem;
 use App\Models\ReservaStock;
@@ -414,6 +415,47 @@ class StockReservaService
     }
 
     /**
+     * Crea un lote externo de mobiliario (casco u otro) con cantidad explícita.
+     */
+    public function crearLoteCascoMobiliario(
+        Presupuesto $presupuesto,
+        int $mobiliarioId,
+        int $cantidad,
+        string $observaciones
+    ): ?LoteProcesoExterno {
+        if ($cantidad <= 0) {
+            return null;
+        }
+
+        $plantilla = PlantillaFlujoExterno::query()
+            ->where('entidad_tipo', 'mobiliario')
+            ->where('entidad_id', $mobiliarioId)
+            ->where('activo', true)
+            ->with('etapas')
+            ->first();
+
+        if (! $plantilla) {
+            return null;
+        }
+
+        $lote = LoteProcesoExterno::create([
+            'plantilla_id'  => $plantilla->id,
+            'entidad_tipo'  => 'mobiliario',
+            'entidad_id'    => $mobiliarioId,
+            'cantidad'      => $cantidad,
+            'origen_tipo'   => 'manual',
+            'origen_id'     => $presupuesto->id,
+            'estado'        => 'pendiente',
+            'fecha_inicio'  => now()->toDateString(),
+            'observaciones' => $observaciones,
+        ]);
+
+        $lote->crearEtapasDesde($plantilla);
+
+        return $lote;
+    }
+
+    /**
      * Para cada mobiliario del presupuesto que tenga una PlantillaFlujoExterno activa,
      * crea un LoteProcesoExterno en estado pendiente.
      * Idempotente: no duplica si ya existe un lote activo para el mismo mobiliario/presupuesto.
@@ -468,21 +510,16 @@ class StockReservaService
             $marca = $presupuesto->agencia?->proyecto?->marca?->nombre ?? '';
             $agencia = $presupuesto->agencia?->nombre ?? '';
 
-            $lote = LoteProcesoExterno::create([
-                'plantilla_id'  => $plantilla->id,
-                'entidad_tipo'  => 'mobiliario',
-                'entidad_id'    => $item->mobiliario_id,
-                'cantidad'      => $cantidad,
-                'origen_tipo'   => 'manual',
-                'origen_id'     => $presupuesto->id,
-                'estado'        => 'pendiente',
-                'fecha_inicio'  => now()->toDateString(),
-                'observaciones' => $esCasco
-                    ? "Cascos a fabricar al confirmar {$presupuesto->codigo} ({$cantidad} uds) - {$agencia} - {$marca}"
-                    : "Generado al confirmar presupuesto {$presupuesto->codigo} - {$agencia} - {$marca}",
-            ]);
+            $observaciones = $esCasco
+                ? "Cascos a fabricar al confirmar {$presupuesto->codigo} ({$cantidad} uds) - {$agencia} - {$marca}"
+                : "Generado al confirmar presupuesto {$presupuesto->codigo} - {$agencia} - {$marca}";
 
-            $lote->crearEtapasDesde($plantilla);
+            $this->crearLoteCascoMobiliario(
+                $presupuesto,
+                (int) $item->mobiliario_id,
+                $cantidad,
+                $observaciones,
+            );
         }
     }
 

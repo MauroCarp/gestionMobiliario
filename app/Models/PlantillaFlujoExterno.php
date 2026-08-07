@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\StockCascoService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -76,5 +77,33 @@ class PlantillaFlujoExterno extends Model
             'mobiliario' => Mobiliario::find($this->entidad_id)?->nombre ?? '—',
             default => '—',
         };
+    }
+
+    public function getCascoComprometidoAttribute(): int
+    {
+        if ($this->entidad_tipo !== 'mobiliario' || ! $this->entidad_id) {
+            return 0;
+        }
+
+        return app(StockCascoService::class)->demandaActiva((int) $this->entidad_id);
+    }
+
+    public function getCascoEnFabricacionAttribute(): int
+    {
+        if ($this->entidad_tipo !== 'mobiliario' || ! $this->entidad_id) {
+            return 0;
+        }
+
+        return app(StockCascoService::class)->cantidadEnLotesAbiertos(
+            (int) $this->entidad_id,
+            (int) $this->id,
+        );
+    }
+
+    public function getStockProyectadoCascoAttribute(): int
+    {
+        return (int) $this->stock_casco
+            + $this->casco_en_fabricacion
+            - $this->casco_comprometido;
     }
 }

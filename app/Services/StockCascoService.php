@@ -8,6 +8,7 @@ use App\Models\PlantillaFlujoExterno;
 use App\Models\Presupuesto;
 use App\Models\PresupuestoItem;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class StockCascoService
 {
@@ -328,5 +329,227 @@ class StockCascoService
                 ];
             })
             ->values();
+    }
+
+    /**
+     * IDs de mobiliarios con plantilla casco activa.
+     *
+     * @return Collection<int, int>
+     */
+    public function mobiliariosCascoActivos(): Collection
+    {
+        return PlantillaFlujoExterno::query()
+            ->cascosSilla()
+            ->where('activo', true)
+            ->pluck('entidad_id')
+            ->unique()
+            ->values()
+            ->map(fn ($id) => (int) $id);
+    }
+
+    public function elegirPresupuestoOrigen(int $mobiliarioId): ?Presupuesto
+    {
+        $grupos = PresupuestoItem::query()
+            ->where('mobiliario_id', $mobiliarioId)
+            ->whereNull('finalizado_at')
+            ->whereHas('presupuesto', fn ($q) => $q->whereIn('estado', self::ESTADOS_ACTIVOS))
+            ->with('presupuesto')
+            ->get()
+            ->groupBy('presupuesto_id');
+
+        if ($grupos->isEmpty()) {
+            return null;
+        }
+
+        $candidatos = [];
+
+        foreach ($grupos as $presupuestoId => $items) {
+            /** @var PresupuestoItem $primero */
+            $primero = $items->first();
+            $presupuesto = $primero->presupuesto;
+
+            if (! $presupuesto) {
+                continue;
+            }
+
+            $tieneLoteAbierto = LoteProcesoExterno::query()
+                ->where('entidad_tipo', 'mobiliario')
+                ->where('entidad_id', $mobiliarioId)
+                ->where('origen_id', $presupuestoId)
+                ->whereIn('estado', self::LOTES_ABIERTOS)
+                ->exists();
+
+            $candidatos[] = [
+                'presupuesto'      => $presupuesto,
+                'cantidad_activa'  => (int) $items->sum('cantidad'),
+                'sin_lote_abierto' => ! $tieneLoteAbierto,
+            ];
+        }
+
+        if ($candidatos === []) {
+            return null;
+        }
+
+        foreach ($candidatos as $c) {
+            if ($c['sin_lote_abierto']) {
+                return $c['presupuesto'];
+            }
+        }
+
+        usort($candidatos, fn ($a, $b) => $b['cantidad_activa'] <=> $a['cantidad_activa']);
+
+        return $candidatos[0]['presupuesto'];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function sincronizarMobiliario(int $mobiliarioId, bool $dryRun = false): array
+    {
+        $analisis = $this->analizar($mobiliarioId);
+        $errores = [];
+        $loteCreado = null;
+        $presupuestosRecalculados = [];
+
+        if (! ($analisis['ok'] ?? false)) {
+            return [
+                'ok'                       => false,
+                'mobiliario_id'            => $mobiliarioId,
+                'analisis'                 => $analisis,
+                'lote_creado'              => null,
+                'presupuestos_recalculados'=> [],
+                'errores'                  => [$analisis['error'] ?? 'Análisis fallido'],
+            ];
+        }
+
+        $aFabricar = (int) ($analisis['cantidad_a_fabricar'] ?? 0);
+        $presupuestoIds = collect($analisis['presupuestos'])
+            ->pluck('presupuesto_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($dryRun) {
+            $presupuestoOrigen = $this->elegirPresupuestoOrigen($mobiliarioId);
+            $codigosRecalcular = Presupuesto::query()
+                ->whereIn('id', $presupuestoIds)
+                ->pluck('codigo')
+                ->all();
+
+            return [
+                'ok'                        => true,
+                'dry_run'                   => true,
+                'mobiliario_id'             => $mobiliarioId,
+                'analisis'                  => $analisis,
+                'lote_creado'               => null,
+                'accion_lote'               => $aFabricar > 0 ? [
+                    'cantidad'    => $aFabricar,
+                    'presupuesto' => $presupuestoOrigen?->codigo,
+                ] : null,
+                'presupuestos_recalculados' => $codigosRecalcular,
+                'errores'                   => $aFabricar > 0 && ! $presupuestoOrigen
+                    ? ['Hay faltante pero no hay presupuesto activo para originar el lote.']
+                    : [],
+            ];
+        }
+
+        DB::transaction(function () use (
+            $mobiliarioId,
+            $aFabricar,
+            $presupuestoIds,
+            &$loteCreado,
+            &$presupuestosRecalculados,
+            &$errores,
+        ) {
+            /** @var StockReservaService $stockReserva */
+            $stockReserva = app(StockReservaService::class);
+
+            if ($aFabricar > 0) {
+                $presupuesto = $this->elegirPresupuestoOrigen($mobiliarioId);
+
+                if (! $presupuesto) {
+                    $errores[] = 'Hay faltante pero no hay presupuesto activo para originar el lote.';
+                } else {
+                    $observaciones = sprintf(
+                        'Sincronización cascos %s (%d uds)',
+                        $presupuesto->codigo,
+                        $aFabricar,
+                    );
+
+                    $loteCreado = $stockReserva->crearLoteCascoMobiliario(
+                        $presupuesto,
+                        $mobiliarioId,
+                        $aFabricar,
+                        $observaciones,
+                    );
+
+                    if (! $loteCreado) {
+                        $errores[] = 'No se pudo crear el lote (sin plantilla activa).';
+                    }
+                }
+            }
+
+            foreach ($presupuestoIds as $presupuestoId) {
+                $presupuesto = Presupuesto::find($presupuestoId);
+
+                if (! $presupuesto) {
+                    continue;
+                }
+
+                $stockReserva->recalcularInsumos($presupuesto);
+                $presupuestosRecalculados[] = $presupuesto->codigo;
+            }
+        });
+
+        return [
+            'ok'                        => empty($errores),
+            'mobiliario_id'             => $mobiliarioId,
+            'analisis'                  => $analisis,
+            'lote_creado'               => $loteCreado ? [
+                'id'       => $loteCreado->id,
+                'codigo'   => $loteCreado->codigo,
+                'cantidad' => (int) $loteCreado->cantidad,
+            ] : null,
+            'presupuestos_recalculados' => $presupuestosRecalculados,
+            'errores'                   => $errores,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function sincronizarTodos(bool $dryRun = false): array
+    {
+        $resultados = [];
+        $totales = [
+            'mobiliarios'           => 0,
+            'lotes_creados'         => 0,
+            'presupuestos_recalculados' => 0,
+            'errores'               => 0,
+        ];
+
+        foreach ($this->mobiliariosCascoActivos() as $mobiliarioId) {
+            $resultado = $this->sincronizarMobiliario($mobiliarioId, $dryRun);
+            $resultados[] = $resultado;
+            $totales['mobiliarios']++;
+
+            if ($resultado['lote_creado'] ?? null) {
+                $totales['lotes_creados']++;
+            } elseif (($resultado['accion_lote'] ?? null) && $dryRun) {
+                $totales['lotes_creados']++;
+            }
+
+            $totales['presupuestos_recalculados'] += count($resultado['presupuestos_recalculados'] ?? []);
+
+            if (! empty($resultado['errores'])) {
+                $totales['errores'] += count($resultado['errores']);
+            }
+        }
+
+        return [
+            'dry_run'    => $dryRun,
+            'totales'    => $totales,
+            'resultados' => $resultados,
+        ];
     }
 }
