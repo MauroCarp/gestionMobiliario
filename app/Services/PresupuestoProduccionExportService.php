@@ -27,7 +27,8 @@ class PresupuestoProduccionExportService
                         ->where('activo', true)
                         ->with(['etapas.tipoProceso', 'etapas.tercero']),
                     'sector',
-                    'insumo',
+                    'insumo.unidadMedida',
+                    'insumo.categoriasInsumo',
                 ]),
         ]);
 
@@ -50,7 +51,7 @@ class PresupuestoProduccionExportService
 
         $itemsConMobiliario = $items->filter(fn ($d) => $d['mobiliario'] !== null);
 
-        $resumenInsumos = $this->calcularResumenInsumos($itemsConMobiliario);
+        $resumenInsumos = $this->calcularResumenInsumos($items);
         $resumenInsumos = $this->enriquecerInsumosConStock($resumenInsumos);
 
         return compact(
@@ -66,14 +67,14 @@ class PresupuestoProduccionExportService
     }
 
     /**
-     * @param  Collection<int, array>  $itemsConMobiliario
+     * @param  Collection<int, array>  $items
      * @return array<int, array{insumo: \App\Models\Insumo|null, unidad: string, total: float}>
      */
-    private function calcularResumenInsumos(Collection $itemsConMobiliario): array
+    private function calcularResumenInsumos(Collection $items): array
     {
         $resumenInsumos = [];
 
-        foreach ($itemsConMobiliario as $itemData) {
+        foreach ($items->filter(fn ($d) => $d['mobiliario'] !== null) as $itemData) {
             $item        = $itemData['item'];
             $mob         = $itemData['mobiliario'];
             $cantItem    = (int) $item->cantidad;
@@ -99,6 +100,28 @@ class PresupuestoProduccionExportService
                         'total'  => $cantTotal,
                     ];
                 }
+            }
+        }
+
+        foreach ($items->filter(fn ($d) => $d['insumo'] !== null) as $itemData) {
+            $insumo = $itemData['insumo'];
+            $insId  = $insumo?->id;
+
+            if (! $insId) {
+                continue;
+            }
+
+            $cant   = (float) $itemData['item']->cantidad;
+            $unidad = $insumo->unidadMedida?->nombre ?? '—';
+
+            if (isset($resumenInsumos[$insId])) {
+                $resumenInsumos[$insId]['total'] += $cant;
+            } else {
+                $resumenInsumos[$insId] = [
+                    'insumo' => $insumo,
+                    'unidad' => $unidad,
+                    'total'  => $cant,
+                ];
             }
         }
 

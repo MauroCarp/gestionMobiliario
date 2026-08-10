@@ -152,6 +152,7 @@ class PresupuestoPdfController extends Controller
                         ->where('activo', true)
                         ->with(['etapas.tipoProceso', 'etapas.tercero']),
                     'sector',
+                    'insumo.unidadMedida',
                     'insumo.media',
                     'insumo.marcasSilla',
                     'insumo.categoriasInsumo',

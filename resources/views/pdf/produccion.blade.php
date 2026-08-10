@@ -51,7 +51,7 @@
         .fecha-row .val { font-weight: bold; }
 
         /* ── TABLA DE ITEMS ───────────────────────────────────── */
-        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 0; border: 1px solid #9CA3AF; }
+        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 0; border: 1px solid #3a3a3a; }
         .items-table thead tr { background: rgba(61, 104, 219, 0.5); color: #FFFFFF; }
         .items-table thead th {
             padding: 7px 8px; text-align: left; font-size: 12px;
@@ -59,7 +59,7 @@
             border: 1px solid rgba(61, 104, 219, 0.5);
         }
         .items-table thead th.center { text-align: center; }
-        .items-table tbody td { padding: 7px 8px; vertical-align: top; font-size: 12px; border: 1px solid #D1D5DB; }
+        .items-table tbody td { padding: 7px 8px; vertical-align: top; font-size: 12px; border: 1px solid #86898d; }
         .items-table tbody td.center { text-align: center; }
 
         /* ── SECTOR HEADER ───────────────────────────────────── */
@@ -129,7 +129,7 @@
         }
         .insumos-table thead th.right { text-align: right; }
         .insumos-table thead th.center { text-align: center; }
-        .insumos-table tbody td { padding: 5px 8px; font-size: 12px; border: 1px solid #E5E7EB; vertical-align: middle; }
+        .insumos-table tbody td { padding: 5px 8px; font-size: 12px; border: 1px solid #66686d; vertical-align: middle; }
         .insumos-table tbody td.right  { text-align: right; }
         .insumos-table tbody td.center { text-align: center; }
         .insumos-table tfoot td {
@@ -158,7 +158,7 @@
             border: 1px solid #4C1D95;
         }
         .resumen-table thead th.right { text-align: right; }
-        .resumen-table tbody td { padding: 5px 8px; font-size: 16px; border: 1px solid #E5E7EB; }
+        .resumen-table tbody td { padding: 5px 8px; font-size: 16px; border: 1px solid #66686d; }
         .resumen-table tbody td.right  { text-align: right; font-weight: bold; }
         .resumen-table tbody tr.even   { background: #F5F3FF; }
 
@@ -492,6 +492,30 @@
     </div>
 @endforelse
 
+@php
+    foreach ($items->filter(fn ($d) => $d['insumo'] !== null) as $itemData) {
+        $insumo = $itemData['insumo'];
+        $insId  = $insumo?->id;
+
+        if (! $insId) {
+            continue;
+        }
+
+        $cant   = (float) $itemData['item']->cantidad;
+        $unidad = $insumo->unidadMedida?->nombre ?? '—';
+
+        if (isset($resumenInsumos[$insId])) {
+            $resumenInsumos[$insId]['total'] += $cant;
+        } else {
+            $resumenInsumos[$insId] = [
+                'insumo' => $insumo,
+                'unidad' => $unidad,
+                'total'  => $cant,
+            ];
+        }
+    }
+@endphp
+
 {{-- ══════════════════════════════════════════════════════════════
      SECCIÓN 3 — RESUMEN TOTAL DE INSUMOS NECESARIOS
      ══════════════════════════════════════════════════════════════ --}}
@@ -524,7 +548,7 @@
 
 
 {{-- ── PIE DE EMPRESA ──────────────────────────────────────────── --}}
-<div style="text-align:center; font-size:25px; color:#000000; padding:5px 0;
+<div style="text-align:center; font-size:14px; color:#000000; padding:5px 0;
             border-top:1px solid #9CA3AF; margin-top:10px; line-height:1.6;">
     Chacabuco 80 (S2500CHB) Cañada de Gómez, Santa Fe, Argentina. &nbsp;&nbsp; Tel: 03471 – 422983 / 15575476<br>
     WhatsApp: 3471575476 &nbsp;&nbsp;&nbsp; Seguinos en Facebook: Pierantonimuebles<br>
