@@ -6,6 +6,7 @@ use App\Filament\Resources\PresupuestoResource;
 use App\Models\Presupuesto;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Filament\Widgets\TableWidget as BaseWidget;
 
 class PresupuestosPendientesEntregaWidget extends BaseWidget
@@ -20,18 +21,20 @@ class PresupuestosPendientesEntregaWidget extends BaseWidget
             ->query(
                 Presupuesto::query()
                     ->whereIn('estado', ['confirmado', 'pagado', 'entregado_parcial'])
-                    ->with(['agencia.proyecto.marca'])
+                    ->with(['agencia.proyecto.marca', 'agencia.provincia', 'agencia.ciudad'])
                     ->withCount([
                         'items as muebles_pendientes_count' => fn ($query) => $query
                             ->whereNotNull('mobiliario_id')
                             ->whereNull('finalizado_at'),
                         'items as muebles_total_count' => fn ($query) => $query
-                            ->whereNotNull('mobiliario_id'),
+                            ->whereNotNull('mobiliario_id')
+
                     ])
-                    ->orderByRaw('fecha_vencimiento IS NULL')
-                    ->orderBy('fecha_vencimiento')
-                    ->latest('id')
+                    // ->orderByRaw('fecha_vencimiento IS NULL')
+                    // ->orderBy('fecha_vencimiento')
+                    // ->latest('id')
             )
+            ->defaultSort('fecha_vencimiento', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('codigo')
                     ->label('Presupuesto')
@@ -41,12 +44,23 @@ class PresupuestosPendientesEntregaWidget extends BaseWidget
 
                 Tables\Columns\TextColumn::make('agencia.proyecto.marca.nombre')
                     ->label('Marca')
+                    ->sortable()
                     ->placeholder('—'),
 
                 Tables\Columns\TextColumn::make('agencia.nombre')
                     ->label('Agencia')
                     ->placeholder('—')
                     ->searchable(),
+
+                Tables\Columns\TextColumn::make('agencia.provincia.nombre')
+                    ->label('Provincia')
+                    ->sortable()
+                    ->placeholder('—'),
+
+                Tables\Columns\TextColumn::make('agencia.ciudad.nombre')
+                    ->label('Ciudad')
+                    ->sortable()
+                    ->placeholder('—'),
 
                 Tables\Columns\TextColumn::make('muebles_pendientes_finalizar')
                     ->label('Muebles pendientes de finalizar')
@@ -58,6 +72,7 @@ class PresupuestosPendientesEntregaWidget extends BaseWidget
                     ->label('Fecha vencimiento')
                     ->date('d/m/Y')
                     ->badge()
+                    ->sortable()
                     ->extraAttributes(['class' => 'mi-badge-grande'])                    ->color(fn ($record) => match (true) {
                         $record->fecha_vencimiento === null                        => 'gray',
                         $record->fecha_vencimiento->isPast()                      => 'danger',
