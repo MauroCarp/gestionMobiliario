@@ -87,12 +87,12 @@ class CascoSillaResource extends Resource
                     })
                     ->placeholder(fn (PlantillaFlujoExterno $record): string => $record->nombre),
 
-                Tables\Columns\TextColumn::make('mobiliario.marca.nombre')
-                    ->label('Marca')
+                Tables\Columns\TextColumn::make('mobiliario_marcas')
+                    ->label('Marcas')
                     ->badge()
                     ->color('gray')
-                    ->placeholder('—')
-                    ->sortable(),
+                    ->getStateUsing(fn ($record): string => $record->mobiliario?->marcas->pluck('nombre')->join(', ') ?: '—')
+                    ->placeholder('—'),
 
                 Tables\Columns\TextColumn::make('mobiliario.codigo_interno')
                     ->label('Código')
@@ -150,7 +150,7 @@ class CascoSillaResource extends Resource
     {
         return parent::getEloquentQuery()
             ->cascosSilla()
-            ->with(['mobiliario.media', 'mobiliario.categoria', 'mobiliario.marca']);
+            ->with(['mobiliario.media', 'mobiliario.categoria', 'mobiliario.marcas']);
     }
 
     public static function canCreate(): bool

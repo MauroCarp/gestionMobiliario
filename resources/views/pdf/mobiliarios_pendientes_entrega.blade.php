@@ -103,6 +103,15 @@
             </td>
             <td><strong>Total mobiliarios:</strong> {{ $mobiliarios->count() }}</td>
         </tr>
+        <tr>
+            <td colspan="3"><strong>Etapa:</strong>
+                @if (($etapa ?? 'todas') === 'todas')
+                    Todas
+                @else
+                    {{ $etapa }}
+                @endif
+            </td>
+        </tr>
     </table>
 
     <table class="report-table">
@@ -131,7 +140,7 @@
                             <span class="muted">Sin imagen</span>
                         @endif
                     </td>
-                    <td>{{ $mobiliario->marca?->nombre ?? '—' }}</td>
+                    <td>{{ $mobiliario->marcas->pluck('nombre')->join(', ') ?: '—' }}</td>
                     <td>{{ $mobiliario->codigo_interno }}</td>
                     <td>{{ $mobiliario->nombre }}</td>
                     <td class="center">{{ $data['cantidad'] }}</td>

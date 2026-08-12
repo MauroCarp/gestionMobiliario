@@ -43,9 +43,12 @@ class ListMobiliarios extends ListRecords
         $baseQuery = static::getResource()::getEloquentQuery();
 
         $counts = (clone $baseQuery)
-            ->selectRaw('marca_id, count(*) as aggregate')
-            ->groupBy('marca_id')
+            ->join('marca_mobiliario', 'marca_mobiliario.mobiliario_id', '=', 'mobiliarios.id')
+            ->selectRaw('marca_mobiliario.marca_id as marca_id, count(*) as aggregate')
+            ->groupBy('marca_mobiliario.marca_id')
             ->pluck('aggregate', 'marca_id');
+
+        $sinMarca = (clone $baseQuery)->whereDoesntHave('marcas')->count();
 
         $tabs = [
             'todos' => Tab::make('Todos')
@@ -58,14 +61,17 @@ class ListMobiliarios extends ListRecords
             ->get()
             ->each(function (Marca $marca) use (&$tabs, $counts): void {
                 $tabs['marca_' . $marca->id] = Tab::make($marca->nombre)
-                    ->modifyQueryUsing(fn (Builder $query) => $query->where('marca_id', $marca->id))
+                    ->modifyQueryUsing(fn (Builder $query) => $query->whereHas(
+                        'marcas',
+                        fn (Builder $marcasQuery) => $marcasQuery->where('marcas.id', $marca->id),
+                    ))
                     ->badge($counts[$marca->id] ?? 0);
             });
 
-        if (($counts[null] ?? 0) > 0) {
+        if ($sinMarca > 0) {
             $tabs['sin_marca'] = Tab::make('Sin marca')
-                ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('marca_id'))
-                ->badge($counts[null]);
+                ->modifyQueryUsing(fn (Builder $query) => $query->whereDoesntHave('marcas'))
+                ->badge($sinMarca);
         }
 
         return $tabs;

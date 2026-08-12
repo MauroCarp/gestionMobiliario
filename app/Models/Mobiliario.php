@@ -32,7 +32,6 @@ class Mobiliario extends Model implements HasMedia
         'codigo_interno',
         'nombre',
         'categoria_id',
-        'marca_id',
         'imagen',
         'descripcion',
         'observaciones',
@@ -90,9 +89,9 @@ class Mobiliario extends Model implements HasMedia
         return $this->belongsTo(CategoriaMobiliario::class, 'categoria_id');
     }
 
-    public function marca(): BelongsTo
+    public function marcas(): BelongsToMany
     {
-        return $this->belongsTo(Marca::class, 'marca_id');
+        return $this->belongsToMany(Marca::class, 'marca_mobiliario');
     }
 
     public function plantillaFlujos(): HasMany

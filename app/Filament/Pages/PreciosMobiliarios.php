@@ -3,7 +3,6 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Resources\MobiliarioResource;
-use App\Models\Marca;
 use App\Models\Mobiliario;
 use Filament\Pages\Page;
 use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
@@ -32,7 +31,7 @@ class PreciosMobiliarios extends Page implements HasTable
         return $table
             ->query(
                 Mobiliario::query()
-                    ->with(['marca', 'media', 'atributos'])
+                    ->with(['marcas', 'media', 'atributos'])
                     ->withoutGlobalScopes()
             )
             ->columns([
@@ -49,12 +48,11 @@ class PreciosMobiliarios extends Page implements HasTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('marca.nombre')
-                    ->label('Marca')
+                TextColumn::make('marcas.nombre')
+                    ->label('Marcas')
                     ->badge()
                     ->color('primary')
-                    ->searchable()
-                    ->sortable(),
+                    ->searchable(),
 
                 TextColumn::make('nombre')
                     ->label('Nombre')
@@ -82,16 +80,13 @@ class PreciosMobiliarios extends Page implements HasTable
                     ->sortable(),
             ])
             ->filters([
-                SelectFilter::make('marca_id')
+                SelectFilter::make('marcas')
                     ->label('Marca')
-                    ->options(
-                        Marca::where('activo', true)
-                            ->orderBy('nombre')
-                            ->pluck('nombre', 'id')
-                    )
-                    ->searchable(),
+                    ->relationship('marcas', 'nombre')
+                    ->searchable()
+                    ->preload(),
             ])
-            ->defaultSort('marca_id')
+            ->defaultSort('nombre')
             ->striped()
             ->actions([
                 \Filament\Tables\Actions\Action::make('ver')

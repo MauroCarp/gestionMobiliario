@@ -110,7 +110,10 @@ class ProyectoResource extends Resource
                                 $set('mobiliariosPivot', []);
                                 return;
                             }
-                            $mobiliarios = \App\Models\Mobiliario::where('marca_id', $state)
+                            $mobiliarios = \App\Models\Mobiliario::whereHas(
+                                'marcas',
+                                fn (\Illuminate\Database\Eloquent\Builder $query) => $query->where('marcas.id', $state),
+                            )
                                 ->orderBy('nombre')
                                 ->get();
                             $set('mobiliariosPivot', $mobiliarios->map(fn ($m) => [
@@ -208,7 +211,10 @@ class ProyectoResource extends Resource
                                     $marcaId = $get('../../marca_id');
                                     $query = \App\Models\Mobiliario::query()->orderBy('nombre');
                                     if ($marcaId) {
-                                        $query->where('marca_id', $marcaId);
+                                        $query->whereHas(
+                                            'marcas',
+                                            fn (\Illuminate\Database\Eloquent\Builder $marcasQuery) => $marcasQuery->where('marcas.id', $marcaId),
+                                        );
                                     }
                                     return $query->get()->mapWithKeys(
                                         fn ($m) => [$m->id => "[{$m->codigo_interno}] {$m->nombre}"]

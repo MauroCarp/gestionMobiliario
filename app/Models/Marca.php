@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
@@ -37,6 +38,11 @@ class Marca extends Model
     public function proyectos(): HasMany
     {
         return $this->hasMany(Proyecto::class, 'marca_id');
+    }
+
+    public function mobiliarios(): BelongsToMany
+    {
+        return $this->belongsToMany(Mobiliario::class, 'marca_mobiliario');
     }
 
     /** Agencias alcanzables a través de los proyectos de esta marca. */

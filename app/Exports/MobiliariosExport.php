@@ -15,7 +15,7 @@ class MobiliariosExport implements FromQuery, WithHeadings, WithMapping, ShouldA
 
     public function query(): Builder
     {
-        return $this->query->with(['categoria', 'marca', 'atributos']);
+        return $this->query->with(['categoria', 'marcas', 'atributos']);
     }
 
     public function headings(): array
@@ -43,7 +43,7 @@ class MobiliariosExport implements FromQuery, WithHeadings, WithMapping, ShouldA
             $mobiliario->codigo_interno,
             $mobiliario->nombre,
             $mobiliario->categoria?->nombre,
-            $mobiliario->marca?->nombre,
+            $mobiliario->marcas->pluck('nombre')->join(', ') ?: null,
             $mobiliario->atributos->isNotEmpty()
                 ? $mobiliario->atributos->map(fn ($a) => $a->clave . ': ' . $a->valor)->join(' · ')
                 : null,

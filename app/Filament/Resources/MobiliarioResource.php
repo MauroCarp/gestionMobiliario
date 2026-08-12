@@ -69,12 +69,12 @@ class MobiliarioResource extends Resource
                         $form->getRecord()?->update($data);
                     })
                     ->live(),
-                Forms\Components\Select::make('marca_id')
-                    ->label('Marca')
-                    ->relationship('marca', 'nombre', fn (\Illuminate\Database\Eloquent\Builder $query) => $query->where('activo', true)->orderBy('nombre'))
+                Forms\Components\Select::make('marcas')
+                    ->label('Marcas')
+                    ->relationship('marcas', 'nombre', fn (\Illuminate\Database\Eloquent\Builder $query) => $query->where('activo', true)->orderBy('nombre'))
+                    ->multiple()
                     ->searchable()
                     ->preload()
-                    ->nullable()
                     ->placeholder('Sin marca específica')
                     ->createOptionForm([
                         Forms\Components\TextInput::make('nombre')
@@ -363,8 +363,8 @@ class MobiliarioResource extends Resource
                     ->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('categoria.nombre')
                     ->label('Categoría')->badge()->color('primary'),
-                Tables\Columns\TextColumn::make('marca.nombre')
-                    ->label('Marca')
+                Tables\Columns\TextColumn::make('marcas.nombre')
+                    ->label('Marcas')
                     ->badge()
                     ->color('gray')
                     ->placeholder('—'),
@@ -399,9 +399,9 @@ class MobiliarioResource extends Resource
                 Tables\Filters\SelectFilter::make('categoria_id')
                     ->label('Categoría')
                     ->relationship('categoria', 'nombre'),
-                Tables\Filters\SelectFilter::make('marca_id')
+                Tables\Filters\SelectFilter::make('marcas')
                     ->label('Marca')
-                    ->relationship('marca', 'nombre')
+                    ->relationship('marcas', 'nombre')
                     ->searchable()
                     ->preload(),
                 Tables\Filters\SelectFilter::make('estado')
@@ -440,7 +440,7 @@ class MobiliarioResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->with('atributos');
+            ->with(['atributos', 'marcas']);
     }
 
     public static function getPages(): array

@@ -5,7 +5,9 @@ namespace App\Filament\Resources\MobiliarioResource\Pages;
 use App\Filament\Resources\MobiliarioResource;
 use App\Models\Marca;
 use App\Models\Mobiliario;
+use App\Services\PresupuestoItemProduccionService;
 use Filament\Actions;
+use Filament\Forms;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Resources\Pages\ListRecords\Tab;
 use Filament\Tables;
@@ -48,10 +50,28 @@ class PendientesEntregaMobiliarios extends ListRecords
                 ->label('Generar PDF')
                 ->icon('heroicon-o-document-text')
                 ->color('danger')
-                ->url(fn (): string => route('mobiliarios.pendientes-entrega.pdf', [
-                    'marca' => $this->activeTab,
-                ]))
-                ->openUrlInNewTab(),
+                ->form([
+                    Forms\Components\Select::make('etapa')
+                        ->label('Etapa de producción')
+                        ->options([
+                            'todas' => 'Todas',
+                            ...array_combine(
+                                array_values(PresupuestoItemProduccionService::ETAPAS_PREDETERMINADAS),
+                                array_values(PresupuestoItemProduccionService::ETAPAS_PREDETERMINADAS),
+                            ),
+                            'Completado' => 'Completado',
+                        ])
+                        ->default('todas')
+                        ->required(),
+                ])
+                ->action(function (array $data): void {
+                    $url = route('mobiliarios.pendientes-entrega.pdf', [
+                        'marca' => $this->activeTab,
+                        'etapa' => $data['etapa'] ?? 'todas',
+                    ]);
+
+                    $this->js('window.open(' . json_encode($url) . ", '_blank')");
+                }),
 
             Actions\Action::make('volver')
                 ->label('Volver a Mobiliarios')
@@ -66,9 +86,12 @@ class PendientesEntregaMobiliarios extends ListRecords
         $baseQuery = $this->getPendientesEntregaBaseQuery();
 
         $counts = (clone $baseQuery)
-            ->selectRaw('marca_id, count(*) as aggregate')
-            ->groupBy('marca_id')
+            ->join('marca_mobiliario', 'marca_mobiliario.mobiliario_id', '=', 'mobiliarios.id')
+            ->selectRaw('marca_mobiliario.marca_id as marca_id, count(*) as aggregate')
+            ->groupBy('marca_mobiliario.marca_id')
             ->pluck('aggregate', 'marca_id');
+
+        $sinMarca = (clone $baseQuery)->whereDoesntHave('marcas')->count();
 
         $tabs = [
             'todos' => Tab::make('Todos')
@@ -81,14 +104,17 @@ class PendientesEntregaMobiliarios extends ListRecords
             ->get()
             ->each(function (Marca $marca) use (&$tabs, $counts): void {
                 $tabs['marca_' . $marca->id] = Tab::make($marca->nombre)
-                    ->modifyQueryUsing(fn (Builder $query) => $query->where('marca_id', $marca->id))
+                    ->modifyQueryUsing(fn (Builder $query) => $query->whereHas(
+                        'marcas',
+                        fn (Builder $marcasQuery) => $marcasQuery->where('marcas.id', $marca->id),
+                    ))
                     ->badge($counts[$marca->id] ?? 0);
             });
 
-        if (($counts[null] ?? 0) > 0) {
+        if ($sinMarca > 0) {
             $tabs['sin_marca'] = Tab::make('Sin marca')
-                ->modifyQueryUsing(fn (Builder $query) => $query->whereNull('marca_id'))
-                ->badge($counts[null]);
+                ->modifyQueryUsing(fn (Builder $query) => $query->whereDoesntHave('marcas'))
+                ->badge($sinMarca);
         }
 
         return $tabs;
@@ -105,13 +131,12 @@ class PendientesEntregaMobiliarios extends ListRecords
                     ->square()
                     ->extraImgAttributes(['style' => 'object-fit:contain; background:#f3f4f6;']),
 
-                Tables\Columns\TextColumn::make('marca.nombre')
-                    ->label('Marca')
+                Tables\Columns\TextColumn::make('marcas.nombre')
+                    ->label('Marcas')
                     ->badge()
                     ->color('primary')
                     ->placeholder('—')
-                    ->searchable()
-                    ->sortable(),
+                    ->searchable(),
 
                 Tables\Columns\TextColumn::make('codigo_interno')
                     ->label('Código')
@@ -171,7 +196,7 @@ class PendientesEntregaMobiliarios extends ListRecords
     protected function getTableQuery(): ?Builder
     {
         return $this->getPendientesEntregaBaseQuery()
-            ->with(['atributos', 'marca', 'media'])
+            ->with(['atributos', 'marcas', 'media'])
             ->withSum(['presupuestoItems as cantidad_pendiente_entrega' => function (Builder $query): void {
                 $this->applyPendienteEntregaConstraint($query);
             }], 'cantidad');
