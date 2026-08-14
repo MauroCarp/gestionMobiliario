@@ -4,7 +4,6 @@ namespace App\Filament\Pages;
 
 use App\Filament\Resources\MobiliarioResource;
 use App\Models\Mobiliario;
-use Filament\Pages\Page;
 use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\TextInputColumn;
@@ -14,7 +13,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
-class PreciosMobiliarios extends Page implements HasTable
+class PreciosMobiliarios extends BasePage implements HasTable
 {
     use InteractsWithTable;
 
@@ -77,6 +76,7 @@ class PreciosMobiliarios extends Page implements HasTable
                     ->type('number')
                     ->placeholder('—')
                     ->rules(['nullable', 'numeric', 'min:0'])
+                    ->disabled(fn (): bool => ! auth()->user()?->hasRole('Administrador'))
                     ->sortable(),
             ])
             ->filters([

@@ -9,12 +9,11 @@ use App\Models\Provincia;
 use App\Models\Ciudad;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
-class AgenciaResource extends Resource
+class AgenciaResource extends BaseResource
 {
     protected static ?string $model = Agencia::class;
     protected static ?string $navigationIcon = 'heroicon-o-building-office';

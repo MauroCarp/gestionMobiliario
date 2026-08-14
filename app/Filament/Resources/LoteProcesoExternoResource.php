@@ -15,12 +15,11 @@ use Filament\Forms\Form;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class LoteProcesoExternoResource extends Resource
+class LoteProcesoExternoResource extends BaseResource
 {
     protected static ?string $model = LoteProcesoExterno::class;
     protected static ?string $navigationIcon  = 'heroicon-o-arrow-path';

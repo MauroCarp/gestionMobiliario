@@ -20,12 +20,11 @@ use Filament\Forms\Get;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
-class PresupuestoResource extends Resource
+class PresupuestoResource extends BaseResource
 {
     protected static ?string $model = Presupuesto::class;
     protected static ?string $navigationIcon   = 'heroicon-o-document-text';

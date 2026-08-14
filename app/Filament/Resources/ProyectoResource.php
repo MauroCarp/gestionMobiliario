@@ -12,7 +12,6 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -20,7 +19,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 
-class ProyectoResource extends Resource
+class ProyectoResource extends BaseResource
 {
     protected static ?string $model = Proyecto::class;
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';

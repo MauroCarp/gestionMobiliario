@@ -6,12 +6,11 @@ use App\Filament\Resources\TerceroResource\Pages;
 use App\Models\Tercero;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class TerceroResource extends Resource
+class TerceroResource extends BaseResource
 {
     protected static ?string $model = Tercero::class;
     protected static ?string $navigationIcon  = 'heroicon-o-building-office';

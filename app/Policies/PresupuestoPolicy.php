@@ -4,9 +4,12 @@ namespace App\Policies;
 
 use App\Models\Presupuesto;
 use App\Models\User;
+use App\Policies\Concerns\AdministradorOnlyMutations;
 
 class PresupuestoPolicy
 {
+    use AdministradorOnlyMutations;
+
     public function viewAny(User $user): bool
     {
         return $user->hasAnyRole(['Administrador', 'Ventas', 'Producción', 'Solo lectura']);
@@ -17,31 +20,12 @@ class PresupuestoPolicy
         return $user->hasAnyRole(['Administrador', 'Ventas', 'Producción', 'Solo lectura']);
     }
 
-    public function create(User $user): bool
-    {
-        return $user->hasRole('Administrador');
-    }
-
     public function update(User $user, Presupuesto $presupuesto): bool
     {
         if (! $presupuesto->puedeEditar()) {
             return false;
         }
-        return $user->hasRole('Administrador');
-    }
 
-    public function delete(User $user, Presupuesto $presupuesto): bool
-    {
-        return $user->hasRole('Administrador');
-    }
-
-    public function restore(User $user, Presupuesto $presupuesto): bool
-    {
-        return $user->hasRole('Administrador');
-    }
-
-    public function forceDelete(User $user, Presupuesto $presupuesto): bool
-    {
         return $user->hasRole('Administrador');
     }
 }

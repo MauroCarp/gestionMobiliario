@@ -10,11 +10,10 @@ use App\Models\TipoProcesoExterno;
 use App\Models\Tercero;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class PlantillaFlujoExternoResource extends Resource
+class PlantillaFlujoExternoResource extends BaseResource
 {
     protected static ?string $model = PlantillaFlujoExterno::class;
     protected static ?string $navigationIcon  = 'heroicon-o-document-duplicate';

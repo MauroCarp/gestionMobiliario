@@ -15,12 +15,11 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Illuminate\Support\HtmlString;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
-class MobiliarioResource extends Resource
+class MobiliarioResource extends BaseResource
 {
     protected static ?string $model = Mobiliario::class;
     protected static ?string $navigationIcon = 'heroicon-o-cube';

@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class RolesAndPermissionsSeeder extends Seeder
 {
@@ -37,38 +37,38 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Administrador - full access
         $admin = Role::firstOrCreate(['name' => 'Administrador']);
-        $admin->givePermissionTo(Permission::all());
+        $admin->syncPermissions(Permission::all());
 
-        // Ventas - ver y gestionar agencias/proyectos/marcas, sin insumos
+        // Ventas - solo lectura y gestión de consulta
         $ventas = Role::firstOrCreate(['name' => 'Ventas']);
-        $ventas->givePermissionTo([
-            'marcas.viewAny', 'marcas.view', 'marcas.create', 'marcas.update',
-            'agencias.viewAny', 'agencias.view', 'agencias.create', 'agencias.update',
-            'proyectos.viewAny', 'proyectos.view', 'proyectos.create', 'proyectos.update',
+        $ventas->syncPermissions([
+            'marcas.viewAny', 'marcas.view',
+            'agencias.viewAny', 'agencias.view',
+            'proyectos.viewAny', 'proyectos.view',
             'mobiliarios.viewAny', 'mobiliarios.view',
             'categorias.viewAny', 'categorias.view',
         ]);
 
-        // Producción - gestionar mobiliarios, ver proyectos
+        // Producción - ver proyectos y mobiliarios
         $produccion = Role::firstOrCreate(['name' => 'Producción']);
-        $produccion->givePermissionTo([
-            'proyectos.viewAny', 'proyectos.view', 'proyectos.update',
-            'mobiliarios.viewAny', 'mobiliarios.view', 'mobiliarios.create', 'mobiliarios.update',
-            'categorias.viewAny', 'categorias.view', 'categorias.create', 'categorias.update',
+        $produccion->syncPermissions([
+            'proyectos.viewAny', 'proyectos.view',
+            'mobiliarios.viewAny', 'mobiliarios.view',
+            'categorias.viewAny', 'categorias.view',
             'insumos.viewAny', 'insumos.view',
         ]);
 
-        // Depósito / Stock - gestionar insumos
+        // Depósito / Stock - ver insumos y mobiliarios
         $deposito = Role::firstOrCreate(['name' => 'Depósito / Stock']);
-        $deposito->givePermissionTo([
-            'insumos.viewAny', 'insumos.view', 'insumos.create', 'insumos.update',
+        $deposito->syncPermissions([
+            'insumos.viewAny', 'insumos.view',
             'mobiliarios.viewAny', 'mobiliarios.view',
             'proyectos.viewAny', 'proyectos.view',
         ]);
 
         // Solo lectura - solo ver
         $soloLectura = Role::firstOrCreate(['name' => 'Solo lectura']);
-        $soloLectura->givePermissionTo(
+        $soloLectura->syncPermissions(
             Permission::where('name', 'like', '%.viewAny')
                 ->orWhere('name', 'like', '%.view')
                 ->get()

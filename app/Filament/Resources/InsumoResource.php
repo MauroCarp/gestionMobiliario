@@ -14,12 +14,11 @@ use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
-class InsumoResource extends Resource
+class InsumoResource extends BaseResource
 {
     protected static ?string $model = Insumo::class;
     protected static ?string $navigationIcon = 'heroicon-o-beaker';

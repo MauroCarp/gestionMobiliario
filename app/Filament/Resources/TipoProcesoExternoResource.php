@@ -6,11 +6,10 @@ use App\Filament\Resources\TipoProcesoExternoResource\Pages;
 use App\Models\TipoProcesoExterno;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class TipoProcesoExternoResource extends Resource
+class TipoProcesoExternoResource extends BaseResource
 {
     protected static ?string $model = TipoProcesoExterno::class;
     protected static ?string $navigationIcon  = 'heroicon-o-cog-6-tooth';

@@ -7,14 +7,13 @@ use App\Services\DatabaseBackupService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Notifications\Notification;
-use Filament\Pages\Page;
 use Filament\Tables;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Spatie\Activitylog\Models\Activity;
 
-class Auditoria extends Page implements HasTable
+class Auditoria extends BasePage implements HasTable
 {
     use InteractsWithTable;
 

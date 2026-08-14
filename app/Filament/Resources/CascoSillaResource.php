@@ -6,12 +6,11 @@ use App\Filament\Resources\CascoSillaResource\Pages;
 use App\Models\PlantillaFlujoExterno;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
-class CascoSillaResource extends Resource
+class CascoSillaResource extends BaseResource
 {
     protected static ?string $model = PlantillaFlujoExterno::class;
 

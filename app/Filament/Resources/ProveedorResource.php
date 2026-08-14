@@ -8,13 +8,12 @@ use App\Models\Provincia;
 use App\Models\Ciudad;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\DB;
 
-class ProveedorResource extends Resource
+class ProveedorResource extends BaseResource
 {
     protected static ?string $model = Proveedor::class;
     protected static ?string $navigationIcon  = 'heroicon-o-truck';

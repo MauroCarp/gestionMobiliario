@@ -11,11 +11,10 @@ use Filament\Forms\Form;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class OrdenCompraResource extends Resource
+class OrdenCompraResource extends BaseResource
 {
     protected static ?string $model = OrdenCompra::class;
     protected static ?string $navigationIcon  = 'heroicon-o-shopping-cart';

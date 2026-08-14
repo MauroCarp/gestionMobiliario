@@ -7,12 +7,11 @@ use App\Services\AnalisisPresupuestoService;
 use App\Services\StockReservaService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
-use Filament\Pages\Page;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 
-class AnalisisDemanda extends Page implements HasForms
+class AnalisisDemanda extends BasePage implements HasForms
 {
     use InteractsWithForms;
 

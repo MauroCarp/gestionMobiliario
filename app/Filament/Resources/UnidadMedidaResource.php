@@ -6,11 +6,10 @@ use App\Filament\Resources\UnidadMedidaResource\Pages;
 use App\Models\UnidadMedida;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class UnidadMedidaResource extends Resource
+class UnidadMedidaResource extends BaseResource
 {
     protected static ?string $model = UnidadMedida::class;
     protected static ?string $navigationIcon = 'heroicon-o-scale';

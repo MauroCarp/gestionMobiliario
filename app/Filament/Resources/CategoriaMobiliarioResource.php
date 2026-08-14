@@ -6,13 +6,12 @@ use App\Filament\Resources\CategoriaMobiliarioResource\Pages;
 use App\Models\CategoriaMobiliario;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class CategoriaMobiliarioResource extends Resource
+class CategoriaMobiliarioResource extends BaseResource
 {
     protected static ?string $model = CategoriaMobiliario::class;
     protected static ?string $navigationIcon = 'heroicon-o-squares-2x2';
