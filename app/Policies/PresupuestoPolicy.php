@@ -28,4 +28,29 @@ class PresupuestoPolicy
 
         return $user->hasRole('Administrador');
     }
+
+    public function changeState(User $user, Presupuesto $presupuesto): bool
+    {
+        return $user->hasRole('Administrador');
+    }
+
+    public function export(User $user, Presupuesto $presupuesto): bool
+    {
+        return $user->hasRole('Administrador');
+    }
+
+    public function manageItemStages(User $user, Presupuesto $presupuesto): bool
+    {
+        return $user->hasRole('Administrador');
+    }
+
+    public function registerDelivery(User $user, Presupuesto $presupuesto): bool
+    {
+        return $user->hasRole('Administrador');
+    }
+
+    public function clonePresupuesto(User $user, Presupuesto $presupuesto): bool
+    {
+        return $user->hasRole('Administrador');
+    }
 }

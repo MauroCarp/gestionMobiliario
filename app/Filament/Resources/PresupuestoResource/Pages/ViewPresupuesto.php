@@ -6,6 +6,7 @@ use App\Filament\Resources\PresupuestoResource;
 use App\Filament\Resources\PresupuestoResource\RelationManagers\ItemsRelationManager;
 use App\Models\PresupuestoItem;
 use App\Services\PresupuestoEntregaService;
+use App\Support\PresupuestoAuthorization;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Notifications\Notification;
@@ -27,6 +28,8 @@ class ViewPresupuesto extends ViewRecord
                 ->label('PDF')
                 ->icon('heroicon-o-document-text')
                 ->color('danger')
+                ->visible(fn (): bool => PresupuestoAuthorization::canForRecord('export', $this->record))
+                ->authorize('export')
                 ->url(fn () => route('presupuesto.pdf.viewer', $this->record->id))
                 ->openUrlInNewTab(),
 
@@ -36,7 +39,6 @@ class ViewPresupuesto extends ViewRecord
                 ->label('Produccion PDF')
                 ->icon('heroicon-o-cog-6-tooth')
                 ->color('warning')
-                ->visible(fn (): bool => in_array($this->record->estado, ['aprobado', 'confirmado', 'pagado', 'entregado_parcial', 'entregado']))
                 ->url(fn () => route('presupuesto.produccion.viewer', $this->record->id))
                 ->openUrlInNewTab(),
 
@@ -44,7 +46,6 @@ class ViewPresupuesto extends ViewRecord
                 ->label('Produccion Excel')
                 ->icon('heroicon-o-table-cells')
                 ->color('success')
-                ->visible(fn (): bool => in_array($this->record->estado, ['aprobado', 'confirmado', 'pagado', 'entregado_parcial', 'entregado']))
                 ->url(fn () => route('presupuesto.produccion.excel', $this->record->id))
                 ->openUrlInNewTab(),
 
@@ -52,6 +53,8 @@ class ViewPresupuesto extends ViewRecord
                 ->label('Excel')
                 ->icon('heroicon-o-table-cells')
                 ->color('success')
+                ->visible(fn (): bool => PresupuestoAuthorization::canForRecord('export', $this->record))
+                ->authorize('export')
                 ->url(fn () => route('presupuesto.excel', $this->record->id))
                 ->openUrlInNewTab(),
 
@@ -59,7 +62,8 @@ class ViewPresupuesto extends ViewRecord
                 ->label('Enviar a Revisión')
                 ->icon('heroicon-o-arrow-right-circle')
                 ->color('warning')
-                ->visible(fn (): bool => $this->record->puedeEnviarARevision())
+                ->visible(fn (): bool => PresupuestoAuthorization::canForRecord('changeState', $this->record) && $this->record->puedeEnviarARevision())
+                ->authorize('changeState')
                 ->requiresConfirmation()
                 ->action(function (): void {
                     $this->record->cambiarEstado('en_revision');
@@ -71,7 +75,8 @@ class ViewPresupuesto extends ViewRecord
                 ->label('Aprobar')
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
-                ->visible(fn (): bool => $this->record->puedeAprobar())
+                ->visible(fn (): bool => PresupuestoAuthorization::canForRecord('changeState', $this->record) && $this->record->puedeAprobar())
+                ->authorize('changeState')
                 ->requiresConfirmation()
                 ->action(function (): void {
                     $this->record->cambiarEstado('aprobado');
@@ -83,7 +88,8 @@ class ViewPresupuesto extends ViewRecord
                 ->label('Confirmar')
                 ->icon('heroicon-o-check-badge')
                 ->color('success')
-                ->visible(fn (): bool => $this->record->estado === 'aprobado')
+                ->visible(fn (): bool => PresupuestoAuthorization::canForRecord('changeState', $this->record) && $this->record->estado === 'aprobado')
+                ->authorize('changeState')
                 ->requiresConfirmation()
                 ->modalHeading('Confirmar presupuesto')
                 ->modalDescription('Se reservará el stock de insumos y el presupuesto pasará a estado Confirmado.')
@@ -97,7 +103,8 @@ class ViewPresupuesto extends ViewRecord
                 ->label('Marcar Pagado')
                 ->icon('heroicon-o-banknotes')
                 ->color('warning')
-                ->visible(fn (): bool => $this->record->estado === 'confirmado')
+                ->visible(fn (): bool => PresupuestoAuthorization::canForRecord('changeState', $this->record) && $this->record->estado === 'confirmado')
+                ->authorize('changeState')
                 ->requiresConfirmation()
                 ->modalHeading('Registrar pago')
                 ->modalDescription('Se registrará el pago del presupuesto. El stock se descuenta al confirmar la finalización de cada ítem.')
@@ -112,9 +119,11 @@ class ViewPresupuesto extends ViewRecord
                 ->icon('heroicon-o-truck')
                 ->color('success')
                 ->visible(fn (): bool =>
-                    $this->record->puedeRegistrarEntrega()
+                    PresupuestoAuthorization::canForRecord('registerDelivery', $this->record)
+                    && $this->record->puedeRegistrarEntrega()
                     && $this->record->items()->whereNull('entregado_at')->exists()
                 )
+                ->authorize('registerDelivery')
                 ->requiresConfirmation()
                 ->modalHeading('Entregar presupuesto completo')
                 ->modalDescription('Se marcarán todos los ítems como entregados y el presupuesto pasará a estado Entregado.')
@@ -134,7 +143,8 @@ class ViewPresupuesto extends ViewRecord
                 ->label('Entregar parcial')
                 ->icon('heroicon-o-clipboard-document-list')
                 ->color('warning')
-                ->visible(fn (): bool => $this->record->puedeRegistrarEntrega())
+                ->visible(fn (): bool => PresupuestoAuthorization::canForRecord('registerDelivery', $this->record) && $this->record->puedeRegistrarEntrega())
+                ->authorize('registerDelivery')
                 ->fillForm(fn (): array => [
                     'items_entregados' => $this->record->items()
                         ->whereNotNull('entregado_at')
@@ -177,7 +187,8 @@ class ViewPresupuesto extends ViewRecord
                 ->label('Rechazar')
                 ->icon('heroicon-o-x-circle')
                 ->color('danger')
-                ->visible(fn (): bool => $this->record->puedeRechazar())
+                ->visible(fn (): bool => PresupuestoAuthorization::canForRecord('changeState', $this->record) && $this->record->puedeRechazar())
+                ->authorize('changeState')
                 ->form([
                     Forms\Components\Textarea::make('comentario')
                         ->label('Motivo del rechazo')
@@ -194,7 +205,8 @@ class ViewPresupuesto extends ViewRecord
                 ->label('Cancelar')
                 ->icon('heroicon-o-archive-box-x-mark')
                 ->color('gray')
-                ->visible(fn (): bool => $this->record->puedeCancelar())
+                ->visible(fn (): bool => PresupuestoAuthorization::canForRecord('changeState', $this->record) && $this->record->puedeCancelar())
+                ->authorize('changeState')
                 ->requiresConfirmation()
                 ->action(function (): void {
                     $this->record->cambiarEstado('cancelado');

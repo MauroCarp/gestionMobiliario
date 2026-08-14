@@ -8,6 +8,7 @@ use App\Models\PresupuestoItemEtapa;
 use App\Services\PresupuestoEntregaService;
 use App\Services\PresupuestoItemProduccionService;
 use App\Services\StockReservaService;
+use App\Support\PresupuestoAuthorization;
 use Filament\Forms;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
@@ -136,10 +137,12 @@ class ItemsRelationManager extends RelationManager
                     ->icon('heroicon-o-clipboard-document-check')
                     ->color('info')
                     ->visible(fn (PresupuestoItem $record): bool =>
-                        (bool) $record->mobiliario_id
+                        PresupuestoAuthorization::canForRecord('manageItemStages', $this->ownerRecord)
+                        && (bool) $record->mobiliario_id
                         && $record->cantidadParaFabricacion() > 0
                         && in_array($this->ownerRecord->estado, ['confirmado', 'pagado', 'entregado_parcial', 'entregado'])
                     )
+                    ->authorize(fn (): bool => auth()->user()?->can('manageItemStages', $this->ownerRecord) ?? false)
                     ->modalHeading(fn (PresupuestoItem $record): string => "Etapas de producción - {$record->item_nombre}")
                     ->modalWidth('6xl')
                     ->mountUsing(function (Forms\ComponentContainer $form, PresupuestoItem $record): void {
@@ -236,9 +239,11 @@ class ItemsRelationManager extends RelationManager
                     ->icon('heroicon-o-truck')
                     ->color('success')
                     ->visible(fn (PresupuestoItem $record): bool =>
-                        ! $record->estaEntregado()
+                        PresupuestoAuthorization::canForRecord('registerDelivery', $this->ownerRecord)
+                        && ! $record->estaEntregado()
                         && $this->ownerRecord->puedeRegistrarEntrega()
                     )
+                    ->authorize(fn (): bool => auth()->user()?->can('registerDelivery', $this->ownerRecord) ?? false)
                     ->form([
                         Forms\Components\Textarea::make('entrega_observaciones')
                             ->label('Observaciones de entrega')
@@ -262,9 +267,11 @@ class ItemsRelationManager extends RelationManager
                     ->icon('heroicon-o-x-circle')
                     ->color('gray')
                     ->visible(fn (PresupuestoItem $record): bool =>
-                        $record->estaEntregado()
+                        PresupuestoAuthorization::canForRecord('registerDelivery', $this->ownerRecord)
+                        && $record->estaEntregado()
                         && $this->ownerRecord->puedeRegistrarEntrega()
                     )
+                    ->authorize(fn (): bool => auth()->user()?->can('registerDelivery', $this->ownerRecord) ?? false)
                     ->requiresConfirmation()
                     ->action(function (PresupuestoItem $record): void {
                         app(PresupuestoEntregaService::class)->toggleItemEntrega($record, false);

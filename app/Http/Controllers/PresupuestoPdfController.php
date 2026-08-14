@@ -7,12 +7,16 @@ use App\Exports\PresupuestoProduccionExport;
 use App\Models\Presupuesto;
 use App\Services\PresupuestoProduccionExportService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Maatwebsite\Excel\Facades\Excel;
 
 class PresupuestoPdfController extends Controller
 {
+    use AuthorizesRequests;
     public function show(Presupuesto $presupuesto)
     {
+        $this->authorize('export', $presupuesto);
+
         $presupuesto->load([
             'agencia.proyecto.marca',
             'agencia.provincia',
@@ -109,6 +113,8 @@ class PresupuestoPdfController extends Controller
      */
     public function viewer(Presupuesto $presupuesto)
     {
+        $this->authorize('export', $presupuesto);
+
         $codigo   = $presupuesto->codigo;
         $pdfUrl   = route('presupuesto.pdf', $presupuesto);
         $filename = "presupuesto-{$codigo}.pdf";
@@ -118,6 +124,8 @@ class PresupuestoPdfController extends Controller
 
     public function excel(Presupuesto $presupuesto)
     {
+        $this->authorize('export', $presupuesto);
+
         $presupuesto->load([
             'proyecto.marca',
             'agencia.proyecto.marca',
@@ -136,6 +144,8 @@ class PresupuestoPdfController extends Controller
 
     public function produccionPdf(Presupuesto $presupuesto)
     {
+        $this->authorize('export', $presupuesto);
+
         $presupuesto->load([
             'agencia.proyecto.marca',
             'agencia.provincia',
@@ -223,6 +233,8 @@ class PresupuestoPdfController extends Controller
 
     public function produccionExcel(Presupuesto $presupuesto, PresupuestoProduccionExportService $exportService)
     {
+        $this->authorize('export', $presupuesto);
+
         $data     = $exportService->prepare($presupuesto);
         $filename = "produccion-{$presupuesto->codigo}.xlsx";
 
@@ -231,6 +243,8 @@ class PresupuestoPdfController extends Controller
 
     public function produccionViewer(Presupuesto $presupuesto)
     {
+        $this->authorize('export', $presupuesto);
+
         $presupuesto->load(['agencia.media']);
 
         $codigo   = $presupuesto->codigo;

@@ -13,6 +13,7 @@ use App\Models\PresupuestoItem;
 use App\Models\Sector;
 use App\Services\PresupuestoEntregaService;
 use App\Services\StockReservaService;
+use App\Support\PresupuestoAuthorization;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -39,6 +40,8 @@ class PresupuestoResource extends BaseResource
             ->label('Clonar')
             ->icon('heroicon-o-document-duplicate')
             ->color('gray')
+            ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('clonePresupuesto', $record))
+            ->authorize('clonePresupuesto')
             ->requiresConfirmation()
             ->modalHeading('Clonar presupuesto')
             ->modalDescription('Se creará un nuevo presupuesto en borrador con los datos generales y los ítems de este presupuesto.')
@@ -60,6 +63,8 @@ class PresupuestoResource extends BaseResource
             ->label('Clonar')
             ->icon('heroicon-o-document-duplicate')
             ->color('gray')
+            ->visible(fn (): bool => PresupuestoAuthorization::canForRecord('clonePresupuesto', $getRecord()))
+            ->authorize(fn (): bool => auth()->user()?->can('clonePresupuesto', $getRecord()) ?? false)
             ->requiresConfirmation()
             ->modalHeading('Clonar presupuesto')
             ->modalDescription('Se creará un nuevo presupuesto en borrador con los datos generales y los ítems de este presupuesto.')
@@ -571,7 +576,8 @@ class PresupuestoResource extends BaseResource
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->button()
-                    ->visible(fn (Presupuesto $record): bool => $record->puedeAprobar())
+                    ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('changeState', $record) && $record->puedeAprobar())
+                    ->authorize('changeState')
                     ->requiresConfirmation()
                     ->modalHeading('Aprobar presupuesto')
                     ->modalDescription('Se reservará el stock de insumos y se generará una orden de compra si hay faltantes.')
@@ -585,7 +591,8 @@ class PresupuestoResource extends BaseResource
                     ->icon('heroicon-o-banknotes')
                     ->color('warning')
                     ->button()
-                    ->visible(fn (Presupuesto $record): bool => $record->estado === 'confirmado')
+                    ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('changeState', $record) && $record->estado === 'confirmado')
+                    ->authorize('changeState')
                     ->requiresConfirmation()
                     ->modalHeading('Registrar pago')
                     ->modalDescription('Se registrará el pago del presupuesto. El stock se descuenta al confirmar la finalización de cada ítem.')
@@ -600,9 +607,11 @@ class PresupuestoResource extends BaseResource
                     ->color('success')
                     ->button()
                     ->visible(fn (Presupuesto $record): bool =>
-                        $record->puedeRegistrarEntrega()
+                        PresupuestoAuthorization::canForRecord('registerDelivery', $record)
+                        && $record->puedeRegistrarEntrega()
                         && $record->items()->whereNull('entregado_at')->exists()
                     )
+                    ->authorize('registerDelivery')
                     ->requiresConfirmation()
                     ->modalHeading('Entregar presupuesto completo')
                     ->modalDescription('Se marcarán todos los ítems como entregados.')
@@ -616,7 +625,8 @@ class PresupuestoResource extends BaseResource
                     ->icon('heroicon-o-clipboard-document-list')
                     ->color('warning')
                     ->button()
-                    ->visible(fn (Presupuesto $record): bool => $record->puedeRegistrarEntrega())
+                    ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('registerDelivery', $record) && $record->puedeRegistrarEntrega())
+                    ->authorize('registerDelivery')
                     ->fillForm(fn (Presupuesto $record): array => [
                         'items_entregados' => $record->items()
                             ->whereNotNull('entregado_at')
@@ -665,6 +675,8 @@ class PresupuestoResource extends BaseResource
                         ->label('Exportar PDF')
                         ->icon('heroicon-o-document-text')
                         ->color('danger')
+                        ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('export', $record))
+                        ->authorize('export')
                         ->url(fn (Presupuesto $record) => route('presupuesto.pdf.viewer', $record->id))
                         ->openUrlInNewTab(),
 
@@ -674,6 +686,8 @@ class PresupuestoResource extends BaseResource
                         ->label('Exportar Excel')
                         ->icon('heroicon-o-table-cells')
                         ->color('success')
+                        ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('export', $record))
+                        ->authorize('export')
                         ->url(fn (Presupuesto $record) => route('presupuesto.excel', $record->id))
                         ->openUrlInNewTab(),
 
@@ -681,7 +695,7 @@ class PresupuestoResource extends BaseResource
                         ->label('Exportar Excel Producción')
                         ->icon('heroicon-o-table-cells')
                         ->color('info')
-                        ->visible(fn (Presupuesto $record): bool => in_array($record->estado, ['aprobado', 'confirmado', 'pagado', 'entregado_parcial', 'entregado']))
+
                         ->url(fn (Presupuesto $record) => route('presupuesto.produccion.excel', $record->id))
                         ->openUrlInNewTab(),
 
@@ -689,7 +703,8 @@ class PresupuestoResource extends BaseResource
                         ->label('Enviar a Revisión')
                         ->icon('heroicon-o-arrow-right-circle')
                         ->color('warning')
-                        ->visible(fn (Presupuesto $record): bool => $record->puedeEnviarARevision())
+                        ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('changeState', $record) && $record->puedeEnviarARevision())
+                        ->authorize('changeState')
                         ->requiresConfirmation()
                         ->action(function (Presupuesto $record): void {
                             $record->cambiarEstado('en_revision');
@@ -700,7 +715,8 @@ class PresupuestoResource extends BaseResource
                         ->label('Rechazar')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
-                        ->visible(fn (Presupuesto $record): bool => $record->puedeRechazar())
+                        ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('changeState', $record) && $record->puedeRechazar())
+                        ->authorize('changeState')
                         ->form([
                             Forms\Components\Textarea::make('comentario')
                                 ->label('Motivo del rechazo')
@@ -716,7 +732,8 @@ class PresupuestoResource extends BaseResource
                         ->label('Cancelar')
                         ->icon('heroicon-o-archive-box-x-mark')
                         ->color('gray')
-                        ->visible(fn (Presupuesto $record): bool => $record->puedeCancelar())
+                        ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('changeState', $record) && $record->puedeCancelar())
+                        ->authorize('changeState')
                         ->requiresConfirmation()
                         ->action(function (Presupuesto $record): void {
                             $record->cambiarEstado('cancelado');
@@ -728,8 +745,10 @@ class PresupuestoResource extends BaseResource
                         ->icon('heroicon-o-document-duplicate')
                         ->color('info')
                         ->visible(fn (Presupuesto $record): bool =>
-                            in_array($record->estado, ['confirmado', 'rechazado'])
+                            PresupuestoAuthorization::canForRecord('changeState', $record)
+                            && in_array($record->estado, ['confirmado', 'rechazado'])
                         )
+                        ->authorize('changeState')
                         ->form([
                             Forms\Components\Textarea::make('motivo')
                                 ->label('Motivo de la nueva versión')
@@ -751,6 +770,7 @@ class PresupuestoResource extends BaseResource
                         ->icon('heroicon-o-arrow-path')
                         ->color('info')
                         ->visible(false) // Oculto hasta nuevo aviso
+                        ->authorize('changeState')
                         ->requiresConfirmation()
                         ->modalHeading('Recalcular insumos del presupuesto')
                         ->modalDescription('Se recalculará la demanda de insumos con la composición técnica actual de los mobiliarios, considerando solo los ítems no finalizados. Se ajustarán las reservas activas (crear, actualizar o liberar). No se descuenta stock ni se modifican las órdenes de compra.')
