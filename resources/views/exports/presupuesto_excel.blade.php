@@ -70,6 +70,8 @@
         $insumoDisplay = $item->insumo?->nombreYCodigoParaMarca($marcaPresupuestoId);
         $nombreItem = $item->mobiliario?->nombre ?? $insumoDisplay['nombre'] ?? '—';
         $codigoItem = $item->mobiliario?->codigo_interno ?? $insumoDisplay['codigo'] ?? '';
+        $precioItem = $item->precioUnitarioEfectivo();
+        $subtotalItem = $item->subtotalEfectivo();
     @endphp
     <tr>
         <td>{{ $i + 1 }}</td>
@@ -77,8 +79,8 @@
         <td>{{ $nombreItem }}</td>
         <td>{{ $categoria }}</td>
         <td>{{ $item->cantidad }}</td>
-        <td>{{ $item->precio_unitario ?? '' }}</td>
-        <td>{{ $item->subtotal ?? '' }}</td>
+        <td>{{ $precioItem ?? '' }}</td>
+        <td>{{ $subtotalItem ?? '' }}</td>
         <td>{{ $descripcion }}{{ $item->observaciones ? ' | Obs: ' . $item->observaciones : '' }}</td>
         <td>{{ $item->notas_manuales }}</td>
     </tr>
@@ -102,7 +104,7 @@
     </tr>
 
     {{-- ── TOTAL ──────────────────────────────────────────────────── --}}
-    @php $total = $presupuesto->items->sum(fn($i) => $i->subtotal ?? 0) + $costoLogistica; @endphp
+    @php $total = $presupuesto->items->sum(fn($i) => $i->subtotalEfectivo() ?? 0) + $costoLogistica; @endphp
     @if($total > 0)
     <tr>
         <td colspan="6" style="font-weight: bold; text-align: right;">Total estimado:</td>

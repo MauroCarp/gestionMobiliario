@@ -256,9 +256,9 @@
 @php
     $esSinSector = ($sectorNombre === '__sin_sector__');
     $labelSector = $esSinSector ? 'Sin sector asignado' : $sectorNombre;
-    $sectorTotal = $sectorItems->sum(fn($i) => (float)($i['item']->subtotal ?? 0));
+    $sectorTotal = $sectorItems->sum(fn($i) => (float)($i['item']->subtotalEfectivo() ?? 0));
     $grandTotal += $sectorTotal;
-    if ($sectorItems->contains(fn($i) => $i['item']->precio_unitario !== null)) $hayPrecios = true;
+    if ($sectorItems->contains(fn($i) => $i['item']->precioUnitarioEfectivo() !== null)) $hayPrecios = true;
 @endphp
 
 {{-- Encabezado de sector --}}
@@ -292,6 +292,8 @@
             $nombreItem = $mob?->nombre ?? $insumoDisplay['nombre'] ?? '—';
             $codigoItem = $mob?->codigo_interno ?? $insumoDisplay['codigo'] ?? '';
             $categoriaItem = $mob?->categoria?->nombre ?? ($insumo && ! $esSillaInsumo ? 'Insumo' : '');
+            $precioItem = $item->precioUnitarioEfectivo();
+            $subtotalItem = $item->subtotalEfectivo();
             $atributosItem = $mob?->atributos?->isNotEmpty()
                 ? $mob->atributos
                     ->map(function ($atributo) {
@@ -365,14 +367,14 @@
             </td>
 
             <td class="right item-price">
-                @if($item->precio_unitario !== null)
-                    ${{ number_format((float)$item->precio_unitario, 2, ',', '.') }}
+                @if($precioItem !== null)
+                    ${{ number_format((float)$precioItem, 2, ',', '.') }}
                 @endif
             </td>
 
             <td class="right item-price">
-                @if($item->subtotal !== null)
-                    ${{ number_format((float)$item->subtotal, 2, ',', '.') }}
+                @if($subtotalItem !== null)
+                    ${{ number_format((float)$subtotalItem, 2, ',', '.') }}
                 @endif
             </td>
 

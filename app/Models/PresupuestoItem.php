@@ -57,6 +57,28 @@ class PresupuestoItem extends Model
         return round((float) $this->cantidad * (float) $this->precio_unitario, 2);
     }
 
+    public function precioUnitarioEfectivo(): ?float
+    {
+        if ($this->precio_unitario !== null) {
+            return (float) $this->precio_unitario;
+        }
+
+        $precioLista = $this->mobiliario?->precio;
+
+        return $precioLista === null ? null : (float) $precioLista;
+    }
+
+    public function subtotalEfectivo(): ?float
+    {
+        $precio = $this->precioUnitarioEfectivo();
+
+        if ($precio === null) {
+            return null;
+        }
+
+        return round((float) $this->cantidad * $precio, 2);
+    }
+
     public function presupuesto(): BelongsTo
     {
         return $this->belongsTo(Presupuesto::class);
