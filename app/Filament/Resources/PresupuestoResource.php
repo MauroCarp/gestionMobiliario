@@ -102,6 +102,68 @@ class PresupuestoResource extends BaseResource
             ->openUrlInNewTab();
     }
 
+    /**
+     * @return array<int, Forms\Components\Component>
+     */
+    public static function pdfPreciosFormSchema(): array
+    {
+        return [
+            Forms\Components\Radio::make('mostrar_precios')
+                ->label('Precios en el PDF')
+                ->options([
+                    '1' => 'Precios visibles',
+                    '0' => 'Precios ocultos',
+                ])
+                ->default('1')
+                ->required(),
+        ];
+    }
+
+    public static function pdfTableAction(string $label = 'Exportar PDF'): Tables\Actions\Action
+    {
+        return Tables\Actions\Action::make('pdf')
+            ->label($label)
+            ->icon('heroicon-o-document-text')
+            ->color('danger')
+            ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('export', $record))
+            ->authorize('export')
+            ->form(static::pdfPreciosFormSchema())
+            ->action(function (Presupuesto $record, array $data, Tables\Actions\Action $action): void {
+                $url = route('presupuesto.pdf.viewer', [
+                    'presupuesto' => $record->id,
+                    'precios' => (int) $data['mostrar_precios'],
+                ]);
+
+                $action->getLivewire()->js('window.open(' . json_encode($url) . ", '_blank')");
+            });
+    }
+
+    public static function pdfPageAction(\Closure $getRecord, string $label = 'PDF', string $name = 'pdf'): Actions\Action
+    {
+        return Actions\Action::make($name)
+            ->label($label)
+            ->icon('heroicon-o-document-text')
+            ->color('danger')
+            ->visible(fn (): bool => PresupuestoAuthorization::canForRecord('export', $getRecord()))
+            ->authorize('export')
+            ->form(static::pdfPreciosFormSchema())
+            ->action(function (array $data, Actions\Action $action) use ($getRecord): void {
+                $url = route('presupuesto.pdf.viewer', [
+                    'presupuesto' => $getRecord()->id,
+                    'precios' => (int) $data['mostrar_precios'],
+                ]);
+
+                $action->getLivewire()->js('window.open(' . json_encode($url) . ", '_blank')");
+            });
+    }
+
+    public static function imprimirPageAction(\Closure $getRecord): Actions\Action
+    {
+        return static::pdfPageAction($getRecord, 'Imprimir', 'imprimir')
+            ->icon('heroicon-o-printer')
+            ->color('gray');
+    }
+
     // ─── Form ─────────────────────────────────────────────────────────────────
 
     public static function form(Form $form): Form
@@ -671,14 +733,7 @@ class PresupuestoResource extends BaseResource
 
                     static::clonarTableAction(),
 
-                    Tables\Actions\Action::make('pdf')
-                        ->label('Exportar PDF')
-                        ->icon('heroicon-o-document-text')
-                        ->color('danger')
-                        ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('export', $record))
-                        ->authorize('export')
-                        ->url(fn (Presupuesto $record) => route('presupuesto.pdf.viewer', $record->id))
-                        ->openUrlInNewTab(),
+                    static::pdfTableAction(),
 
                     static::layoutTableAction(),
 

@@ -13,6 +13,12 @@ use Maatwebsite\Excel\Facades\Excel;
 class PresupuestoPdfController extends Controller
 {
     use AuthorizesRequests;
+
+    protected function mostrarPreciosEnPdf(): bool
+    {
+        return ! in_array(request()->query('precios', '1'), ['0', 'false', 'no'], true);
+    }
+
     public function show(Presupuesto $presupuesto)
     {
         $this->authorize('export', $presupuesto);
@@ -92,8 +98,10 @@ class PresupuestoPdfController extends Controller
             return $itemData['sector']?->nombre ?? '__sin_sector__';
         });
 
+        $mostrarPrecios = $this->mostrarPreciosEnPdf();
+
         $pdf = Pdf::loadView('pdf.presupuesto', compact(
-            'presupuesto', 'proyecto', 'agencia', 'marca', 'logoBase64', 'logoEmpresaBase64', 'logisticaImagenBase64', 'items', 'itemsPorSector'
+            'presupuesto', 'proyecto', 'agencia', 'marca', 'logoBase64', 'logoEmpresaBase64', 'logisticaImagenBase64', 'items', 'itemsPorSector', 'mostrarPrecios'
         ))
         ->setPaper('a4', 'portrait')
         ->setOptions([
@@ -116,7 +124,11 @@ class PresupuestoPdfController extends Controller
         $this->authorize('export', $presupuesto);
 
         $codigo   = $presupuesto->codigo;
-        $pdfUrl   = route('presupuesto.pdf', $presupuesto);
+        $precios  = request()->query('precios', '1');
+        $pdfUrl   = route('presupuesto.pdf', [
+            'presupuesto' => $presupuesto,
+            'precios' => $precios,
+        ]);
         $filename = "presupuesto-{$codigo}.pdf";
 
         return view('pdf.viewer', compact('codigo', 'pdfUrl', 'filename'));

@@ -250,15 +250,24 @@
 </div>
 
 {{-- ── TABLAS POR SECTOR ───────────────────────────────────── --}}
-@php $globalIndex = 1; $grandTotal = 0; $hayPrecios = false; @endphp
+@php
+    $mostrarPrecios = $mostrarPrecios ?? true;
+    $globalIndex = 1;
+    $grandTotal = 0;
+    $hayPrecios = false;
+@endphp
 
 @foreach($itemsPorSector as $sectorNombre => $sectorItems)
 @php
     $esSinSector = ($sectorNombre === '__sin_sector__');
     $labelSector = $esSinSector ? 'Sin sector asignado' : $sectorNombre;
-    $sectorTotal = $sectorItems->sum(fn($i) => (float)($i['item']->subtotalEfectivo() ?? 0));
+    $sectorTotal = $mostrarPrecios
+        ? $sectorItems->sum(fn($i) => (float)($i['item']->subtotalEfectivo() ?? 0))
+        : 0;
     $grandTotal += $sectorTotal;
-    if ($sectorItems->contains(fn($i) => $i['item']->precioUnitarioEfectivo() !== null)) $hayPrecios = true;
+    if ($mostrarPrecios && $sectorItems->contains(fn($i) => $i['item']->precioUnitarioEfectivo() !== null)) {
+        $hayPrecios = true;
+    }
 @endphp
 
 {{-- Encabezado de sector --}}
@@ -275,8 +284,10 @@
             <th style="width:400px;">Descripción / Observaciones</th>
             <th style="width:36px;" class="center">Cant.</th>
             <th style="width:90px;">Notas</th>
+            @if($mostrarPrecios)
             <th style="width:72px;" class="right">Precio</th>
             <th style="width:78px;" class="right">Subtotal precio</th>
+            @endif
         </tr>
     </thead>
     <tbody>
@@ -366,6 +377,7 @@
                 @endif
             </td>
 
+            @if($mostrarPrecios)
             <td class="right item-price">
                 @if($precioItem !== null)
                     ${{ number_format((float)$precioItem, 2, ',', '.') }}
@@ -377,6 +389,7 @@
                     ${{ number_format((float)$subtotalItem, 2, ',', '.') }}
                 @endif
             </td>
+            @endif
 
         </tr>
         @endforeach
@@ -401,9 +414,11 @@
 @php
     $costoLogistica = $presupuesto->logistica_costo_numerico;
     $leyendaLogistica = $presupuesto->leyenda_logistica_efectiva;
-    $grandTotal += $costoLogistica;
-    if ($costoLogistica > 0) {
-        $hayPrecios = true;
+    if ($mostrarPrecios) {
+        $grandTotal += $costoLogistica;
+        if ($costoLogistica > 0) {
+            $hayPrecios = true;
+        }
     }
 @endphp
 
@@ -428,6 +443,7 @@
                 <span class="item-qty">1</span>
             </td>
             <td style="width:90px;"></td>
+            @if($mostrarPrecios)
             <td class="right item-price" style="width:72px;">
                 @if($costoLogistica > 0)
                     ${{ number_format($costoLogistica, 2, ',', '.') }}
@@ -438,12 +454,13 @@
                     ${{ number_format($costoLogistica, 2, ',', '.') }}
                 @endif
             </td>
+            @endif
         </tr>
     </tbody>
 </table>
 
 {{-- ── SUB-TOTAL, IVA Y TOTAL GENERAL ─────────────────────────── --}}
-@if($hayPrecios && $grandTotal > 0)
+@if($mostrarPrecios && $hayPrecios && $grandTotal > 0)
 @php
     $subTotalGeneral = round((float) $grandTotal, 2);
     $ivaGeneral = round($subTotalGeneral * 0.21, 2);

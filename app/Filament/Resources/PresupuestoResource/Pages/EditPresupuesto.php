@@ -20,12 +20,9 @@ class EditPresupuesto extends EditRecord
         return [
             PresupuestoResource::clonarPageAction(fn () => $this->record),
 
-            Actions\Action::make('pdf')
-                ->label('PDF')
-                ->icon('heroicon-o-document-text')
-                ->color('danger')
-                ->url(fn () => route('presupuesto.pdf.viewer', $this->record->id))
-                ->openUrlInNewTab(),
+            PresupuestoResource::pdfPageAction(fn () => $this->record),
+
+            PresupuestoResource::imprimirPageAction(fn () => $this->record),
 
             PresupuestoResource::layoutPageAction(fn () => $this->record),
 
