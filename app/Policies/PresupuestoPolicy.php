@@ -31,17 +31,17 @@ class PresupuestoPolicy
 
     public function changeState(User $user, Presupuesto $presupuesto): bool
     {
-        return $user->hasRole('Administrador');
+        return $user->hasAnyRole('Administrador','Producción');
     }
 
     public function export(User $user, Presupuesto $presupuesto): bool
     {
-        return $user->hasRole('Administrador');
+        return $user->hasAnyRole('Administrador','Producción');
     }
 
     public function manageItemStages(User $user, Presupuesto $presupuesto): bool
     {
-        return $user->hasRole('Administrador');
+        return $user->hasAnyRole('Administrador','Producción');
     }
 
     public function registerDelivery(User $user, Presupuesto $presupuesto): bool
