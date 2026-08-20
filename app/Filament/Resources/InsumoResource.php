@@ -185,8 +185,13 @@ class InsumoResource extends BaseResource
                                 ->label('Nombre de fantasía')
                                 ->maxLength(255)
                                 ->nullable(),
+                            Forms\Components\TextInput::make('precio')
+                                ->label('Precio ($)')
+                                ->numeric()
+                                ->minValue(0)
+                                ->nullable(),
                         ])
-                        ->columns(2)
+                        ->columns(3)
                         ->addActionLabel('Agregar marca')
                         ->columnSpanFull(),
                 ])
@@ -362,10 +367,18 @@ class InsumoResource extends BaseResource
                             }
 
                             return $record->marcasSilla
-                                ->map(fn ($item): string => trim(
-                                    ($item->marca?->nombre ?? 'Marca') .
-                                    ($item->nombre_fantasia ? ': ' . $item->nombre_fantasia : '')
-                                ))
+                                ->map(function ($item): string {
+                                    $label = trim(
+                                        ($item->marca?->nombre ?? 'Marca') .
+                                        ($item->nombre_fantasia ? ': ' . $item->nombre_fantasia : '')
+                                    );
+
+                                    if ($item->precio !== null) {
+                                        $label .= ' ($' . number_format((float) $item->precio, 2, ',', '.') . ')';
+                                    }
+
+                                    return $label;
+                                })
                                 ->implode(' · ');
                         })
                         ->columnSpanFull(),

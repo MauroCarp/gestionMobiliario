@@ -13,6 +13,11 @@ class InsumoMarcaSilla extends Model
         'insumo_id',
         'marca_id',
         'nombre_fantasia',
+        'precio',
+    ];
+
+    protected $casts = [
+        'precio' => 'decimal:2',
     ];
 
     public function insumo(): BelongsTo

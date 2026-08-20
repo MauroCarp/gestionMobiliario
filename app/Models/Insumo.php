@@ -175,6 +175,21 @@ class Insumo extends Model implements HasMedia
         );
     }
 
+    public function precioParaMarca(?int $marcaId): ?float
+    {
+        if ($marcaId === null) {
+            return null;
+        }
+
+        $this->loadMissing('marcasSilla');
+
+        $precio = $this->marcasSilla
+            ->firstWhere('marca_id', $marcaId)
+            ?->precio;
+
+        return $precio === null ? null : (float) $precio;
+    }
+
     /**
      * Nombre a mostrar según la marca del presupuesto (nombre de fantasía para sillas).
      */

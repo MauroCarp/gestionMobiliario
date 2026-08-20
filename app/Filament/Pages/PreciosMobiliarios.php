@@ -115,6 +115,7 @@ class PreciosMobiliarios extends BasePage implements HasTable
                     ->withoutGlobalScopes()
             )
             ->modifyQueryUsing($this->modifyQueryWithActiveMarcaTab(...))
+            ->heading('Mobiliarios')
             ->columns([
                 SpatieMediaLibraryImageColumn::make('imagen_thumb')
                     ->collection('imagenes')

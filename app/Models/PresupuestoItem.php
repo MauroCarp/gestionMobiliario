@@ -63,9 +63,20 @@ class PresupuestoItem extends Model
             return (float) $this->precio_unitario;
         }
 
-        $precioLista = $this->mobiliario?->precio;
+        if ($this->mobiliario) {
+            $precioLista = $this->mobiliario->precio;
 
-        return $precioLista === null ? null : (float) $precioLista;
+            return $precioLista === null ? null : (float) $precioLista;
+        }
+
+        if ($this->insumo) {
+            $marcaId = $this->presupuesto?->agencia?->proyecto?->marca_id
+                ?? $this->presupuesto?->proyecto?->marca_id;
+
+            return $this->insumo->precioParaMarca($marcaId);
+        }
+
+        return null;
     }
 
     public function subtotalEfectivo(): ?float
