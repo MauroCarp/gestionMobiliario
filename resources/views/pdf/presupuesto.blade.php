@@ -25,8 +25,8 @@
         .header-marca { width: 150px; vertical-align: middle; }
 
         .header-agency { vertical-align: middle; padding: 0 14px; }
-        .header-agency .agency-name { font-size: 14px; font-weight: bold; color: #1E3A8A; }
-        .header-agency .agency-sub  { font-size: 12px; color: #6B7280; margin-top: 2px; }
+        .header-agency .agency-name { font-size: 18px; font-weight: bold; color: #1E3A8A; }
+        .header-agency .agency-sub  { font-size: 12px; color: #1a1b1d; margin-top: 2px; }
 
         .header-empresa { width: 200px; text-align: right; vertical-align: middle; }
         .header-empresa .empresa-codigo {
@@ -91,7 +91,7 @@
         }
         .item-code   { font-size: 12px; color: #9CA3AF; margin-top: 2px; }
         .item-attrs  { font-size: 12px; color: #000000; margin-top: 2px; line-height: 1.3; }
-        .item-desc   { font-size: 12px; color: #6B7280; margin-top: 3px; line-height: 1.4; }
+        .item-desc   { font-size: 16px; color: #000000; margin-top: 3px; line-height: 1.4; }
         .item-obs    { font-size: 12px; color: #374151; margin-top: 3px; }
         .item-qty    { font-size: 13px; font-weight: bold; }
         .item-price  { font-size: 10px; }
@@ -204,7 +204,7 @@
                 <img src="{{ $logoBase64 }}" style="max-width:140px; max-height:90px;">
             @elseif($marca)
                 <div style="width:140px; height:70px; background:#E5E7EB; border:1px solid #D1D5DB;
-                            text-align:center; line-height:70px; font-size:9px; color:#9CA3AF;">
+                            text-align:center; line-height:70px; font-size:15px; color:#9CA3AF;">
                     {{ $marca->nombre }}
                 </div>
             @endif
