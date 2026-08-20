@@ -275,6 +275,7 @@ class PresupuestoResource extends BaseResource
                 ->columns(3),
 
             Forms\Components\Section::make('Items del Presupuesto')
+                ->description('Arrastrá los ítems (o usá los botones subir/bajar) para definir el orden global. El PDF agrupa por sector y, dentro de cada uno, los muestra de menor a mayor según este orden.')
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')
@@ -440,14 +441,29 @@ class PresupuestoResource extends BaseResource
 
                         ])
                         ->columns(4)
+                        ->reorderable()
+                        ->reorderableWithDragAndDrop()
+                        ->reorderableWithButtons()
                         ->orderColumn('orden')
                         ->addActionLabel('+ Agregar mobiliario')
                         ->defaultItems(0)
                         ->cloneable()
-                        ->itemLabel(fn (array $state): ?string => match (true) {
-                            !empty($state['mobiliario_id']) => \App\Models\Mobiliario::find($state['mobiliario_id'])?->nombre,
-                            !empty($state['insumo_id'])     => ('[SILLA] ' . (Insumo::find($state['insumo_id'])?->nombre ?? '')),
-                            default                         => null,
+                        ->itemLabel(function (array $state): ?string {
+                            $nombre = match (true) {
+                                ! empty($state['mobiliario_id']) => Mobiliario::find($state['mobiliario_id'])?->nombre,
+                                ! empty($state['insumo_id']) => '[SILLA] ' . (Insumo::find($state['insumo_id'])?->nombre ?? ''),
+                                default => null,
+                            };
+
+                            if (! $nombre) {
+                                return null;
+                            }
+
+                            $sector = ! empty($state['sector_id'])
+                                ? Sector::find($state['sector_id'])?->nombre
+                                : 'Sin sector';
+
+                            return "{$nombre} · {$sector}";
                         })
                         ->collapsible(),
                 ]),
@@ -627,6 +643,11 @@ class PresupuestoResource extends BaseResource
                 Tables\Filters\SelectFilter::make('marca_id')
                     ->label('Marca')
                     ->relationship('proyecto.marca', 'nombre')
+                    ->searchable()
+                    ->preload(),
+                Tables\Filters\SelectFilter::make('provincia_id')
+                    ->label('Provincia')
+                    ->relationship('agencia.provincia', 'nombre')
                     ->searchable()
                     ->preload(),
 

@@ -29,7 +29,7 @@ class PresupuestoPdfController extends Controller
             'agencia.ciudad',
             'responsable',
             'aprobadoPor',
-            'items' => fn ($q) => $q->orderBy('sector_id')->orderBy('orden')->with([
+            'items' => fn ($q) => $q->reorder('sector_id')->orderBy('orden')->with([
                 'mobiliario.atributos',
                 'mobiliario.media',
                 'sector',
@@ -164,7 +164,7 @@ class PresupuestoPdfController extends Controller
             'agencia.ciudad',
             'responsable',
             'aprobadoPor',
-            'items' => fn ($q) => $q->orderBy('sector_id')->orderBy('orden')
+            'items' => fn ($q) => $q->reorder('sector_id')->orderBy('orden')
                 ->with([
                     'mobiliario.categoria',
                     'mobiliario.atributos',

@@ -19,7 +19,7 @@ class PresupuestoProduccionExportService
             'agencia.ciudad',
             'responsable',
             'aprobadoPor',
-            'items' => fn ($q) => $q->orderBy('sector_id')->orderBy('orden')
+            'items' => fn ($q) => $q->reorder('sector_id')->orderBy('orden')
                 ->with([
                     'mobiliario.categoria',
                     'mobiliario.composicionTecnica.insumo.unidadMedida',
