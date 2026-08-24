@@ -94,7 +94,7 @@
         .item-desc   { font-size: 16px; color: #000000; margin-top: 3px; line-height: 1.4; }
         .item-obs    { font-size: 12px; color: #374151; margin-top: 3px; }
         .item-qty    { font-size: 13px; font-weight: bold; }
-        .item-price  { font-size: 10px; }
+        .item-price  { font-size: 20px;}
         .notas-line  { border-bottom: 1px solid #D1D5DB; height: 14px; margin-bottom: 3px; }
 
         /* ── OBSERVACIONES GENERALES ──────────────────────────── */
@@ -380,13 +380,13 @@
             @if($mostrarPrecios)
             <td class="right item-price">
                 @if($precioItem !== null)
-                    ${{ number_format((float)$precioItem, 2, ',', '.') }}
+                    ${{ number_format((float)$precioItem, 0, ',', '.') }}
                 @endif
             </td>
 
             <td class="right item-price">
                 @if($subtotalItem !== null)
-                    ${{ number_format((float)$subtotalItem, 2, ',', '.') }}
+                    ${{ number_format((float)$subtotalItem, 0, ',', '.') }}
                 @endif
             </td>
             @endif
@@ -446,12 +446,12 @@
             @if($mostrarPrecios)
             <td class="right item-price" style="width:72px;">
                 @if($costoLogistica > 0)
-                    ${{ number_format($costoLogistica, 2, ',', '.') }}
+                    ${{ number_format($costoLogistica, 0, ',', '.') }}
                 @endif
             </td>
             <td class="right item-price" style="width:78px;">
                 @if($costoLogistica > 0)
-                    ${{ number_format($costoLogistica, 2, ',', '.') }}
+                    ${{ number_format($costoLogistica, 0, ',', '.') }}
                 @endif
             </td>
             @endif
@@ -505,13 +505,9 @@
 {{-- ── BASES Y CONDICIONES ───────────────────────────────────── --}}
 <div class="bases-title">Bases y Condiciones</div>
 <ol class="bases-list">
-    <li>EL PRESUPUESTO TENDRÁ VALIDEZ DE 5 DÍAS.</li>
-    <li>FORMA DE PAGO: {{ $presupuesto->texto_metodo_pago }}</li>
-    <li>PLAZO DE ENTREGA: {{ $presupuesto->dias_entrega_pdf }} días aproximadamente al confirmar el presupuesto.</li>
-    <li>LA TOTALIDAD DEL MOBILIARIO ESTA REALIZADO BAJO LOS REQUERIMIENTOS DEL CLIENTE, TANTO EN LOS MATERIALES UTILIZADOS, COLORES, CALIDAD Y DISEÑO DE LOS MISMOS.</li>
-    <li>EN EL SUPUESTO CASO QUE EL MOBILIARIO NO PUEDA INSTALARSE DEBERÁ SER DESEMBALADO Y CONTROLADO AL MOMENTO DE LA ENTREGA EN CONJUNTO CON LA PARTE VENDEDORA Y COMPRADORA. DE LO CONTRARIO LA EMPRESA NO SE RESPONSABILIZA POR LOS DAÑOS QUE SUFRA EL MISMO.</li>
-    <li>LAS IMÁGENES SON ILUSTRATIVAS, PUEDEN VARIAR CON EL PRODUCTO REAL.</li>
-    <li class="bases-red">En el supuesto caso de necesitar embalaje para el envío por transporte ajeno a nuestra empresa, se deberá adicionar un 10% sobre el producto.</li>
+    @foreach($presupuesto->basesCondicionesLineas() as $linea)
+        <li @if($loop->last) class="bases-red" @endif>{{ $linea }}</li>
+    @endforeach
 </ol>
 
 {{-- ── PIE DE EMPRESA ──────────────────────────────────────────── --}}

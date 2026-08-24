@@ -38,8 +38,7 @@ class PresupuestoLogisticaViewsTest extends TestCase
         $presupuesto = new Presupuesto([
             'codigo' => 'PRES-2026-0002',
             'fecha_emision' => Carbon::parse('2026-08-03'),
-            'metodo_pago' => 'defecto',
-            'dias_entrega' => 50,
+            'metodo_pago' => Presupuesto::textoBasesCondicionesDefault(),
             'logistica_instalacion_propia' => false,
             'logistica_leyenda' => 'Logística externa',
             'logistica_costo' => 1000,

@@ -38,12 +38,7 @@ class Presupuesto extends Model
         'cancelado'         => 'gray',
     ];
 
-    const METODOS_PAGO = [
-        'defecto'       => 'Defecto',
-        'transferencia' => 'Transferencia',
-    ];
-
-    const TEXTO_PAGO_DEFECTO = '50% MEDIANTE TRANSFERENCIA y 50% ENVIANDO E-CHEQ A 15-30-45 DÍAS AL CONFIRMAR EL PEDIDO.';
+    const TEXTO_PAGO_DEFECTO = '50% MEDIANTE TRANSFERENCIA AL CONFIRMAR EL PRESUPUESTO, SALDO CON E-CHEQ ANTICIPADOS AL CONFIRMAR 15-30-45-60-75-90 DÍAS F.F..';
 
     const LEYENDA_LOGISTICA_PROPIA = 'Logística e instalación propia';
 
@@ -56,7 +51,6 @@ class Presupuesto extends Model
         'fecha_emision',
         'fecha_vencimiento',
         'metodo_pago',
-        'dias_entrega',
         'logistica_instalacion_propia',
         'logistica_leyenda',
         'logistica_costo',
@@ -73,7 +67,6 @@ class Presupuesto extends Model
         'aprobado_at'       => 'datetime',
         'datos_adicionales' => 'array',
         'version'           => 'integer',
-        'dias_entrega'      => 'integer',
         'logistica_instalacion_propia' => 'boolean',
         'logistica_costo'   => 'decimal:2',
     ];
@@ -101,6 +94,9 @@ class Presupuesto extends Model
             }
             if (empty($presupuesto->fecha_emision)) {
                 $presupuesto->fecha_emision = now()->toDateString();
+            }
+            if (empty($presupuesto->metodo_pago)) {
+                $presupuesto->metodo_pago = static::textoBasesCondicionesDefault();
             }
         });
     }
@@ -152,7 +148,6 @@ class Presupuesto extends Model
                 'fecha_emision'      => $this->fecha_emision,
                 'fecha_vencimiento'  => $this->fecha_vencimiento,
                 'metodo_pago'        => $this->metodo_pago,
-                'dias_entrega'       => $this->dias_entrega,
                 'logistica_instalacion_propia' => $this->logistica_instalacion_propia,
                 'logistica_leyenda'  => $this->logistica_leyenda,
                 'logistica_costo'    => $this->logistica_costo,
@@ -327,16 +322,36 @@ class Presupuesto extends Model
         return $media ? url($media->getUrl()) : null;
     }
 
-    public function getTextoMetodoPagoAttribute(): string
+    public static function textoBasesCondicionesDefault(?string $formaPago = null, int $diasEntrega = 45): string
     {
-        return $this->metodo_pago === 'transferencia'
-            ? 'TRANSFERENCIA.'
-            : self::TEXTO_PAGO_DEFECTO;
+        $formaPago ??= self::TEXTO_PAGO_DEFECTO;
+        $diasEntrega = $diasEntrega > 0 ? $diasEntrega : 50;
+
+        return implode("\n", [
+            'EL PRESUPUESTO TENDRÁ VALIDEZ DE 5 DÍAS.',
+            'FORMA DE PAGO: ' . $formaPago,
+            "PLAZO DE ENTREGA: {$diasEntrega} días de realizado el pago del mobiliario.",
+            'LA TOTALIDAD DEL MOBILIARIO ESTA REALIZADO BAJO LOS REQUERIMIENTOS DE LA MARCA, TANTO EN LOS MATERIALES UTILIZADOS, COLORES, CALIDAD Y DISEÑO DE LOS MISMOS.',
+            'EN EL SUPUESTO CASO QUE EL MOBILIARIO NO PUEDA INSTALARSE DEBERÁ SER DESEMBALADO Y CONTROLADO AL MOMENTO DE LA ENTREGA EN CONJUNTO CON LA PARTE VENDEDORA Y COMPRADORA. DE LO CONTRARIO LA EMPRESA NO SE RESPONSABILIZA POR LOS DAÑOS QUE SUFRA EL MISMO.',
+            'LAS IMÁGENES SON ILUSTRATIVAS, PUEDEN VARIAR CON EL PRODUCTO REAL.',
+            'En el supuesto caso de necesitar embalaje para el envío por transporte ajeno a nuestra empresa, se deberá adicionar un 10% sobre el producto.',
+        ]);
     }
 
-    public function getDiasEntregaPdfAttribute(): int
+    public function basesCondicionesLineas(): array
     {
-        return $this->dias_entrega ?: 50;
+        $texto = trim((string) ($this->metodo_pago ?? ''));
+
+        if ($texto === '' || in_array($texto, ['defecto', 'transferencia'], true)) {
+            $texto = static::textoBasesCondicionesDefault(
+                $texto === 'transferencia' ? 'TRANSFERENCIA.' : null
+            );
+        }
+
+        return array_values(array_filter(
+            preg_split('/\r\n|\r|\n/', $texto) ?: [],
+            fn (string $linea): bool => trim($linea) !== ''
+        ));
     }
 
     public function getLeyendaLogisticaEfectivaAttribute(): string

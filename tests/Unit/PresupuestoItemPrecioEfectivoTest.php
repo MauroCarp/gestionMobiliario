@@ -57,8 +57,7 @@ class PresupuestoItemPrecioEfectivoTest extends TestCase
             'presupuesto' => new \App\Models\Presupuesto([
                 'codigo' => 'PRES-TEST',
                 'fecha_emision' => now(),
-                'metodo_pago' => 'defecto',
-                'dias_entrega' => 50,
+                'metodo_pago' => Presupuesto::textoBasesCondicionesDefault(),
                 'logistica_instalacion_propia' => false,
                 'logistica_costo' => 0,
             ]),
@@ -131,8 +130,7 @@ class PresupuestoItemPrecioEfectivoTest extends TestCase
         $presupuesto = new Presupuesto([
             'codigo' => 'PRES-SILLA',
             'fecha_emision' => now(),
-            'metodo_pago' => 'defecto',
-            'dias_entrega' => 50,
+            'metodo_pago' => Presupuesto::textoBasesCondicionesDefault(),
             'logistica_instalacion_propia' => false,
             'logistica_costo' => 0,
         ]);

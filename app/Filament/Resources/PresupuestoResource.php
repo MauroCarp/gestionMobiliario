@@ -237,20 +237,13 @@ class PresupuestoResource extends BaseResource
                         ->default(now())
                         ->columnSpan(1),
 
-                    Forms\Components\Select::make('metodo_pago')
-                        ->label('Método de pago')
-                        ->options(Presupuesto::METODOS_PAGO)
-                        ->default('defecto')
+                    Forms\Components\Textarea::make('metodo_pago')
+                        ->label('Bases y condiciones')
+                        ->helperText('Cada línea se muestra como un ítem en el PDF comercial')
+                        ->default(fn (): string => Presupuesto::textoBasesCondicionesDefault())
+                        ->rows(8)
                         ->required()
-                        ->columnSpan(1),
-
-                    Forms\Components\TextInput::make('dias_entrega')
-                        ->label('Días de entrega')
-                        ->numeric()
-                        ->minValue(1)
-                        ->default(50)
-                        ->required()
-                        ->columnSpan(1),
+                        ->columnSpanFull(),
 
                     Forms\Components\Checkbox::make('logistica_instalacion_propia')
                         ->label('Logística e instalación propia')
@@ -519,11 +512,9 @@ class PresupuestoResource extends BaseResource
                     ->date('d/m/Y')
                     ->placeholder('—'),
                 Infolists\Components\TextEntry::make('metodo_pago')
-                    ->label('Método de pago')
-                    ->formatStateUsing(fn (?string $state): string => Presupuesto::METODOS_PAGO[$state ?? 'defecto'] ?? 'Defecto'),
-                Infolists\Components\TextEntry::make('dias_entrega')
-                    ->label('Días de entrega')
-                    ->formatStateUsing(fn (?int $state): string => ($state ?: 50) . ' días'),
+                    ->label('Bases y condiciones')
+                    ->listWithLineBreaks()
+                    ->columnSpanFull(),
                 Infolists\Components\IconEntry::make('logistica_instalacion_propia')
                     ->label('Logística e instalación propia')
                     ->boolean(),

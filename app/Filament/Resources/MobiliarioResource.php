@@ -263,11 +263,24 @@ class MobiliarioResource extends BaseResource
             ]),
 
             Forms\Components\Section::make('Documentos técnicos')->schema([
+                Forms\Components\Placeholder::make('documentos_list')
+                    ->label('')
+                    ->content(fn (?Mobiliario $record): HtmlString => new HtmlString(
+                        view('filament.mobiliarios.documentos-list', [
+                            'documentos' => $record?->getMedia('documentos') ?? collect(),
+                        ])->render(),
+                    ))
+                    ->visibleOn('view')
+                    ->columnSpanFull(),
+
                 Forms\Components\SpatieMediaLibraryFileUpload::make('documentos')
                     ->collection('documentos')
                     ->multiple()
                     ->reorderable()
-                    ->appendFiles(),
+                    ->appendFiles()
+                    ->openable()
+                    ->downloadable()
+                    ->hiddenOn('view'),
             ]),
 
             Forms\Components\Section::make('Historial de precios')

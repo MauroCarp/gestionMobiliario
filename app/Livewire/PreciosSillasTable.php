@@ -7,7 +7,7 @@ use App\Models\InsumoMarcaSilla;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Tables\Actions\Action;
-use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -30,9 +30,10 @@ class PreciosSillasTable extends Component implements HasForms, HasTable
             ->heading('Sillas')
             ->description('Precio de venta del producto según marca y nombre de fantasía.')
             ->columns([
-                ImageColumn::make('insumo_imagen')
+                SpatieMediaLibraryImageColumn::make('insumo.imagen')
+                    ->collection('imagen')
+                    ->conversion('thumb')
                     ->label('Foto')
-                    ->getStateUsing(fn (InsumoMarcaSilla $record): ?string => $record->insumo?->imagenUrl())
                     ->square()
                     ->extraImgAttributes(['style' => 'object-fit:contain; background:#f3f4f6;']),
 
