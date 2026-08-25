@@ -141,8 +141,35 @@ class Mobiliario extends Model implements HasMedia
     public function proyectos(): BelongsToMany
     {
         return $this->belongsToMany(Proyecto::class, 'proyecto_mobiliario')
-            ->withPivot('cantidad', 'observaciones')
+            ->withPivot('cantidad', 'observaciones', 'sector_id')
             ->withTimestamps();
+    }
+
+    public function asignarAProyectosDeMarcas(): void
+    {
+        $marcaIds = $this->marcas()->pluck('marcas.id');
+
+        if ($marcaIds->isEmpty()) {
+            return;
+        }
+
+        $proyectoIds = Proyecto::query()
+            ->whereIn('marca_id', $marcaIds)
+            ->pluck('id');
+
+        if ($proyectoIds->isEmpty()) {
+            return;
+        }
+
+        $this->proyectos()->syncWithoutDetaching(
+            $proyectoIds->mapWithKeys(fn ($id): array => [
+                (int) $id => [
+                    'cantidad' => 1,
+                    'observaciones' => null,
+                    'sector_id' => null,
+                ],
+            ])->all()
+        );
     }
 
     public function presupuestoItems(): HasMany

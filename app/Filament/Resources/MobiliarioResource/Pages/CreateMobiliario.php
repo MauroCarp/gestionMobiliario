@@ -31,6 +31,8 @@ class CreateMobiliario extends CreateRecord
 
     protected function afterCreate(): void
     {
+        $this->record->asignarAProyectosDeMarcas();
+
         if (! $this->duplicateFromId) {
             return;
         }
