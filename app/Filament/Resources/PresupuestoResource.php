@@ -24,6 +24,8 @@ use Filament\Notifications\Notification;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\HtmlString;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class PresupuestoResource extends BaseResource
 {
@@ -441,24 +443,10 @@ class PresupuestoResource extends BaseResource
                         ->addActionLabel('+ Agregar mobiliario')
                         ->defaultItems(0)
                         ->cloneable()
-                        ->itemLabel(function (array $state): ?string {
-                            $nombre = match (true) {
-                                ! empty($state['mobiliario_id']) => Mobiliario::find($state['mobiliario_id'])?->nombre,
-                                ! empty($state['insumo_id']) => '[SILLA] ' . (Insumo::find($state['insumo_id'])?->nombre ?? ''),
-                                default => null,
-                            };
-
-                            if (! $nombre) {
-                                return null;
-                            }
-
-                            $sector = ! empty($state['sector_id'])
-                                ? Sector::find($state['sector_id'])?->nombre
-                                : 'Sin sector';
-
-                            return "{$nombre} · {$sector}";
-                        })
-                        ->collapsible(),
+                        ->truncateItemLabel(false)
+                        ->itemLabel(fn (array $state): ?HtmlString => static::etiquetaItemRepeater($state))
+                        ->collapsible()
+                        ->collapsed(),
                 ]),
 
             Forms\Components\Section::make('Observaciones y Notas')
@@ -888,6 +876,64 @@ class PresupuestoResource extends BaseResource
             'view'   => Pages\ViewPresupuesto::route('/{record}'),
             'edit'   => Pages\EditPresupuesto::route('/{record}/edit'),
         ];
+    }
+
+    public static function etiquetaItemRepeater(array $state): ?HtmlString
+    {
+        $nombre = null;
+        $thumbUrl = null;
+
+        if (! empty($state['mobiliario_id'])) {
+            $mobiliario = Mobiliario::find($state['mobiliario_id']);
+            $nombre = $mobiliario?->nombre;
+            $thumbUrl = static::urlMiniaturaMedia($mobiliario?->getFirstMedia('imagenes'));
+        } elseif (! empty($state['insumo_id'])) {
+            $insumo = Insumo::find($state['insumo_id']);
+            $nombre = $insumo?->nombre ? '[SILLA] '.$insumo->nombre : null;
+            $thumbUrl = static::urlMiniaturaMedia($insumo?->getFirstMedia('imagen'));
+        }
+
+        if (! $nombre) {
+            return null;
+        }
+
+        $sector = ! empty($state['sector_id'])
+            ? (Sector::find($state['sector_id'])?->nombre ?: 'Sin sector')
+            : 'Sin sector';
+
+        $cantidad = max(1, (int) ($state['cantidad'] ?? 1));
+
+        return static::htmlEtiquetaItemRepeater($nombre, $sector, $cantidad, $thumbUrl);
+    }
+
+    public static function htmlEtiquetaItemRepeater(string $nombre, string $sector, int $cantidad, ?string $thumbUrl): HtmlString
+    {
+        $texto = e($nombre).' · '.e($sector).' ('.$cantidad.')';
+
+        if (! filled($thumbUrl)) {
+            return new HtmlString($texto);
+        }
+
+        $img = '<img src="'.e($thumbUrl).'" alt=""'
+            .' style="width:40px;height:40px;object-fit:contain;flex-shrink:0;border-radius:0.25rem;background:#f3f4f6;"'
+            .'>';
+
+        return new HtmlString(
+            '<span class="inline-flex items-center gap-2 min-w-0">'.$img.'<span>'.$texto.'</span></span>'
+        );
+    }
+
+    public static function urlMiniaturaMedia(?Media $media): ?string
+    {
+        if (! $media) {
+            return null;
+        }
+
+        $url = $media->hasGeneratedConversion('thumb')
+            ? $media->getUrl('thumb')
+            : $media->getUrl();
+
+        return filled($url) ? $url : null;
     }
 
 }

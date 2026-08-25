@@ -198,7 +198,8 @@ class MobiliarioResource extends BaseResource
                                     ->numeric()->minValue(0)->step(0.01)->prefix('$'),
                                 Forms\Components\TextInput::make('stock_minimo')
                                     ->label('Stock Mínimo')
-                                    ->numeric()->minValue(0)->step(0.01),
+                                    ->numeric()->minValue(0)->step(0.01)
+                                    ->default(0),
                                 Forms\Components\Toggle::make('activo')
                                     ->label('Activo')
                                     ->default(true),
