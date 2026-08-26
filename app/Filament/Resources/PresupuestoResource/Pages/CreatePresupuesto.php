@@ -11,6 +11,6 @@ class CreatePresupuesto extends CreateRecord
 
     protected function getRedirectUrl(): string
     {
-        return $this->getResource()::getUrl('edit', ['record' => $this->getRecord()]);
+        return $this->getResource()::getUrl('view', ['record' => $this->getRecord()]);
     }
 }
