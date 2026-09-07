@@ -6,9 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Presupuesto extends Model
 {
@@ -305,14 +307,22 @@ class Presupuesto extends Model
         return in_array($this->estado, ['confirmado', 'pagado', 'entregado_parcial', 'entregado'], true);
     }
 
-    public function layoutMedia(): ?\Spatie\MediaLibrary\MediaCollections\Models\Media
+    /**
+     * @return Collection<int, Media>
+     */
+    public function layoutMedias(): Collection
     {
-        return $this->agencia?->getFirstMedia('planos');
+        return $this->agencia?->getMedia('planos') ?? collect();
+    }
+
+    public function layoutMedia(): ?Media
+    {
+        return $this->layoutMedias()->first();
     }
 
     public function tieneLayout(): bool
     {
-        return $this->layoutMedia() !== null;
+        return $this->layoutMedias()->isNotEmpty();
     }
 
     public function layoutUrl(): ?string

@@ -82,15 +82,69 @@ class PresupuestoResource extends BaseResource
             });
     }
 
+    /**
+     * @return array<int, Forms\Components\Component>
+     */
+    public static function layoutFormSchema(Presupuesto $record): array
+    {
+        $medias = $record->layoutMedias();
+
+        if ($medias->count() <= 1) {
+            return [];
+        }
+
+        return [
+            Forms\Components\Radio::make('media_id')
+                ->label('Plano / Layout')
+                ->options($medias->mapWithKeys(
+                    fn (Media $media) => [$media->id => $media->name]
+                ))
+                ->required(),
+        ];
+    }
+
+    public static function handleLayoutAction(Presupuesto $record, array $data, Actions\Action|Tables\Actions\Action $action): void
+    {
+        $medias = $record->layoutMedias();
+
+        if ($medias->isEmpty()) {
+            Notification::make()
+                ->warning()
+                ->title('No hay planos cargados')
+                ->send();
+
+            return;
+        }
+
+        $media = $medias->count() === 1
+            ? $medias->first()
+            : $medias->firstWhere('id', (int) ($data['media_id'] ?? 0));
+
+        if (! $media) {
+            Notification::make()
+                ->warning()
+                ->title('No hay planos cargados')
+                ->send();
+
+            return;
+        }
+
+        $action->getLivewire()->js('window.open(' . json_encode(url($media->getUrl())) . ", '_blank')");
+    }
+
     public static function layoutPageAction(\Closure $getRecord): Actions\Action
     {
         return Actions\Action::make('layout')
             ->label('Layout')
             ->icon('heroicon-o-map')
             ->color('primary')
-            ->visible(fn (): bool => $getRecord()->tieneLayout())
-            ->url(fn (): string => route('presupuesto.layout', $getRecord()->id))
-            ->openUrlInNewTab();
+            ->modalHeading('Elegir plano')
+            ->modalSubmitActionLabel('Abrir')
+            ->modalHidden(fn (): bool => $getRecord()->layoutMedias()->count() <= 1)
+            ->form(fn (): array => static::layoutFormSchema($getRecord()))
+            ->action(function (array $data, Actions\Action $action) use ($getRecord): void {
+                static::handleLayoutAction($getRecord(), $data, $action);
+            });
     }
 
     public static function layoutTableAction(): Tables\Actions\Action
@@ -99,9 +153,13 @@ class PresupuestoResource extends BaseResource
             ->label('Layout')
             ->icon('heroicon-o-map')
             ->color('primary')
-            ->visible(fn (Presupuesto $record): bool => $record->tieneLayout())
-            ->url(fn (Presupuesto $record): string => route('presupuesto.layout', $record->id))
-            ->openUrlInNewTab();
+            ->modalHeading('Elegir plano')
+            ->modalSubmitActionLabel('Abrir')
+            ->modalHidden(fn (Presupuesto $record): bool => $record->layoutMedias()->count() <= 1)
+            ->form(fn (Presupuesto $record): array => static::layoutFormSchema($record))
+            ->action(function (Presupuesto $record, array $data, Tables\Actions\Action $action): void {
+                static::handleLayoutAction($record, $data, $action);
+            });
     }
 
     /**
