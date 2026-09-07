@@ -22,8 +22,8 @@ use Illuminate\Support\Facades\DB;
 class StockReservaService
 {
     public function __construct(
-        private readonly AnalisisPresupuestoService $analisis,
         private readonly StockCascoService $stockCasco,
+        private readonly ConfirmacionPresupuestoPlanificador $planificador,
     ) {}
 
     /**
@@ -278,140 +278,46 @@ class StockReservaService
     }
 
     /**
-     * Genera órdenes de compra automáticas agrupadas por proveedor.
-     * Si ya existe una OC sugerida/pendiente para el proveedor, agrega los ítems allí.
-     * Si el insumo tiene un flujo externo activo, crea también el LoteProcesoExterno.
-     * Para mobiliarios del presupuesto con flujo externo activo, crea lotes directamente.
+     * Al confirmar: planifica lotes/OC, reserva insumos y persiste el plan.
+     *
+     * @return array{lotes: list<LoteProcesoExterno>, ordenes: list<OrdenCompra>, plan: array<string, mixed>}
+     */
+    public function aplicarEfectosConfirmacion(Presupuesto $presupuesto): array
+    {
+        $plan = $this->simularConfirmacion($presupuesto);
+        $this->reservar($presupuesto);
+        $persistido = $this->persistirPlanConfirmacion($presupuesto, $plan);
+
+        return [
+            'lotes'   => $persistido['lotes'],
+            'ordenes' => $persistido['ordenes'],
+            'plan'    => $plan,
+        ];
+    }
+
+    /**
+     * Dry-run: arma el snapshot y devuelve el plan sin escribir.
+     *
+     * @return array{lotes: list<array<string, mixed>>, ordenes_compra: list<array<string, mixed>>}
+     */
+    public function simularConfirmacion(Presupuesto $presupuesto): array
+    {
+        return $this->planificador->planificar(
+            $this->construirSnapshotConfirmacion($presupuesto)
+        );
+    }
+
+    /**
+     * Genera OC y lotes según el plan (sin reservar). Usado desde Análisis de Demanda.
      *
      * @return array<int, OrdenCompra>
      */
     public function generarOrdenCompraAutomatica(Presupuesto $presupuesto): array
     {
-        if (OrdenCompra::where('presupuesto_id', $presupuesto->id)
-            ->where('generado_automaticamente', true)
-            ->exists()) {
-            $this->crearLotesExternosMobiliarios($presupuesto);
+        $plan = $this->simularConfirmacion($presupuesto);
+        $persistido = $this->persistirPlanConfirmacion($presupuesto, $plan);
 
-            return [];
-        }
-
-        $demanda = $this->calcularDemandaPresupuesto($presupuesto);
-
-        if (empty($demanda)) {
-            $this->crearLotesExternosMobiliarios($presupuesto);
-
-            return [];
-        }
-
-        $insumos = Insumo::whereIn('id', array_keys($demanda))
-            ->with(['plantillaFlujos' => fn ($q) => $q->where('activo', true)->with('etapas')])
-            ->get()
-            ->keyBy('id');
-
-        $insumosLowStock = $insumos->filter(
-            fn (Insumo $insumo) => $insumo->stock_actual < $insumo->stock_minimo
-        );
-
-        $ordenes = [];
-
-        if ($insumosLowStock->isNotEmpty()) {
-            $porProveedor = $insumosLowStock->groupBy(fn (Insumo $insumo) => $insumo->proveedor_id ?? 'sin_proveedor');
-
-            foreach ($porProveedor as $proveedorKey => $insumosGrupo) {
-                $proveedorId = $proveedorKey === 'sin_proveedor' ? null : (int) $proveedorKey;
-
-                $esCritico = $insumosGrupo->contains(fn (Insumo $i) => ($i->stock_disponible ?? 0) <= 0);
-                $prioridad = $esCritico ? 'critica' : 'alta';
-
-                $orden = DB::transaction(function () use ($presupuesto, $insumosGrupo, $demanda, $prioridad, $proveedorId) {
-                    $oc = OrdenCompra::where('proveedor_id', $proveedorId)
-                        ->whereIn('estado', ['sugerida', 'pendiente'])
-                        ->first();
-
-                    if (! $oc) {
-                        $oc = OrdenCompra::create([
-                            'estado'                   => 'sugerida',
-                            'prioridad'                => $prioridad,
-                            'generado_automaticamente' => true,
-                            'presupuesto_id'           => $presupuesto->id,
-                            'proveedor_id'             => $proveedorId,
-                            'observaciones'            => "Generada automáticamente para presupuesto {$presupuesto->codigo}",
-                        ]);
-                    } elseif ($oc->prioridad !== 'critica' && $prioridad === 'critica') {
-                        $oc->update(['prioridad' => 'critica']);
-                    }
-
-                    foreach ($insumosGrupo as $insumo) {
-                        $cantidad = $demanda[$insumo->id];
-
-                        $itemExistente = OrdenCompraItem::where('orden_compra_id', $oc->id)
-                            ->where('insumo_id', $insumo->id)
-                            ->first();
-
-                        if ($itemExistente) {
-                            $itemExistente->update([
-                                'cantidad_solicitada' => $itemExistente->cantidad_solicitada + $cantidad,
-                                'precio_unitario'     => $insumo->precio_costo,
-                            ]);
-                        } else {
-                            OrdenCompraItem::create([
-                                'orden_compra_id'     => $oc->id,
-                                'insumo_id'           => $insumo->id,
-                                'cantidad_solicitada' => $cantidad,
-                                'precio_unitario'     => $insumo->precio_costo,
-                            ]);
-                        }
-
-                        $this->crearLotePendienteSiCorresponde($insumo, $cantidad, $oc, $presupuesto);
-                    }
-
-                    return $oc;
-                });
-
-                $ordenes[] = $orden;
-            }
-        }
-
-        $this->crearLotesExternosMobiliarios($presupuesto);
-
-        return $ordenes;
-    }
-
-    private function crearLotePendienteSiCorresponde(
-        Insumo $insumo,
-        float $cantidad,
-        OrdenCompra $oc,
-        Presupuesto $presupuesto
-    ): void {
-        $plantilla = $insumo->plantillaFlujos->first();
-
-        if (! $plantilla) {
-            return;
-        }
-
-        $yaExiste = LoteProcesoExterno::where('entidad_tipo', 'insumo')
-            ->where('entidad_id', $insumo->id)
-            ->where('origen_tipo', 'orden_compra')
-            ->where('origen_id', $oc->id)
-            ->whereNotIn('estado', ['cancelado'])
-            ->exists();
-
-        if ($yaExiste) {
-            return;
-        }
-
-        $lote = LoteProcesoExterno::create([
-            'plantilla_id'  => $plantilla->id,
-            'entidad_tipo'  => 'insumo',
-            'entidad_id'    => $insumo->id,
-            'cantidad'      => $cantidad,
-            'origen_tipo'   => 'orden_compra',
-            'origen_id'     => $oc->id,
-            'estado'        => 'pendiente',
-            'fecha_inicio'  => now()->toDateString(),
-            'observaciones' => "Generado al confirmar {$presupuesto->codigo}. Activar al recibir la OC.",
-        ]);
-        $lote->crearEtapasDesde($plantilla);
+        return $persistido['ordenes'];
     }
 
     /**
@@ -423,16 +329,349 @@ class StockReservaService
         int $cantidad,
         string $observaciones
     ): ?LoteProcesoExterno {
+        return $this->crearLoteManual(
+            $presupuesto,
+            'mobiliario',
+            $mobiliarioId,
+            $cantidad,
+            $observaciones,
+        );
+    }
+
+    /**
+     * @param  array{lotes: list<array<string, mixed>>, ordenes_compra: list<array<string, mixed>>}  $plan
+     * @return array{lotes: list<LoteProcesoExterno>, ordenes: list<OrdenCompra>}
+     */
+    public function persistirPlanConfirmacion(Presupuesto $presupuesto, array $plan): array
+    {
+        return DB::transaction(function () use ($presupuesto, $plan) {
+            $lotes = [];
+
+            foreach ($plan['lotes'] ?? [] as $lotePlan) {
+                $lote = $this->crearLoteManual(
+                    $presupuesto,
+                    (string) $lotePlan['entidad_tipo'],
+                    (int) $lotePlan['entidad_id'],
+                    (float) $lotePlan['cantidad'],
+                    (string) ($lotePlan['observaciones'] ?? ''),
+                    isset($lotePlan['plantilla_id']) ? (int) $lotePlan['plantilla_id'] : null,
+                );
+
+                if ($lote) {
+                    $lotes[] = $lote;
+                }
+            }
+
+            $ordenes = $this->persistirOrdenesDelPlan($presupuesto, $plan['ordenes_compra'] ?? []);
+
+            return [
+                'lotes'   => $lotes,
+                'ordenes' => $ordenes,
+            ];
+        });
+    }
+
+    /**
+     * Snapshot de lectura para el planificador (sin mutar stock ni reservas).
+     *
+     * @return array<string, mixed>
+     */
+    public function construirSnapshotConfirmacion(Presupuesto $presupuesto): array
+    {
+        $presupuesto->loadMissing([
+            'items.mobiliario.categoria',
+            'items.mobiliario.composicionTecnica',
+            'items.insumo',
+            'agencia.proyecto.marca',
+        ]);
+
+        return [
+            'presupuesto'        => [
+                'id'      => (int) $presupuesto->id,
+                'codigo'  => (string) $presupuesto->codigo,
+                'agencia' => $presupuesto->agencia?->nombre ?? '',
+                'marca'   => $presupuesto->agencia?->proyecto?->marca?->nombre ?? '',
+            ],
+            'omitir_oc'          => OrdenCompra::where('presupuesto_id', $presupuesto->id)
+                ->where('generado_automaticamente', true)
+                ->exists(),
+            'mobiliarios'        => $this->snapshotMobiliarios($presupuesto),
+            'insumos'            => $this->snapshotInsumos($presupuesto),
+            'ordenes_pendientes' => $this->snapshotOrdenesPendientes(),
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function snapshotMobiliarios(Presupuesto $presupuesto): array
+    {
+        $grupos = $presupuesto->items
+            ->filter(fn (PresupuestoItem $item) => (bool) $item->mobiliario_id)
+            ->groupBy('mobiliario_id');
+
+        $lotesExistentes = LoteProcesoExterno::query()
+            ->where('entidad_tipo', 'mobiliario')
+            ->where('origen_tipo', 'manual')
+            ->where('origen_id', $presupuesto->id)
+            ->whereNotIn('estado', ['cancelado'])
+            ->pluck('entidad_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $resultado = [];
+
+        foreach ($grupos as $mobiliarioId => $items) {
+            /** @var PresupuestoItem $primero */
+            $primero = $items->first();
+            $mobiliario = $primero->mobiliario;
+            $plantilla = $mobiliario
+                ?->plantillaFlujos()
+                ->where('activo', true)
+                ->first();
+
+            $esCasco = (bool) $plantilla?->esCascoSilla();
+            $cantidadAFabricar = $this->cantidadAFabricarGrupo($items);
+
+            $fila = [
+                'id'                  => (int) $mobiliarioId,
+                'nombre'              => $mobiliario?->nombre,
+                'cantidad_a_fabricar' => $cantidadAFabricar,
+                'es_casco'            => $esCasco,
+                'ya_tiene_lote'       => in_array((int) $mobiliarioId, $lotesExistentes, true),
+                'plantilla'           => $plantilla ? [
+                    'id'     => (int) $plantilla->id,
+                    'nombre' => $plantilla->nombre,
+                ] : null,
+            ];
+
+            if ($esCasco && $plantilla) {
+                $fila['stock_casco']     = (int) $plantilla->stock_casco;
+                $fila['demanda_activa']  = $this->demandaActivaParaPlan($presupuesto, (int) $mobiliarioId);
+                $fila['lotes_abiertos']  = $this->stockCasco->cantidadEnLotesAbiertos(
+                    (int) $mobiliarioId,
+                    (int) $plantilla->id,
+                );
+            }
+
+            $resultado[] = $fila;
+        }
+
+        return $resultado;
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, PresupuestoItem>  $items
+     */
+    private function cantidadAFabricarGrupo($items): int
+    {
+        $yaAsignado = $items->every(fn (PresupuestoItem $item) => $item->stock_descontado_at !== null);
+
+        if ($yaAsignado) {
+            return (int) $items->sum(fn (PresupuestoItem $item) => $item->cantidadParaFabricacion());
+        }
+
+        $stockRestante = (int) ($items->first()?->mobiliario?->stock_actual ?? 0);
+        $aFabricar = 0;
+
+        foreach ($items as $item) {
+            $cantidad = (int) $item->cantidad;
+            $desdeStock = min($cantidad, max(0, $stockRestante));
+            $stockRestante -= $desdeStock;
+            $aFabricar += $cantidad - $desdeStock;
+        }
+
+        return $aFabricar;
+    }
+
+    private function demandaActivaParaPlan(Presupuesto $presupuesto, int $mobiliarioId): int
+    {
+        $demanda = $this->stockCasco->demandaActiva($mobiliarioId);
+
+        if (! in_array($presupuesto->estado, StockCascoService::ESTADOS_ACTIVOS, true)) {
+            $demanda += (int) $presupuesto->items
+                ->where('mobiliario_id', $mobiliarioId)
+                ->whereNull('finalizado_at')
+                ->sum('cantidad');
+        }
+
+        return $demanda;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function snapshotInsumos(Presupuesto $presupuesto): array
+    {
+        $demanda = $this->calcularDemandaPresupuesto($presupuesto);
+
+        if ($demanda === []) {
+            return [];
+        }
+
+        $insumoIds = array_map('intval', array_keys($demanda));
+
+        $insumos = Insumo::whereIn('id', $insumoIds)->get()->keyBy('id');
+
+        $plantillas = PlantillaFlujoExterno::query()
+            ->where('entidad_tipo', 'insumo')
+            ->whereIn('entidad_id', $insumoIds)
+            ->where('activo', true)
+            ->get()
+            ->keyBy('entidad_id');
+
+        $reservas = ReservaStock::query()
+            ->where('estado', 'activa')
+            ->whereIn('insumo_id', $insumoIds)
+            ->get()
+            ->groupBy('insumo_id');
+
+        $lotesExistentes = LoteProcesoExterno::query()
+            ->where('entidad_tipo', 'insumo')
+            ->where('origen_tipo', 'manual')
+            ->where('origen_id', $presupuesto->id)
+            ->whereNotIn('estado', ['cancelado'])
+            ->pluck('entidad_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $resultado = [];
+
+        foreach ($demanda as $insumoId => $cantidadDemanda) {
+            $insumoId = (int) $insumoId;
+            /** @var Insumo|null $insumo */
+            $insumo = $insumos->get($insumoId);
+
+            if (! $insumo) {
+                continue;
+            }
+
+            $reservadoAjeno = (float) ($reservas->get($insumoId) ?? collect())
+                ->where('presupuesto_id', '!=', $presupuesto->id)
+                ->sum('cantidad_reservada');
+
+            $plantilla = $plantillas->get($insumoId);
+
+            $resultado[] = [
+                'id'                => $insumoId,
+                'nombre'            => $insumo->nombre,
+                'codigo'            => $insumo->codigo,
+                'demanda'           => (float) $cantidadDemanda,
+                'stock_disponible'  => max(0, (float) ($insumo->stock_actual ?? 0) - $reservadoAjeno),
+                'proveedor_id'      => $insumo->proveedor_id ? (int) $insumo->proveedor_id : null,
+                'precio_costo'      => $insumo->precio_costo,
+                'ya_tiene_lote'     => in_array($insumoId, $lotesExistentes, true),
+                'plantilla'         => $plantilla ? [
+                    'id'     => (int) $plantilla->id,
+                    'nombre' => $plantilla->nombre,
+                ] : null,
+            ];
+        }
+
+        return $resultado;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function snapshotOrdenesPendientes(): array
+    {
+        return OrdenCompra::query()
+            ->whereIn('estado', ['sugerida', 'pendiente'])
+            ->with('items')
+            ->get()
+            ->map(fn (OrdenCompra $oc) => [
+                'id'           => (int) $oc->id,
+                'proveedor_id' => $oc->proveedor_id ? (int) $oc->proveedor_id : null,
+                'estado'       => $oc->estado,
+                'prioridad'    => $oc->prioridad,
+                'insumo_ids'   => $oc->items
+                    ->pluck('insumo_id')
+                    ->map(fn ($id) => (int) $id)
+                    ->values()
+                    ->all(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $ordenesPlan
+     * @return list<OrdenCompra>
+     */
+    private function persistirOrdenesDelPlan(Presupuesto $presupuesto, array $ordenesPlan): array
+    {
+        $ordenes = [];
+
+        foreach ($ordenesPlan as $ocPlan) {
+            $oc = null;
+
+            if (($ocPlan['accion'] ?? '') === 'agregar' && ! empty($ocPlan['orden_compra_id'])) {
+                $oc = OrdenCompra::find($ocPlan['orden_compra_id']);
+
+                if ($oc && ($ocPlan['prioridad'] ?? '') === 'critica' && $oc->prioridad !== 'critica') {
+                    $oc->update(['prioridad' => 'critica']);
+                }
+            }
+
+            if (! $oc) {
+                $oc = OrdenCompra::create([
+                    'estado'                   => 'sugerida',
+                    'prioridad'                => $ocPlan['prioridad'] ?? 'alta',
+                    'generado_automaticamente' => true,
+                    'presupuesto_id'           => $presupuesto->id,
+                    'proveedor_id'             => $ocPlan['proveedor_id'] ?? null,
+                    'observaciones'            => "Generada automáticamente para presupuesto {$presupuesto->codigo}",
+                ]);
+            }
+
+            foreach ($ocPlan['items'] ?? [] as $itemPlan) {
+                $itemExistente = OrdenCompraItem::where('orden_compra_id', $oc->id)
+                    ->where('insumo_id', $itemPlan['insumo_id'])
+                    ->first();
+
+                if ($itemExistente) {
+                    $itemExistente->update([
+                        'cantidad_solicitada' => $itemExistente->cantidad_solicitada + $itemPlan['cantidad'],
+                        'precio_unitario'     => $itemPlan['precio_unitario'] ?? $itemExistente->precio_unitario,
+                    ]);
+                } else {
+                    OrdenCompraItem::create([
+                        'orden_compra_id'     => $oc->id,
+                        'insumo_id'           => $itemPlan['insumo_id'],
+                        'cantidad_solicitada' => $itemPlan['cantidad'],
+                        'precio_unitario'     => $itemPlan['precio_unitario'] ?? null,
+                    ]);
+                }
+            }
+
+            $ordenes[] = $oc;
+        }
+
+        return $ordenes;
+    }
+
+    public function crearLoteManual(
+        Presupuesto $presupuesto,
+        string $entidadTipo,
+        int $entidadId,
+        float $cantidad,
+        string $observaciones,
+        ?int $plantillaId = null
+    ): ?LoteProcesoExterno {
         if ($cantidad <= 0) {
             return null;
         }
 
-        $plantilla = PlantillaFlujoExterno::query()
-            ->where('entidad_tipo', 'mobiliario')
-            ->where('entidad_id', $mobiliarioId)
+        $plantillaQuery = PlantillaFlujoExterno::query()
+            ->where('entidad_tipo', $entidadTipo)
+            ->where('entidad_id', $entidadId)
             ->where('activo', true)
-            ->with('etapas')
-            ->first();
+            ->with('etapas');
+
+        $plantilla = $plantillaId
+            ? (clone $plantillaQuery)->whereKey($plantillaId)->first() ?? $plantillaQuery->first()
+            : $plantillaQuery->first();
 
         if (! $plantilla) {
             return null;
@@ -440,8 +679,8 @@ class StockReservaService
 
         $lote = LoteProcesoExterno::create([
             'plantilla_id'  => $plantilla->id,
-            'entidad_tipo'  => 'mobiliario',
-            'entidad_id'    => $mobiliarioId,
+            'entidad_tipo'  => $entidadTipo,
+            'entidad_id'    => $entidadId,
             'cantidad'      => $cantidad,
             'origen_tipo'   => 'manual',
             'origen_id'     => $presupuesto->id,
@@ -453,74 +692,6 @@ class StockReservaService
         $lote->crearEtapasDesde($plantilla);
 
         return $lote;
-    }
-
-    /**
-     * Para cada mobiliario del presupuesto que tenga una PlantillaFlujoExterno activa,
-     * crea un LoteProcesoExterno en estado pendiente.
-     * Idempotente: no duplica si ya existe un lote activo para el mismo mobiliario/presupuesto.
-     * Para cascos de silla, la cantidad es el faltante global (demanda - stock - lotes abiertos).
-     */
-    private function crearLotesExternosMobiliarios(Presupuesto $presupuesto): void
-    {
-        $presupuesto->loadMissing(['items.mobiliario.categoria', 'agencia.proyecto.marca']);
-
-        $mobiliariosProcesados = [];
-
-        foreach ($presupuesto->items as $item) {
-            if (! $item->mobiliario_id) {
-                continue;
-            }
-
-            if (isset($mobiliariosProcesados[$item->mobiliario_id])) {
-                continue;
-            }
-
-            $mobiliariosProcesados[$item->mobiliario_id] = true;
-
-            $yaExiste = LoteProcesoExterno::where('entidad_tipo', 'mobiliario')
-                ->where('entidad_id', $item->mobiliario_id)
-                ->where('origen_id', $presupuesto->id)
-                ->whereNotIn('estado', ['cancelado'])
-                ->exists();
-
-            if ($yaExiste) {
-                continue;
-            }
-
-            $plantilla = $item->mobiliario
-                ?->plantillaFlujos()
-                ->where('activo', true)
-                ->with('etapas')
-                ->first();
-
-            if (! $plantilla) {
-                continue;
-            }
-
-            $esCasco = $plantilla->esCascoSilla();
-            $cantidad = $esCasco
-                ? $this->stockCasco->calcularCantidadAFabricar((int) $item->mobiliario_id)
-                : (int) $item->cantidad;
-
-            if ($cantidad <= 0) {
-                continue;
-            }
-
-            $marca = $presupuesto->agencia?->proyecto?->marca?->nombre ?? '';
-            $agencia = $presupuesto->agencia?->nombre ?? '';
-
-            $observaciones = $esCasco
-                ? "Cascos a fabricar al confirmar {$presupuesto->codigo} ({$cantidad} uds) - {$agencia} - {$marca}"
-                : "Generado al confirmar presupuesto {$presupuesto->codigo} - {$agencia} - {$marca}";
-
-            $this->crearLoteCascoMobiliario(
-                $presupuesto,
-                (int) $item->mobiliario_id,
-                $cantidad,
-                $observaciones,
-            );
-        }
     }
 
     // ─── Internals ────────────────────────────────────────────────────────────

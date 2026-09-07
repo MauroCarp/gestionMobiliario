@@ -29,7 +29,7 @@ class PresupuestoObserver
 
         try {
             match ($estadoNuevo) {
-                // Al confirmar: reservar stock y generar orden de compra si hay faltantes
+                // Al confirmar: reservar stock, lotes de proceso externo y OC si hay faltantes
                 'confirmado' => $this->alConfirmar($presupuesto),
 
                 // Al pagar: consumir stock (descuento real)
@@ -41,15 +41,17 @@ class PresupuestoObserver
                 default => null,
             };
         } catch (\Throwable $e) {
-            Log::error("PresupuestoObserver: error en transición {$estadoAnterior} → {$estadoNuevo} para #{$presupuesto->id}: {$e->getMessage()}");
+            Log::error(
+                "PresupuestoObserver: error en transición {$estadoAnterior} → {$estadoNuevo} para #{$presupuesto->id}: {$e->getMessage()}",
+                ['exception' => $e],
+            );
         }
     }
 
     private function alConfirmar(Presupuesto $presupuesto): void
     {
         $this->stockMobiliarioService->asignarStockPresupuesto($presupuesto);
-        $this->stockService->reservar($presupuesto);
-        $this->stockService->generarOrdenCompraAutomatica($presupuesto);
+        $this->stockService->aplicarEfectosConfirmacion($presupuesto);
         $this->produccionService->crearEtapasParaPresupuesto($presupuesto);
     }
 

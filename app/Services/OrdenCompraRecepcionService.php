@@ -135,22 +135,8 @@ class OrdenCompraRecepcionService
             ->where('activo', true)
             ->first();
 
-        if ($plantilla && ($esRecepcionTotal || $item->cantidad_recibida >= $item->cantidad_solicitada)) {
-            $lote = LoteProcesoExterno::create([
-                'entidad_tipo' => 'insumo',
-                'entidad_id'   => $item->insumo_id,
-                'plantilla_id' => $plantilla->id,
-                'cantidad'     => $item->cantidad_solicitada,
-                'origen_tipo'  => 'orden_compra',
-                'origen_id'    => $orden->id,
-                'estado'       => 'en_proceso',
-                'fecha_inicio' => now()->toDateString(),
-            ]);
-            $lote->crearEtapasDesde($plantilla);
-
-            return;
-        }
-
+        // Los lotes de insumos con plantilla se crean al confirmar el presupuesto.
+        // Acá solo entra stock de insumos que se compran (sin flujo externo).
         if (! $plantilla) {
             $item->insumo->increment('stock_actual', $cantidadRecibida);
         }
