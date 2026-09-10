@@ -77,8 +77,8 @@ class PresupuestosPendientesEntregaWidget extends BaseWidget
                         $record->fecha_vencimiento === null                        => 'gray',
                         $record->fecha_vencimiento->isPast()                      => 'danger',
                         $record->fecha_vencimiento->diffInDays(now(), absolute: true) <= 10       => 'danger',
-                        $record->fecha_vencimiento->diffInDays(now(), absolute: true) >= 15       => 'warning',
-                        default                                                   => 'success',
+                        $record->fecha_vencimiento->diffInDays(now(), absolute: true) >= 15       => 'success',
+                        default                                                   => 'warning',
                     })
                     ->placeholder('Fecha no definida'),
             ])
