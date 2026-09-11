@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Filament\Pages\AnalisisDemanda;
 use App\Filament\Pages\Auditoria;
+use App\Filament\Pages\Impresora;
 use App\Filament\Pages\PreciosMobiliarios;
 use App\Filament\Resources\AgenciaResource;
 use App\Filament\Resources\CascoSillaResource;
@@ -159,6 +160,11 @@ class FilamentResourceVisibility
                 'type' => 'page',
                 'class' => Auditoria::class,
                 'label' => Auditoria::getNavigationLabel(),
+            ],
+            'impresora' => [
+                'type' => 'page',
+                'class' => Impresora::class,
+                'label' => Impresora::getNavigationLabel(),
             ],
         ];
     }

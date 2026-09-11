@@ -1,0 +1,1 @@
+@livewire('impresora-modal')

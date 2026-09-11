@@ -1,7 +1,8 @@
 <?php
 
-use App\Http\Controllers\PresupuestoPdfController;
+use App\Http\Controllers\ImpresoraEtiquetaController;
 use App\Http\Controllers\MobiliarioPendientesEntregaPdfController;
+use App\Http\Controllers\PresupuestoPdfController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -32,4 +33,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/mobiliarios/pendientes-entrega/pdf', MobiliarioPendientesEntregaPdfController::class)
         ->name('mobiliarios.pendientes-entrega.pdf');
+
+    Route::get('/impresora/etiqueta', ImpresoraEtiquetaController::class)
+        ->name('impresora.etiqueta');
 });
