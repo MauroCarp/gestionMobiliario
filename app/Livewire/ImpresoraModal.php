@@ -49,7 +49,10 @@ class ImpresoraModal extends LivewireComponent implements HasActions, HasForms
             ->modalHeading('Impresora')
             ->modalSubmitActionLabel('Imprimir')
             ->form($this->impresoraFormSchema())
-            ->action(function (array $data): void {
+            ->fillForm(fn (): array => $this->datosPendientes !== []
+                ? $this->datosPendientes
+                : ['cantidad' => 1])
+            ->action(function (array $data, Action $action): void {
                 if ((int) $data['cantidad'] > 10) {
                     $this->datosPendientes = $data;
                     $this->replaceMountedAction('confirmarCantidad');
@@ -57,7 +60,9 @@ class ImpresoraModal extends LivewireComponent implements HasActions, HasForms
                     return;
                 }
 
+                $this->datosPendientes = $data;
                 $this->abrirEtiqueta($data);
+                $action->halt();
             });
     }
 
@@ -75,7 +80,7 @@ class ImpresoraModal extends LivewireComponent implements HasActions, HasForms
                 }
 
                 $this->abrirEtiqueta($this->datosPendientes);
-                $this->datosPendientes = [];
+                $this->replaceMountedAction('imprimir');
             });
     }
 
