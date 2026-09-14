@@ -19,6 +19,7 @@ class Presupuesto extends Model
     const ESTADOS = [
         'borrador'          => 'Borrador',
         'en_revision'       => 'En Revisión',
+        'enviado_a_cliente' => 'Enviado a Cliente',
         'aprobado'          => 'Aprobado',
         'confirmado'        => 'Confirmado',
         'pagado'            => 'Pagado',
@@ -31,6 +32,7 @@ class Presupuesto extends Model
     const ESTADO_COLORS = [
         'borrador'          => 'gray',
         'en_revision'       => 'warning',
+        'enviado_a_cliente' => 'info',
         'aprobado'          => 'success',
         'confirmado'        => 'info',
         'pagado'            => 'success',
@@ -107,22 +109,45 @@ class Presupuesto extends Model
 
     public function cambiarEstado(string $nuevoEstado, ?string $comentario = null): void
     {
-        $estadoAnterior = $this->estado;
-        $this->update(['estado' => $nuevoEstado]);
+        DB::transaction(function () use ($nuevoEstado, $comentario): void {
+            if ($nuevoEstado === 'enviado_a_cliente') {
+                $this->congelarPreciosLista();
+            }
 
-        PresupuestoHistorial::create([
-            'presupuesto_id'  => $this->id,
-            'estado_anterior' => $estadoAnterior,
-            'estado_nuevo'    => $nuevoEstado,
-            'comentario'      => $comentario,
-            'user_id'         => auth()->check() ? auth()->id() : null,
-        ]);
+            $estadoAnterior = $this->estado;
+            $this->update(['estado' => $nuevoEstado]);
 
-        if ($nuevoEstado === 'aprobado') {
-            $this->update([
-                'aprobado_por' => auth()->check() ? auth()->id() : null,
-                'aprobado_at'  => now(),
+            PresupuestoHistorial::create([
+                'presupuesto_id'  => $this->id,
+                'estado_anterior' => $estadoAnterior,
+                'estado_nuevo'    => $nuevoEstado,
+                'comentario'      => $comentario,
+                'user_id'         => auth()->check() ? auth()->id() : null,
             ]);
+
+            if ($nuevoEstado === 'aprobado') {
+                $this->update([
+                    'aprobado_por' => auth()->check() ? auth()->id() : null,
+                    'aprobado_at'  => now(),
+                ]);
+            }
+        });
+    }
+
+    public function congelarPreciosLista(): void
+    {
+        $this->loadMissing(['agencia.proyecto', 'items.mobiliario', 'items.insumo.marcasSilla']);
+
+        foreach ($this->items as $item) {
+            $item->setRelation('presupuesto', $this);
+
+            $precioLista = $item->precioListaCatalogo();
+
+            if ($precioLista === null) {
+                continue;
+            }
+
+            $item->update(['precio_unitario' => $precioLista]);
         }
     }
 
@@ -186,19 +211,24 @@ class Presupuesto extends Model
         return $this->estado === 'borrador';
     }
 
-    public function puedeAprobar(): bool
+    public function puedeEnviarACliente(): bool
     {
         return $this->estado === 'en_revision';
+    }
+
+    public function puedeAprobar(): bool
+    {
+        return $this->estado === 'enviado_a_cliente';
     }
 
     public function puedeRechazar(): bool
     {
-        return $this->estado === 'en_revision';
+        return in_array($this->estado, ['en_revision', 'enviado_a_cliente'], true);
     }
 
     public function puedeCancelar(): bool
     {
-        return in_array($this->estado, ['borrador', 'en_revision', 'aprobado', 'confirmado'], true);
+        return in_array($this->estado, ['borrador', 'en_revision', 'enviado_a_cliente', 'aprobado', 'confirmado'], true);
     }
 
     public function puedeRegistrarEntrega(): bool

@@ -51,7 +51,7 @@ class ImpresoraModal extends LivewireComponent implements HasActions, HasForms
             ->form($this->impresoraFormSchema())
             ->fillForm(fn (): array => $this->datosPendientes !== []
                 ? $this->datosPendientes
-                : ['cantidad' => 1])
+                : ['cantidad' => 1, 'legajos' => []])
             ->action(function (array $data, Action $action): void {
                 if ((int) $data['cantidad'] > 10) {
                     $this->datosPendientes = $data;
@@ -131,33 +131,22 @@ class ImpresoraModal extends LivewireComponent implements HasActions, HasForms
                 ->required()
                 ->default(1),
 
-            Select::make('legajo')
-                ->label('Empleado')
+            Select::make('legajos')
+                ->label('Empleado/s')
+                ->multiple()
+                ->default([])
                 ->options(fn () => Empleado::query()->orderBy('nombre')->pluck('nombre', 'legajo'))
                 ->searchable()
                 ->preload()
                 ->required()
-                ->getOptionLabelUsing(fn ($value): ?string => Empleado::query()->where('legajo', $value)->value('nombre'))
-                ->getSelectedRecordUsing(fn ($state): ?Empleado => filled($state)
-                    ? Empleado::query()->where('legajo', $state)->first()
-                    : null)
+                ->getOptionLabelsUsing(fn (array $values): array => Empleado::query()
+                    ->whereIn('legajo', $values)
+                    ->pluck('nombre', 'legajo')
+                    ->all())
                 ->createOptionModalHeading('Nuevo empleado')
                 ->createOptionForm($this->empleadoFormSchema())
                 ->createOptionUsing(function (array $data): string {
                     return Empleado::create($data)->legajo;
-                })
-                ->editOptionModalHeading('Editar empleado')
-                ->editOptionForm($this->empleadoFormSchema(ignorarLegajoActual: true))
-                ->fillEditOptionActionFormUsing(fn (Select $component): array => $component->getSelectedRecord()?->only(['nombre', 'legajo']) ?? [])
-                ->updateOptionUsing(function (array $data, Select $component): void {
-                    $empleado = $component->getSelectedRecord();
-
-                    if (! $empleado instanceof Empleado) {
-                        return;
-                    }
-
-                    $empleado->update($data);
-                    $component->state($data['legajo']);
                 }),
         ];
     }
@@ -165,30 +154,23 @@ class ImpresoraModal extends LivewireComponent implements HasActions, HasForms
     /**
      * @return array<int, TextInput>
      */
-    protected function empleadoFormSchema(bool $ignorarLegajoActual = false): array
+    protected function empleadoFormSchema(): array
     {
-        $legajo = TextInput::make('legajo')
-            ->label('Legajo')
-            ->required()
-            ->maxLength(50);
-
-        if ($ignorarLegajoActual) {
-            $legajo->unique(table: 'empleados', column: 'legajo', ignoreRecord: true);
-        } else {
-            $legajo->unique(table: 'empleados', column: 'legajo');
-        }
-
         return [
             TextInput::make('nombre')
                 ->label('Nombre')
                 ->required()
                 ->maxLength(255),
-            $legajo,
+            TextInput::make('legajo')
+                ->label('Legajo')
+                ->required()
+                ->maxLength(50)
+                ->unique(table: 'empleados', column: 'legajo'),
         ];
     }
 
     /**
-     * @param  array{marca_id: mixed, mobiliario_id: mixed, cantidad: mixed, legajo: mixed}  $data
+     * @param  array{marca_id: mixed, mobiliario_id: mixed, cantidad: mixed, legajos: mixed}  $data
      */
     protected function abrirEtiqueta(array $data): void
     {
@@ -196,7 +178,7 @@ class ImpresoraModal extends LivewireComponent implements HasActions, HasForms
             'marca_id' => $data['marca_id'],
             'mobiliario_id' => $data['mobiliario_id'],
             'cantidad' => $data['cantidad'],
-            'legajo' => $data['legajo'],
+            'legajos' => $data['legajos'],
         ]);
 
         $this->js('window.open('.json_encode($url).", '_blank')");

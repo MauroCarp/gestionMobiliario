@@ -58,10 +58,25 @@ class EditPresupuesto extends EditRecord
                     $this->refreshFormData(['estado']);
                 }),
 
+            Actions\Action::make('enviarACliente')
+                ->label('Enviar a Cliente')
+                ->icon('heroicon-o-paper-airplane')
+                ->color('info')
+                ->visible(fn (): bool => $this->record->puedeEnviarACliente())
+                ->requiresConfirmation()
+                ->modalHeading('Enviar presupuesto a cliente')
+                ->modalDescription('Se van a congelar los precios de los mobiliarios e insumos/sillas del presupuesto. Dejarán de seguir el precio de lista futuro.')
+                ->action(function (): void {
+                    $this->record->cambiarEstado('enviado_a_cliente');
+                    Notification::make()->success()->title('Presupuesto enviado a cliente. Precios congelados.')->send();
+                    $this->refreshFormData(['estado']);
+                }),
+
             Actions\Action::make('aprobar')
                 ->label('Aprobar')
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
+                ->visible(fn (): bool => $this->record->puedeAprobar())
                 ->requiresConfirmation()
                 ->action(function (): void {
                     $this->record->cambiarEstado('aprobado');

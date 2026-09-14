@@ -21,7 +21,7 @@ class PresupuestosRecientesWidget extends BaseWidget
         return $table
             ->query(
                 Presupuesto::query()
-                    ->whereIn('estado', ['borrador', 'en_revision', 'aprobado', 'confirmado'])
+                    ->whereIn('estado', ['borrador', 'en_revision', 'enviado_a_cliente', 'aprobado', 'confirmado'])
                     ->with(['agencia.proyecto.marca'])
                     ->latest()
             )

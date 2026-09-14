@@ -69,6 +69,7 @@ class ListPresupuestos extends ListRecords
             'todos'             => Tab::make('Todos')->badge($total),
             'borrador'          => Tab::make('Borrador')->modifyQueryUsing(fn (Builder $query) => $query->where('estado', 'borrador'))->badge($counts['borrador'] ?? 0),
             'en_revision'       => Tab::make('En Revisión')->modifyQueryUsing(fn (Builder $query) => $query->where('estado', 'en_revision'))->badge($counts['en_revision'] ?? 0),
+            'enviado_a_cliente' => Tab::make('Enviado a Cliente')->modifyQueryUsing(fn (Builder $query) => $query->where('estado', 'enviado_a_cliente'))->badge($counts['enviado_a_cliente'] ?? 0),
             'aprobado'          => Tab::make('Aprobados')->modifyQueryUsing(fn (Builder $query) => $query->where('estado', 'aprobado'))->badge($counts['aprobado'] ?? 0),
             'confirmado'        => Tab::make('Confirmados')->modifyQueryUsing(fn (Builder $query) => $query->where('estado', 'confirmado'))->badge($counts['confirmado'] ?? 0),
             'pagado'            => Tab::make('Pagados')->modifyQueryUsing(fn (Builder $query) => $query->where('estado', 'pagado'))->badge($counts['pagado'] ?? 0),

@@ -691,6 +691,21 @@ class PresupuestoResource extends BaseResource
             ])
             ->actions([
                 // ── Botones de estado visibles directamente en la fila ──────
+                Tables\Actions\Action::make('enviarACliente')
+                    ->label('Enviar a Cliente')
+                    ->icon('heroicon-o-paper-airplane')
+                    ->color('info')
+                    ->button()
+                    ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('changeState', $record) && $record->puedeEnviarACliente())
+                    ->authorize('changeState')
+                    ->requiresConfirmation()
+                    ->modalHeading('Enviar presupuesto a cliente')
+                    ->modalDescription('Se van a congelar los precios de los mobiliarios e insumos/sillas del presupuesto. Dejarán de seguir el precio de lista futuro.')
+                    ->action(function (Presupuesto $record): void {
+                        $record->cambiarEstado('enviado_a_cliente');
+                        Notification::make()->success()->title('Presupuesto enviado a cliente. Precios congelados.')->send();
+                    }),
+
                 Tables\Actions\Action::make('aprobar')
                     ->label('Aprobar')
                     ->icon('heroicon-o-check-circle')

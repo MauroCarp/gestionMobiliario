@@ -63,6 +63,11 @@ class PresupuestoItem extends Model
             return (float) $this->precio_unitario;
         }
 
+        return $this->precioListaCatalogo();
+    }
+
+    public function precioListaCatalogo(): ?float
+    {
         if ($this->mobiliario) {
             $precioLista = $this->mobiliario->precio;
 
