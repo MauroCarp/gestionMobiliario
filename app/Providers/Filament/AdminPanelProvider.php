@@ -78,7 +78,6 @@ class AdminPanelProvider extends PanelProvider
                     ->icon('heroicon-o-printer')
                     ->group('Administración')
                     ->sort(0)
-                    ->visible(fn (): bool => Impresora::canAccess())
                     ->url('#impresora')
                     ->isActiveWhen(fn (): bool => false),
             ])

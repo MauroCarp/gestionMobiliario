@@ -6,7 +6,7 @@ class Impresora extends BasePage
 {
     protected static ?string $navigationIcon = 'heroicon-o-printer';
 
-    protected static ?string $navigationGroup = 'Administración';
+    protected static ?string $navigationGroup = 'Mobiliario';
 
     protected static ?string $navigationLabel = 'Impresora';
 
