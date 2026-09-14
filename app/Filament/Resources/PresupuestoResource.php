@@ -329,6 +329,17 @@ class PresupuestoResource extends BaseResource
 
             Forms\Components\Section::make('Items del Presupuesto')
                 ->description('Arrastrá los ítems (o usá los botones subir/bajar) para definir el orden global. El PDF agrupa por sector y, dentro de cada uno, los muestra de menor a mayor según este orden.')
+                ->headerActions([
+                    Forms\Components\Actions\Action::make('actualizarPrecioLista')
+                        ->label('Actualizar precio de lista')
+                        ->visible(fn ($livewire) => $livewire instanceof Pages\EditPresupuesto)
+                        ->requiresConfirmation()
+                        ->modalHeading('Actualizar precio de lista')
+                        ->modalDescription('Se van a actualizar los precios unitarios de todos los ítems (mobiliarios y sillas) con el precio de lista actual del catálogo. Los precios personalizados se van a sobrescribir. Los cambios no guardados del formulario se recargan.')
+                        ->action(function (Pages\EditPresupuesto $livewire): void {
+                            $livewire->actualizarPreciosLista();
+                        }),
+                ])
                 ->schema([
                     Forms\Components\Repeater::make('items')
                         ->relationship('items')

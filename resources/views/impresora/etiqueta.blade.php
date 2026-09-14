@@ -99,7 +99,7 @@
             </p>
 
             <p class="campo">
-                Embalado y controlado por: {{ $empleado->legajo }}
+                Embalado y controlado por: {{ $empleados->pluck('legajo')->join(', ') }}
             </p>
         </article>
     @endfor

@@ -19,7 +19,8 @@ class ImpresoraEtiquetaController extends Controller
             'marca_id' => ['required', 'integer', 'exists:marcas,id'],
             'mobiliario_id' => ['required', 'integer', 'exists:mobiliarios,id'],
             'cantidad' => ['required', 'integer', 'min:1'],
-            'legajo' => ['required', 'string', 'exists:empleados,legajo'],
+            'legajos' => ['required', 'array', 'min:1'],
+            'legajos.*' => ['required', 'string', 'exists:empleados,legajo'],
         ]);
 
         $marca = Marca::query()->findOrFail($data['marca_id']);
@@ -27,13 +28,19 @@ class ImpresoraEtiquetaController extends Controller
             ->whereKey($data['mobiliario_id'])
             ->whereHas('marcas', fn ($query) => $query->where('marcas.id', $marca->id))
             ->firstOrFail();
-        $empleado = Empleado::query()->where('legajo', $data['legajo'])->firstOrFail();
+        $empleadosPorLegajo = Empleado::query()
+            ->whereIn('legajo', $data['legajos'])
+            ->get()
+            ->keyBy('legajo');
+        $empleados = collect($data['legajos'])
+            ->map(fn (string $legajo) => $empleadosPorLegajo->get($legajo))
+            ->filter();
 
         return view('impresora.etiqueta', [
             'marca' => $marca,
             'mobiliario' => $mobiliario,
             'cantidad' => (int) $data['cantidad'],
-            'empleado' => $empleado,
+            'empleados' => $empleados,
         ]);
     }
 }

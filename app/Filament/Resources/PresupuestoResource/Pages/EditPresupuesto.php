@@ -171,6 +171,15 @@ class EditPresupuesto extends EditRecord
         ];
     }
 
+    public function actualizarPreciosLista(): void
+    {
+        $this->getRecord()->congelarPreciosLista();
+        $this->getRecord()->unsetRelation('items');
+        $this->fillForm();
+
+        Notification::make()->success()->title('Precios de lista actualizados')->send();
+    }
+
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('view', ['record' => $this->getRecord()]);
