@@ -162,6 +162,18 @@ class Auditoria extends BasePage implements HasTable
                             ->when($data['hasta'], fn ($q) => $q->whereDate('created_at', '<=', $data['hasta']));
                     }),
             ])
+            ->actions([
+                Tables\Actions\Action::make('detalle')
+                    ->label('Detalle')
+                    ->icon('heroicon-o-eye')
+                    ->modalHeading('Detalle de auditoría')
+                    ->modalWidth('5xl')
+                    ->modalContent(fn (Activity $record) => view('filament.modals.activity-detalle', [
+                        'activity' => $record,
+                    ]))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar'),
+            ])
             ->defaultSort('created_at', 'desc')
             ->paginated([25, 50, 100]);
     }

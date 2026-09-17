@@ -49,7 +49,7 @@
 
         .campo {
             margin: 0;
-            font-size: 9mm;
+            font-size: 8.5mm;
             line-height: 1.2;
             font-weight: bolder;
         }
@@ -99,7 +99,7 @@
             </p>
 
             <p class="campo">
-                Embalado y controlado por: {{ $empleados->pluck('legajo')->join(', ') }}
+                Embalado y controlado por: <br> {{ $empleados->pluck('legajo')->join(' - ') }}
             </p>
         </article>
     @endfor
