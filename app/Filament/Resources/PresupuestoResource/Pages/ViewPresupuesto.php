@@ -72,10 +72,11 @@ class ViewPresupuesto extends ViewRecord
                 ->authorize('changeState')
                 ->requiresConfirmation()
                 ->modalHeading('Enviar presupuesto a cliente')
-                ->modalDescription('Se van a congelar los precios de los mobiliarios e insumos/sillas del presupuesto. Dejarán de seguir el precio de lista futuro.')
+                ->modalDescription('Se van a congelar los precios de los mobiliarios e insumos/sillas del presupuesto. Dejarán de seguir el precio de lista futuro. Se abrirá el PDF comercial con precios.')
                 ->action(function (): void {
                     $this->record->cambiarEstado('enviado_a_cliente');
-                    Notification::make()->success()->title('Presupuesto enviado a cliente. Precios congelados.')->send();
+                    $pdfUrl = PresupuestoResource::abrirPdfComercialConPrecios($this->record, $this);
+                    PresupuestoResource::notificarEnviadoACliente($pdfUrl);
                     $this->refreshFormData(['estado']);
                 }),
 

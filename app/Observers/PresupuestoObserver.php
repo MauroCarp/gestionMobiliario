@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\Presupuesto;
 use App\Services\AnalisisPresupuestoService;
+use App\Services\PresupuestoConfirmadoToastService;
 use App\Services\PresupuestoItemProduccionService;
 use App\Services\StockMobiliarioService;
 use App\Services\StockReservaService;
@@ -16,6 +17,7 @@ class PresupuestoObserver
         private readonly StockMobiliarioService $stockMobiliarioService,
         private readonly AnalisisPresupuestoService $analisisService,
         private readonly PresupuestoItemProduccionService $produccionService,
+        private readonly PresupuestoConfirmadoToastService $confirmadoToastService,
     ) {}
 
     public function updated(Presupuesto $presupuesto): void
@@ -26,6 +28,20 @@ class PresupuestoObserver
 
         $estadoNuevo     = $presupuesto->estado;
         $estadoAnterior  = $presupuesto->getOriginal('estado');
+
+        if (
+            $estadoNuevo === 'confirmado'
+            && ! in_array($estadoAnterior, ['pagado', 'entregado_parcial', 'entregado'], true)
+        ) {
+            try {
+                $this->confirmadoToastService->publicar($presupuesto);
+            } catch (\Throwable $e) {
+                Log::warning(
+                    "PresupuestoObserver: no se pudo notificar confirmación de #{$presupuesto->id}: {$e->getMessage()}",
+                    ['exception' => $e],
+                );
+            }
+        }
 
         try {
             match ($estadoNuevo) {

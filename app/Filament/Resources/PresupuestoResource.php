@@ -20,6 +20,7 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
+use Filament\Notifications\Actions\Action as NotificationAction;
 use Filament\Notifications\Notification;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -222,6 +223,37 @@ class PresupuestoResource extends BaseResource
         return static::pdfPageAction($getRecord, 'Imprimir', 'imprimir')
             ->icon('heroicon-o-printer')
             ->color('gray');
+    }
+
+    public static function pdfComercialViewerUrl(Presupuesto $record, bool $autoguardar = false): string
+    {
+        return route('presupuesto.pdf.viewer', [
+            'presupuesto' => $record->id,
+            'precios' => 1,
+            'autoguardar' => $autoguardar ? 1 : 0,
+        ]);
+    }
+
+    public static function abrirPdfComercialConPrecios(Presupuesto $record, $livewire): string
+    {
+        $url = static::pdfComercialViewerUrl($record, autoguardar: true);
+        $livewire->js('window.open(' . json_encode($url) . ", '_blank')");
+
+        return $url;
+    }
+
+    public static function notificarEnviadoACliente(string $pdfUrl): void
+    {
+        Notification::make()
+            ->success()
+            ->title('Presupuesto enviado a cliente. Precios congelados.')
+            ->actions([
+                NotificationAction::make('abrirPdf')
+                    ->label('Abrir PDF')
+                    ->url($pdfUrl)
+                    ->openUrlInNewTab(),
+            ])
+            ->send();
     }
 
     // ─── Form ─────────────────────────────────────────────────────────────────
@@ -711,10 +743,11 @@ class PresupuestoResource extends BaseResource
                     ->authorize('changeState')
                     ->requiresConfirmation()
                     ->modalHeading('Enviar presupuesto a cliente')
-                    ->modalDescription('Se van a congelar los precios de los mobiliarios e insumos/sillas del presupuesto. Dejarán de seguir el precio de lista futuro.')
-                    ->action(function (Presupuesto $record): void {
+                    ->modalDescription('Se van a congelar los precios de los mobiliarios e insumos/sillas del presupuesto. Dejarán de seguir el precio de lista futuro. Se abrirá el PDF comercial con precios.')
+                    ->action(function (Presupuesto $record, Tables\Actions\Action $action): void {
                         $record->cambiarEstado('enviado_a_cliente');
-                        Notification::make()->success()->title('Presupuesto enviado a cliente. Precios congelados.')->send();
+                        $pdfUrl = static::abrirPdfComercialConPrecios($record, $action->getLivewire());
+                        static::notificarEnviadoACliente($pdfUrl);
                     }),
 
                 Tables\Actions\Action::make('aprobar')

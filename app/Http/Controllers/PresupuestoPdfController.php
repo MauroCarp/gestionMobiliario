@@ -123,15 +123,16 @@ class PresupuestoPdfController extends Controller
     {
         $this->authorize('export', $presupuesto);
 
-        $codigo   = $presupuesto->codigo;
-        $precios  = request()->query('precios', '1');
-        $pdfUrl   = route('presupuesto.pdf', [
+        $codigo      = $presupuesto->codigo;
+        $precios     = request()->query('precios', '1');
+        $autoguardar = in_array(request()->query('autoguardar', '0'), ['1', 'true', 'si'], true);
+        $pdfUrl      = route('presupuesto.pdf', [
             'presupuesto' => $presupuesto,
             'precios' => $precios,
         ]);
         $filename = "presupuesto-{$codigo}.pdf";
 
-        return view('pdf.viewer', compact('codigo', 'pdfUrl', 'filename'));
+        return view('pdf.viewer', compact('codigo', 'pdfUrl', 'filename', 'autoguardar'));
     }
 
     public function excel(Presupuesto $presupuesto)

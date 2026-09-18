@@ -95,6 +95,8 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
+            ->databaseNotifications()
+            ->databaseNotificationsPolling('10s')
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
                 fn (): string => Blade::render("@vite(['resources/js/app.js', 'resources/css/app.css'])"),
@@ -103,6 +105,12 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::BODY_END,
                 fn (): string => Impresora::canAccess()
                     ? view('filament.hooks.impresora-modal')->render()
+                    : '',
+            )
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn (): string => auth()->check()
+                    ? view('filament.hooks.presupuesto-confirmado-notifier')->render()
                     : '',
             );
     }

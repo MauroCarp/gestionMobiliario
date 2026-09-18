@@ -22,11 +22,71 @@
     </style>
 </head>
 <body>
-    <object data="{{ $pdfUrl }}" type="application/pdf" width="100%" height="100%">
-        <div class="fallback">
-            <p>Tu navegador no pudo mostrar el PDF directamente.</p>
-            <a href="{{ $pdfUrl }}" download="{{ $filename }}">Descargar PDF</a>
-        </div>
-    </object>
+    @php($autoguardar = $autoguardar ?? false)
+    <div id="pdf-container" style="width:100%;height:100%;">
+        @unless($autoguardar)
+            <object data="{{ $pdfUrl }}" type="application/pdf" width="100%" height="100%">
+                <div class="fallback">
+                    <p>Tu navegador no pudo mostrar el PDF directamente.</p>
+                    <a href="{{ $pdfUrl }}" download="{{ $filename }}">Descargar PDF</a>
+                </div>
+            </object>
+        @else
+            <div class="fallback" id="pdf-loading">
+                <p>Generando PDF...</p>
+            </div>
+        @endunless
+    </div>
+    @if($autoguardar)
+        <script>
+            (async function () {
+                const pdfUrl = @json($pdfUrl);
+                const filename = @json($filename);
+                const container = document.getElementById('pdf-container');
+
+                const renderObject = (src) => {
+                    const objectEl = document.createElement('object');
+                    objectEl.setAttribute('data', src);
+                    objectEl.setAttribute('type', 'application/pdf');
+                    objectEl.setAttribute('width', '100%');
+                    objectEl.setAttribute('height', '100%');
+
+                    const fallback = document.createElement('div');
+                    fallback.className = 'fallback';
+                    const message = document.createElement('p');
+                    message.textContent = 'Tu navegador no pudo mostrar el PDF directamente.';
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = src;
+                    downloadLink.download = filename;
+                    downloadLink.textContent = 'Descargar PDF';
+                    fallback.append(message, downloadLink);
+                    objectEl.appendChild(fallback);
+
+                    container.replaceChildren(objectEl);
+                };
+
+                try {
+                    const response = await fetch(pdfUrl, { credentials: 'same-origin' });
+                    if (!response.ok) {
+                        throw new Error('No se pudo generar el PDF');
+                    }
+
+                    const blob = await response.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    renderObject(blobUrl);
+
+                    const link = document.createElement('a');
+                    link.href = blobUrl;
+                    link.download = filename;
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                } catch (e) {
+                    renderObject(pdfUrl);
+                }
+            })();
+        </script>
+    @endif
 </body>
 </html>
