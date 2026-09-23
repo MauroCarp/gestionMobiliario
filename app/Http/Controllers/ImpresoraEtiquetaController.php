@@ -39,7 +39,7 @@ class ImpresoraEtiquetaController extends Controller
         return view('impresora.etiqueta', [
             'marca' => $marca,
             'mobiliario' => $mobiliario,
-            'cantidad' => (int) $data['cantidad'],
+            'cantidad' => (int) ($data['cantidad'] * 2),
             'empleados' => $empleados,
         ]);
     }
