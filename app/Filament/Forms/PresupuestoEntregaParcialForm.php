@@ -16,13 +16,9 @@ class PresupuestoEntregaParcialForm
                 ->label('Ítems')
                 ->schema([
                     Forms\Components\Hidden::make('id'),
+                    Forms\Components\Hidden::make('label'),
                     Forms\Components\Hidden::make('pendiente'),
                     Forms\Components\Hidden::make('puede_entregar'),
-                    Forms\Components\TextInput::make('label')
-                        ->label('Ítem')
-                        ->disabled()
-                        ->dehydrated(false)
-                        ->columnSpanFull(),
                     Forms\Components\TextInput::make('cantidad')
                         ->label('Total')
                         ->disabled()
@@ -60,7 +56,9 @@ class PresupuestoEntregaParcialForm
                 ->addable(false)
                 ->deletable(false)
                 ->reorderable(false)
-                ->collapsed(false),
+                ->collapsible()
+                ->itemLabel(fn (array $state): ?string => $state['label'] . ' [' . $state['codigo_interno'] . ']' ?? null)
+                ->collapsed(true),
         ];
     }
 
@@ -75,7 +73,8 @@ class PresupuestoEntregaParcialForm
                 ->get()
                 ->map(fn (PresupuestoItem $item): array => [
                     'id'                   => $item->id,
-                    'label'                => "[{$item->item_codigo}] {$item->item_nombre}",
+                    'codigo_interno'       => $item->item_codigo,
+                    'label'                => $item->item_nombre,
                     'cantidad'             => $item->cantidad,
                     'cantidad_entregada'   => $item->cantidad_entregada,
                     'pendiente'            => $item->cantidadPendiente(),
