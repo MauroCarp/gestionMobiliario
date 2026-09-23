@@ -5,6 +5,7 @@ namespace App\Filament\Resources\InsumoResource\Pages;
 use App\Exports\InsumosExport;
 use App\Filament\Resources\InsumoResource;
 use App\Imports\InsumosStockImport;
+use App\Models\Insumo;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Notifications\Notification;
@@ -82,6 +83,16 @@ class ListInsumos extends ListRecords
                         'insumos-' . now()->format('Y-m-d_His') . '.xlsx',
                     );
                 }),
+
+            Actions\Action::make('exportarSillas')
+                ->label('Exportar Sillas')
+                ->icon('heroicon-o-document-text')
+                ->color('danger')
+                ->visible(fn (): bool => auth()->user()?->can('viewAny', Insumo::class) ?? false)
+                ->action(function (): void {
+                    $this->js('window.open(' . json_encode(route('insumos.sillas.pdf')) . ", '_blank')");
+                }),
+
             Actions\CreateAction::make(),
         ];
     }
