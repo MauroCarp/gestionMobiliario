@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Insumo;
 use App\Models\Presupuesto;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
@@ -63,33 +64,30 @@ class AnalisisPresupuestoService
     }
 
     /**
+     * Presupuestos actualmente enviados al cliente, con relaciones de resumen.
+     *
+     * @return Collection<int, Presupuesto>
+     */
+    public function presupuestosEnviadosACliente(): Collection
+    {
+        return $this->queryPresupuestosEnviadosACliente()
+            ->with(['agencia.proyecto.marca', 'responsable'])
+            ->orderByDesc('fecha_emision')
+            ->orderByDesc('id')
+            ->get();
+    }
+
+    /**
      * Retorna estadísticas resumidas para widgets.
      */
     public function estadisticas(): array
     {
-        $insumos = Insumo::where('activo', true)
-            ->with('reservasActivas')
-            ->get();
+        $presupuestosPendientes = $this->queryPresupuestosEnviadosACliente()->count();
 
-        $totalInsumos       = $insumos->count();
-        $criticos           = $insumos->filter(fn ($i) => $i->es_critico)->count();
-        $sinStock           = $insumos->filter(fn ($i) => ($i->stock_actual ?? 0) == 0)->count();
-        $conReserva         = $insumos->filter(fn ($i) => $i->stock_reservado > 0)->count();
+        $demandaFutura  = $this->analizarDemandaFutura();
+        $totalFaltantes = collect($demandaFutura)->where('faltante', '>', 0)->count();
 
-        $presupuestosPendientes = Presupuesto::whereIn('estado', ['aprobado', 'confirmado'])->count();
-        $presupuestosPagados    = Presupuesto::where('estado', 'pagado')->count();
-
-        $demandaFutura    = $this->analizarDemandaFutura();
-        $totalFaltantes   = collect($demandaFutura)->where('faltante', '>', 0)->count();
-        $valorFaltantes   = collect($demandaFutura)->sum(fn ($r) =>
-            $r['faltante'] * ($r['insumo']->precio_costo ?? 0)
-        );
-
-        return compact(
-            'totalInsumos', 'criticos', 'sinStock', 'conReserva',
-            'presupuestosPendientes', 'presupuestosPagados',
-            'totalFaltantes', 'valorFaltantes'
-        );
+        return compact('presupuestosPendientes', 'totalFaltantes');
     }
 
     /**
@@ -138,6 +136,11 @@ class AnalisisPresupuestoService
     }
 
     // ─── Internals ────────────────────────────────────────────────────────────
+
+    private function queryPresupuestosEnviadosACliente(): Builder
+    {
+        return Presupuesto::query()->where('estado', 'enviado_a_cliente');
+    }
 
     /**
      * Suma la demanda de insumos de una colección de presupuestos.

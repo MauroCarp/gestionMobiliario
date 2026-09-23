@@ -734,6 +734,19 @@ class PresupuestoResource extends BaseResource
             ])
             ->actions([
                 // ── Botones de estado visibles directamente en la fila ──────
+                Tables\Actions\Action::make('enviarRevision')
+                ->label('Enviar a Revisión')
+                ->icon('heroicon-o-arrow-right-circle')
+                ->color('warning')
+                ->button()
+                ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('changeState', $record) && $record->puedeEnviarARevision())
+                ->authorize('changeState')
+                ->requiresConfirmation()
+                ->action(function (Presupuesto $record): void {
+                    $record->cambiarEstado('en_revision');
+                    Notification::make()->success()->title('Enviado a revisión')->send();
+                }),
+
                 Tables\Actions\Action::make('enviarACliente')
                     ->label('Enviar a Cliente')
                     ->icon('heroicon-o-paper-airplane')
@@ -802,7 +815,7 @@ class PresupuestoResource extends BaseResource
                 Tables\Actions\Action::make('entregarParcial')
                     ->label('Entregar parcial')
                     ->icon('heroicon-o-clipboard-document-list')
-                    ->color('warning')
+                    ->color('gray')
                     ->button()
                     ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('registerDelivery', $record) && $record->puedeRegistrarEntrega())
                     ->authorize('registerDelivery')
