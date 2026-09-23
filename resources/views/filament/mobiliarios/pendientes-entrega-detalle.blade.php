@@ -22,14 +22,14 @@
                         </p>
                     </div>
                     <span class="inline-flex items-center rounded-full bg-warning-50 px-2.5 py-0.5 text-xs font-medium text-warning-700 dark:bg-warning-500/10 dark:text-warning-400">
-                        Pendiente de entrega
+                        {{ $item->estaEntregaParcial() ? 'Entrega parcial' : 'Pendiente de entrega' }}
                     </span>
                 </div>
 
                 <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                     <div>
                         <dt class="font-medium text-gray-500 dark:text-gray-400">Cantidad</dt>
-                        <dd class="text-gray-900 dark:text-gray-100">{{ $item->cantidad }}</dd>
+                        <dd class="text-gray-900 dark:text-gray-100">{{ $item->cantidadPendiente() }} pendientes / {{ $item->cantidad }} total</dd>
                     </div>
                     <div>
                         <dt class="font-medium text-gray-500 dark:text-gray-400">Sector</dt>

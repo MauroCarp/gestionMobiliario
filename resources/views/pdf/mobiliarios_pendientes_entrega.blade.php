@@ -167,9 +167,9 @@
                                 <span class="muted">Obs.: {{ $item->observaciones }}</span>
                             @endif
                         </td>
-                        <td class="center">{{ $item->cantidad }}</td>
+                        <td class="center">{{ $item->cantidadPendiente() }}</td>
                         <td>
-                            <span class="badge">Pendiente</span>
+                            <span class="badge">{{ $item->estaEntregaParcial() ? 'Parcial' : 'Pendiente' }}</span>
                             @if ($item->estaFinalizado())
                                 <span class="badge badge-finished">Finalizado</span>
                             @endif

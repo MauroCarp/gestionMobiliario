@@ -31,7 +31,7 @@ class RecalcularStockReservado extends Command
             ->whereIn('estado', self::ESTADOS_ACTIVOS)
             ->with(['items' => fn ($q) => $q
                 ->whereNull('finalizado_at')
-                ->whereNull('entregado_at')
+                ->pendienteEntrega()
                 ->with('mobiliario.composicionTecnica')])
             ->get();
 

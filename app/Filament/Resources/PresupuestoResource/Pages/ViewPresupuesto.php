@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\PresupuestoResource\Pages;
 
+use App\Filament\Forms\PresupuestoEntregaParcialForm;
 use App\Filament\Resources\PresupuestoResource;
 use App\Filament\Resources\PresupuestoResource\RelationManagers\ItemsRelationManager;
-use App\Models\PresupuestoItem;
 use App\Services\PresupuestoEntregaService;
 use App\Support\PresupuestoAuthorization;
 use Filament\Actions;
@@ -130,19 +130,27 @@ class ViewPresupuesto extends ViewRecord
                 ->visible(fn (): bool =>
                     PresupuestoAuthorization::canForRecord('registerDelivery', $this->record)
                     && $this->record->puedeRegistrarEntrega()
-                    && $this->record->items()->whereNull('entregado_at')->exists()
+                    && $this->record->tieneItemsPendientesEntrega()
                 )
                 ->authorize('registerDelivery')
                 ->requiresConfirmation()
                 ->modalHeading('Entregar presupuesto completo')
-                ->modalDescription('Se marcarán todos los ítems como entregados y el presupuesto pasará a estado Entregado.')
+                ->modalDescription('Se entregará el saldo pendiente de todos los ítems disponibles y el presupuesto pasará a estado Entregado si no queda saldo.')
                 ->action(function (): void {
-                    app(PresupuestoEntregaService::class)->marcarEntregaCompleta($this->record);
+                    try {
+                        app(PresupuestoEntregaService::class)->marcarEntregaCompleta($this->record);
 
-                    Notification::make()
-                        ->success()
-                        ->title('Presupuesto entregado completamente')
-                        ->send();
+                        Notification::make()
+                            ->success()
+                            ->title('Presupuesto entregado completamente')
+                            ->send();
+                    } catch (\Throwable $e) {
+                        Notification::make()
+                            ->title('No se pudo registrar la entrega')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
 
                     $this->record->refresh();
                     $this->refreshFormData(['estado']);
@@ -152,43 +160,40 @@ class ViewPresupuesto extends ViewRecord
                 ->label('Entregar parcial')
                 ->icon('heroicon-o-clipboard-document-list')
                 ->color('warning')
-                ->visible(fn (): bool => PresupuestoAuthorization::canForRecord('registerDelivery', $this->record) && $this->record->puedeRegistrarEntrega())
+                ->visible(fn (): bool =>
+                    PresupuestoAuthorization::canForRecord('registerDelivery', $this->record)
+                    && $this->record->puedeRegistrarEntrega()
+                    && $this->record->tieneItemsPendientesEntrega()
+                )
                 ->authorize('registerDelivery')
-                ->fillForm(fn (): array => [
-                    'items_entregados' => $this->record->items()
-                        ->whereNotNull('entregado_at')
-                        ->pluck('id')
-                        ->all(),
-                ])
-                ->form([
-                    Forms\Components\CheckboxList::make('items_entregados')
-                        ->label('Ítems entregados')
-                        ->options(fn (): array => $this->record->items()
-                            ->orderBy('orden')
-                            ->get()
-                            ->mapWithKeys(fn (PresupuestoItem $item): array => [
-                                $item->id => "[{$item->item_codigo}] {$item->item_nombre}",
-                            ])
-                            ->all())
-                        ->columns(1),
-                ])
+                ->fillForm(fn (): array => PresupuestoEntregaParcialForm::state($this->record))
+                ->form(PresupuestoEntregaParcialForm::schema())
                 ->action(function (array $data): void {
-                    app(PresupuestoEntregaService::class)->marcarEntregaParcial(
-                        $this->record,
-                        $data['items_entregados'] ?? [],
-                    );
+                    try {
+                        app(PresupuestoEntregaService::class)->marcarEntregaParcial(
+                            $this->record,
+                            PresupuestoEntregaParcialForm::cantidades($data),
+                        );
+
+                        $this->record->refresh();
+
+                        Notification::make()
+                            ->success()
+                            ->title(match ($this->record->estado) {
+                                'entregado'         => 'Presupuesto entregado completamente',
+                                'entregado_parcial' => 'Entrega parcial registrada',
+                                default             => 'Entrega actualizada',
+                            })
+                            ->send();
+                    } catch (\Throwable $e) {
+                        Notification::make()
+                            ->title('No se pudo registrar la entrega')
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
 
                     $this->record->refresh();
-
-                    Notification::make()
-                        ->success()
-                        ->title(match ($this->record->estado) {
-                            'entregado'         => 'Presupuesto entregado completamente',
-                            'entregado_parcial' => 'Entrega parcial registrada',
-                            default             => 'Entrega actualizada',
-                        })
-                        ->send();
-
                     $this->refreshFormData(['estado']);
                 }),
 

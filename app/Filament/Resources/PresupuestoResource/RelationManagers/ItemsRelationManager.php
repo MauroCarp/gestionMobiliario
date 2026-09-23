@@ -4,6 +4,7 @@ namespace App\Filament\Resources\PresupuestoResource\RelationManagers;
 
 use App\Models\Insumo;
 use App\Models\PresupuestoItem;
+use App\Models\PresupuestoItemEntrega;
 use App\Models\PresupuestoItemEtapa;
 use App\Services\PresupuestoEntregaService;
 use App\Services\PresupuestoItemProduccionService;
@@ -16,6 +17,7 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\HtmlString;
 
 class ItemsRelationManager extends RelationManager
 {
@@ -51,6 +53,15 @@ class ItemsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('cantidad')
                     ->label('Solicitado')
                     ->alignCenter(),
+
+                Tables\Columns\TextColumn::make('cantidad_entregada')
+                    ->label('Entregado')
+                    ->alignCenter(),
+
+                Tables\Columns\TextColumn::make('cantidad_pendiente')
+                    ->label('Pendiente')
+                    ->alignCenter()
+                    ->getStateUsing(fn (PresupuestoItem $record): int => $record->cantidadPendiente()),
 
                 Tables\Columns\TextColumn::make('cantidad_desde_stock')
                     ->label('Desde stock')
@@ -102,9 +113,7 @@ class ItemsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('estado_entrega')
                     ->label('Entrega')
                     ->badge()
-                    ->color(fn (PresupuestoItem $record): string =>
-                        $record->estaEntregado() ? 'success' : 'gray'
-                    ),
+                    ->color(fn (PresupuestoItem $record): string => $record->estado_entrega_color),
 
                 Tables\Columns\TextColumn::make('entregado_at')
                     ->label('Entregado el')
@@ -234,52 +243,133 @@ class ItemsRelationManager extends RelationManager
                             ->send();
                     }),
 
-                Tables\Actions\Action::make('marcarEntregado')
-                    ->label('Marcar entregado')
+                Tables\Actions\Action::make('entregarCantidad')
+                    ->label('Entregar')
                     ->icon('heroicon-o-truck')
                     ->color('success')
                     ->visible(fn (PresupuestoItem $record): bool =>
                         PresupuestoAuthorization::canForRecord('registerDelivery', $this->ownerRecord)
-                        && ! $record->estaEntregado()
+                        && $record->puedeRecibirEntrega()
                         && $this->ownerRecord->puedeRegistrarEntrega()
                     )
                     ->authorize(fn (): bool => auth()->user()?->can('registerDelivery', $this->ownerRecord) ?? false)
-                    ->form([
+                    ->fillForm(fn (PresupuestoItem $record): array => [
+                        'cantidad' => $record->cantidadPendiente(),
+                    ])
+                    ->form(fn (PresupuestoItem $record): array => [
+                        Forms\Components\TextInput::make('cantidad')
+                            ->label('Cantidad a entregar')
+                            ->numeric()
+                            ->integer()
+                            ->required()
+                            ->minValue(1)
+                            ->maxValue($record->cantidadPendiente())
+                            ->helperText("Pendiente: {$record->cantidadPendiente()} de {$record->cantidad}"),
                         Forms\Components\Textarea::make('entrega_observaciones')
                             ->label('Observaciones de entrega')
                             ->rows(2),
                     ])
                     ->action(function (PresupuestoItem $record, array $data): void {
-                        app(PresupuestoEntregaService::class)->toggleItemEntrega(
-                            $record,
-                            true,
-                            $data['entrega_observaciones'] ?? null,
-                        );
+                        try {
+                            app(PresupuestoEntregaService::class)->registrarEntregaItem(
+                                $record,
+                                (int) $data['cantidad'],
+                                $data['entrega_observaciones'] ?? null,
+                            );
 
-                        Notification::make()
-                            ->title('Ítem marcado como entregado')
-                            ->success()
-                            ->send();
+                            Notification::make()
+                                ->title('Entrega registrada')
+                                ->success()
+                                ->send();
+                        } catch (\Throwable $e) {
+                            Notification::make()
+                                ->title('No se pudo registrar la entrega')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
                     }),
 
-                Tables\Actions\Action::make('desmarcarEntregado')
-                    ->label('Desmarcar entrega')
+                Tables\Actions\Action::make('verHistorialEntregas')
+                    ->label('Historial')
+                    ->icon('heroicon-o-clock')
+                    ->color('gray')
+                    ->visible(fn (PresupuestoItem $record): bool => $record->entregas()->exists())
+                    ->modalHeading(fn (PresupuestoItem $record): string =>
+                        "Historial de entregas — {$record->item_nombre}"
+                    )
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Cerrar')
+                    ->modalContent(fn (PresupuestoItem $record): HtmlString => new HtmlString(
+                        view('filament.presupuestos.item-entregas-historial', [
+                            'entregas' => $record->entregas()
+                                ->with(['entregadoPor', 'anuladoPor'])
+                                ->orderByDesc('entregado_at')
+                                ->orderByDesc('id')
+                                ->get(),
+                        ])->render()
+                    )),
+
+                Tables\Actions\Action::make('anularEntrega')
+                    ->label('Anular entrega')
                     ->icon('heroicon-o-x-circle')
                     ->color('gray')
                     ->visible(fn (PresupuestoItem $record): bool =>
                         PresupuestoAuthorization::canForRecord('registerDelivery', $this->ownerRecord)
-                        && $record->estaEntregado()
+                        && $record->entregas()->activas()->exists()
                         && $this->ownerRecord->puedeRegistrarEntrega()
                     )
                     ->authorize(fn (): bool => auth()->user()?->can('registerDelivery', $this->ownerRecord) ?? false)
-                    ->requiresConfirmation()
-                    ->action(function (PresupuestoItem $record): void {
-                        app(PresupuestoEntregaService::class)->toggleItemEntrega($record, false);
+                    ->form(fn (PresupuestoItem $record): array => [
+                        Forms\Components\Select::make('entrega_id')
+                            ->label('Movimiento')
+                            ->options(
+                                $record->entregas()
+                                    ->activas()
+                                    ->orderByDesc('entregado_at')
+                                    ->orderByDesc('id')
+                                    ->get()
+                                    ->mapWithKeys(fn (PresupuestoItemEntrega $entrega): array => [
+                                        $entrega->id => ($entrega->entregado_at?->format('d/m/Y H:i') ?? '—')
+                                            . " — {$entrega->cantidad} uds",
+                                    ])
+                                    ->all()
+                            )
+                            ->required(),
+                        Forms\Components\Textarea::make('motivo')
+                            ->label('Motivo de anulación')
+                            ->required()
+                            ->rows(3),
+                    ])
+                    ->action(function (PresupuestoItem $record, array $data): void {
+                        $entrega = $record->entregas()->activas()->whereKey($data['entrega_id'])->first();
 
-                        Notification::make()
-                            ->title('Entrega del ítem revertida')
-                            ->success()
-                            ->send();
+                        if (! $entrega) {
+                            Notification::make()
+                                ->title('No se encontró el movimiento')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
+                        try {
+                            app(PresupuestoEntregaService::class)->anularEntrega(
+                                $entrega,
+                                $data['motivo'] ?? '',
+                            );
+
+                            Notification::make()
+                                ->title('Entrega anulada')
+                                ->success()
+                                ->send();
+                        } catch (\Throwable $e) {
+                            Notification::make()
+                                ->title('No se pudo anular la entrega')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
                     }),
 
                 Tables\Actions\Action::make('confirmarFinalizacion')

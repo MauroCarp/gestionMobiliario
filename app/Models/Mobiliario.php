@@ -180,7 +180,7 @@ class Mobiliario extends Model implements HasMedia
     public function presupuestoItemsPendientesEntrega(): HasMany
     {
         return $this->presupuestoItems()
-            ->whereNull('entregado_at')
+            ->pendienteEntrega()
             ->whereHas('presupuesto', fn ($query) => $query->whereIn('estado', [
                 'confirmado',
                 'pagado',

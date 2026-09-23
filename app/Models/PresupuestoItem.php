@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -16,6 +17,7 @@ class PresupuestoItem extends Model
         'insumo_id',
         'sector_id',
         'cantidad',
+        'cantidad_entregada',
         'cantidad_desde_stock',
         'cantidad_a_fabricar',
         'stock_descontado_at',
@@ -33,12 +35,14 @@ class PresupuestoItem extends Model
     ];
 
     protected $attributes = [
-        'orden'    => 0,
-        'cantidad' => 1,
+        'orden'              => 0,
+        'cantidad'           => 1,
+        'cantidad_entregada' => 0,
     ];
 
     protected $casts = [
         'cantidad'              => 'integer',
+        'cantidad_entregada'    => 'integer',
         'cantidad_desde_stock'  => 'integer',
         'cantidad_a_fabricar'   => 'integer',
         'precio_unitario'       => 'decimal:2',
@@ -130,6 +134,11 @@ class PresupuestoItem extends Model
         return $this->hasMany(PresupuestoItemEtapa::class)->orderBy('orden');
     }
 
+    public function entregas(): HasMany
+    {
+        return $this->hasMany(PresupuestoItemEntrega::class)->orderByDesc('id');
+    }
+
     /** Retorna el nombre del ítem independientemente de si es Mobiliario o Insumo. */
     public function getItemNombreAttribute(): string
     {
@@ -149,7 +158,39 @@ class PresupuestoItem extends Model
 
     public function estaEntregado(): bool
     {
-        return ! is_null($this->entregado_at);
+        return $this->cantidadPendiente() <= 0;
+    }
+
+    public function estaEntregaParcial(): bool
+    {
+        return (int) $this->cantidad_entregada > 0 && $this->cantidadPendiente() > 0;
+    }
+
+    public function cantidadPendiente(): int
+    {
+        return max(0, (int) $this->cantidad - (int) $this->cantidad_entregada);
+    }
+
+    public function puedeRecibirEntrega(): bool
+    {
+        if ($this->cantidadPendiente() <= 0) {
+            return false;
+        }
+
+        if ($this->requiereFabricacion() && ! $this->estaFinalizado()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function scopePendienteEntrega(Builder $query): Builder
+    {
+        return $query->whereColumn(
+            $query->qualifyColumn('cantidad_entregada'),
+            '<',
+            $query->qualifyColumn('cantidad'),
+        );
     }
 
     public function requiereFabricacion(): bool
@@ -184,7 +225,24 @@ class PresupuestoItem extends Model
 
     public function getEstadoEntregaAttribute(): string
     {
-        return $this->estaEntregado() ? 'Entregado' : 'Pendiente';
+        if ($this->estaEntregado()) {
+            return 'Entregado';
+        }
+
+        if ($this->estaEntregaParcial()) {
+            return 'Parcial';
+        }
+
+        return 'Pendiente';
+    }
+
+    public function getEstadoEntregaColorAttribute(): string
+    {
+        return match (true) {
+            $this->estaEntregado()      => 'success',
+            $this->estaEntregaParcial() => 'warning',
+            default                     => 'gray',
+        };
     }
 
     public function getProgresoProduccionAttribute(): string

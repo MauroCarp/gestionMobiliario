@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Marca;
 use App\Models\Mobiliario;
+use App\Models\PresupuestoItem;
 use App\Services\PresupuestoItemProduccionService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
@@ -28,9 +29,12 @@ class MobiliarioPendientesEntregaPdfController extends Controller
             ->withoutGlobalScopes()
             ->with(['atributos', 'marcas', 'media'])
             ->whereHas('presupuestoItems', fn (Builder $query) => $this->applyItemFilters($query, $etapa))
-            ->withSum(['presupuestoItems as cantidad_pendiente_entrega' => function (Builder $query) use ($etapa): void {
-                $this->applyItemFilters($query, $etapa);
-            }], 'cantidad')
+            ->addSelect([
+                'cantidad_pendiente_entrega' => PresupuestoItem::query()
+                    ->selectRaw('COALESCE(SUM(cantidad - cantidad_entregada), 0)')
+                    ->whereColumn('presupuesto_items.mobiliario_id', 'mobiliarios.id')
+                    ->tap(fn (Builder $query) => $this->applyItemFilters($query, $etapa)),
+            ])
             ->orderBy('nombre');
 
         if (is_string($marcaTab) && str_starts_with($marcaTab, 'marca_')) {
@@ -70,7 +74,7 @@ class MobiliarioPendientesEntregaPdfController extends Controller
                     'atributos'     => $mobiliario->atributos->isNotEmpty()
                         ? $mobiliario->atributos->map(fn ($a) => "{$a->clave}: {$a->valor}")->join(' · ')
                         : '—',
-                    'cantidad'      => (int) $items->sum('cantidad'),
+                    'cantidad'      => (int) $items->sum(fn (PresupuestoItem $item): int => $item->cantidadPendiente()),
                     'items'         => $items,
                 ];
             })
@@ -97,7 +101,7 @@ class MobiliarioPendientesEntregaPdfController extends Controller
     private function applyPendienteEntregaConstraint(Builder $query): void
     {
         $query
-            ->whereNull('entregado_at')
+            ->pendienteEntrega()
             ->whereHas('presupuesto', fn (Builder $presupuestoQuery) => $presupuestoQuery->whereIn(
                 'estado',
                 self::ESTADOS_PRESUPUESTO_PENDIENTES_ENTREGA,

@@ -29,7 +29,7 @@ class InformePendientesEntregaInsumo extends Command
 
         $items = PresupuestoItem::query()
             ->whereNotNull('mobiliario_id')
-            ->whereNull('entregado_at')
+            ->pendienteEntrega()
             ->whereHas(
                 'presupuesto',
                 fn ($query) => $query->where('finalizado_at', NULL),
@@ -103,7 +103,7 @@ class InformePendientesEntregaInsumo extends Command
      */
     private function imprimirGrupo(string $titulo, Collection $items, Insumo $insumo): void
     {
-        $cantidad = (int) $items->sum('cantidad');
+        $cantidad = (int) $items->sum(fn (PresupuestoItem $item): int => $item->cantidadPendiente());
         $this->line("<fg=cyan>{$titulo} ({$items->count()} pendientes, {$cantidad} uds)</>");
 
         if ($items->isEmpty()) {
@@ -141,7 +141,7 @@ class InformePendientesEntregaInsumo extends Command
                 $label,
                 $item->presupuesto?->agencia?->proyecto?->marca?->nombre ?? '—',
                 $item->presupuesto?->agencia?->nombre ?? '—',
-                $item->cantidad,
+                $item->cantidadPendiente(),
                 $cantInsumo,
             ];
         })->all();

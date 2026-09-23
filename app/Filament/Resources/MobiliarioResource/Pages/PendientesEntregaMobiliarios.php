@@ -5,6 +5,7 @@ namespace App\Filament\Resources\MobiliarioResource\Pages;
 use App\Filament\Resources\MobiliarioResource;
 use App\Models\Marca;
 use App\Models\Mobiliario;
+use App\Models\PresupuestoItem;
 use App\Services\PresupuestoItemProduccionService;
 use Filament\Actions;
 use Filament\Forms;
@@ -197,9 +198,12 @@ class PendientesEntregaMobiliarios extends ListRecords
     {
         return $this->getPendientesEntregaBaseQuery()
             ->with(['atributos', 'marcas', 'media'])
-            ->withSum(['presupuestoItems as cantidad_pendiente_entrega' => function (Builder $query): void {
-                $this->applyPendienteEntregaConstraint($query);
-            }], 'cantidad');
+            ->addSelect([
+                'cantidad_pendiente_entrega' => PresupuestoItem::query()
+                    ->selectRaw('COALESCE(SUM(cantidad - cantidad_entregada), 0)')
+                    ->whereColumn('presupuesto_items.mobiliario_id', 'mobiliarios.id')
+                    ->tap(fn (Builder $query) => $this->applyPendienteEntregaConstraint($query)),
+            ]);
     }
 
     protected function getPendientesEntregaBaseQuery(): Builder
@@ -213,7 +217,7 @@ class PendientesEntregaMobiliarios extends ListRecords
     protected function applyPendienteEntregaConstraint(Builder $query): void
     {
         $query
-            ->whereNull('entregado_at')
+            ->pendienteEntrega()
             ->whereHas('presupuesto', fn (Builder $presupuestoQuery) => $presupuestoQuery->whereIn(
                 'estado',
                 self::ESTADOS_PRESUPUESTO_PENDIENTES_ENTREGA,

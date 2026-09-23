@@ -238,38 +238,59 @@ class Presupuesto extends Model
 
     public function getItemsEntregadosCountAttribute(): int
     {
-        $items = $this->relationLoaded('items') ? $this->items : $this->items()->get();
+        return $this->itemsCollection()
+            ->filter(fn (PresupuestoItem $item) => $item->estaEntregado())
+            ->count();
+    }
 
-        return $items->filter(fn (PresupuestoItem $item) => $item->estaEntregado())->count();
+    public function getUnidadesEntregadasAttribute(): int
+    {
+        return (int) $this->itemsCollection()->sum('cantidad_entregada');
+    }
+
+    public function getUnidadesTotalesAttribute(): int
+    {
+        return (int) $this->itemsCollection()->sum('cantidad');
     }
 
     public function getProgresoEntregaAttribute(): string
     {
-        $items = $this->relationLoaded('items') ? $this->items : $this->items()->get();
-        $total = $items->count();
+        $total = $this->unidades_totales;
 
         if ($total === 0) {
             return '0/0';
         }
 
-        return $this->items_entregados_count . '/' . $total;
+        return $this->unidades_entregadas . '/' . $total;
     }
 
     public function getResumenEntregaAttribute(): string
     {
-        $items = $this->relationLoaded('items') ? $this->items : $this->items()->get();
-        $total = $items->count();
-        $entregados = $this->items_entregados_count;
+        $total = $this->unidades_totales;
+        $entregadas = $this->unidades_entregadas;
 
-        if ($total === 0 || $entregados === 0) {
+        if ($total === 0 || $entregadas === 0) {
             return 'Sin entregas';
         }
 
-        if ($entregados === $total) {
+        if ($entregadas >= $total) {
             return 'Entrega completa';
         }
 
         return 'Entrega parcial';
+    }
+
+    public function tieneItemsPendientesEntrega(): bool
+    {
+        return $this->items()->pendienteEntrega()->exists();
+    }
+
+    /**
+     * @return Collection<int, PresupuestoItem>
+     */
+    private function itemsCollection(): Collection
+    {
+        return $this->relationLoaded('items') ? $this->items : $this->items()->get();
     }
 
     public function puedeEditar(): bool
