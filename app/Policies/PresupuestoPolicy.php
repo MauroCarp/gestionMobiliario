@@ -39,6 +39,16 @@ class PresupuestoPolicy
         return $user->hasAnyRole('Administrador','Producción');
     }
 
+    public function exportComercial(User $user, Presupuesto $presupuesto): bool
+    {
+        return $user->hasAnyRole(['Administrador', 'Ventas']);
+    }
+
+    public function exportProduccion(User $user, Presupuesto $presupuesto): bool
+    {
+        return $user->hasAnyRole(['Administrador', 'Producción']);
+    }
+
     public function manageItemStages(User $user, Presupuesto $presupuesto): bool
     {
         return $user->hasAnyRole('Administrador','Producción');

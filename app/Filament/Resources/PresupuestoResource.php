@@ -187,8 +187,8 @@ class PresupuestoResource extends BaseResource
             ->label($label)
             ->icon('heroicon-o-document-text')
             ->color('danger')
-            ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('export', $record))
-            ->authorize('export')
+            ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('exportComercial', $record))
+            ->authorize('exportComercial')
             ->form(static::pdfPreciosFormSchema())
             ->action(function (Presupuesto $record, array $data, Tables\Actions\Action $action): void {
                 $url = route('presupuesto.pdf.viewer', [
@@ -206,8 +206,8 @@ class PresupuestoResource extends BaseResource
             ->label($label)
             ->icon('heroicon-o-document-text')
             ->color('danger')
-            ->visible(fn (): bool => PresupuestoAuthorization::canForRecord('export', $getRecord()))
-            ->authorize('export')
+            ->visible(fn (): bool => PresupuestoAuthorization::canForRecord('exportComercial', $getRecord()))
+            ->authorize('exportComercial')
             ->form(static::pdfPreciosFormSchema())
             ->action(function (array $data, Actions\Action $action) use ($getRecord): void {
                 $url = route('presupuesto.pdf.viewer', [

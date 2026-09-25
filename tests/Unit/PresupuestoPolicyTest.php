@@ -39,6 +39,8 @@ class PresupuestoPolicyTest extends TestCase
 
         $this->assertTrue($this->policy->changeState($admin, $this->presupuesto));
         $this->assertTrue($this->policy->export($admin, $this->presupuesto));
+        $this->assertTrue($this->policy->exportComercial($admin, $this->presupuesto));
+        $this->assertTrue($this->policy->exportProduccion($admin, $this->presupuesto));
         $this->assertTrue($this->policy->manageItemStages($admin, $this->presupuesto));
         $this->assertTrue($this->policy->registerDelivery($admin, $this->presupuesto));
         $this->assertTrue($this->policy->clonePresupuesto($admin, $this->presupuesto));
@@ -51,19 +53,23 @@ class PresupuestoPolicyTest extends TestCase
 
         $this->assertFalse($this->policy->changeState($ventas, $this->presupuesto));
         $this->assertFalse($this->policy->export($ventas, $this->presupuesto));
+        $this->assertTrue($this->policy->exportComercial($ventas, $this->presupuesto));
+        $this->assertFalse($this->policy->exportProduccion($ventas, $this->presupuesto));
         $this->assertFalse($this->policy->manageItemStages($ventas, $this->presupuesto));
         $this->assertFalse($this->policy->registerDelivery($ventas, $this->presupuesto));
         $this->assertFalse($this->policy->clonePresupuesto($ventas, $this->presupuesto));
     }
 
     #[Test]
-    public function produccion_puede_ver_pero_no_exportar(): void
+    public function produccion_ve_el_pdf_de_produccion_y_no_el_comercial(): void
     {
         $produccion = $this->mockUser(role: 'Producción');
 
         $this->assertTrue($this->policy->viewAny($produccion));
         $this->assertTrue($this->policy->view($produccion, $this->presupuesto));
-        $this->assertFalse($this->policy->export($produccion, $this->presupuesto));
+        $this->assertTrue($this->policy->export($produccion, $this->presupuesto));
+        $this->assertFalse($this->policy->exportComercial($produccion, $this->presupuesto));
+        $this->assertTrue($this->policy->exportProduccion($produccion, $this->presupuesto));
     }
 
     #[Test]
@@ -90,7 +96,11 @@ class PresupuestoPolicyTest extends TestCase
             ->andReturn($isAdmin);
 
         $user->shouldReceive('hasAnyRole')
-            ->andReturnUsing(fn (array $roles): bool => $isAdmin || in_array($role, $roles, true));
+            ->andReturnUsing(function (...$roles) use ($isAdmin, $role): bool {
+                $names = isset($roles[0]) && is_array($roles[0]) ? $roles[0] : $roles;
+
+                return $isAdmin || in_array($role, $names, true);
+            });
 
         return $user;
     }

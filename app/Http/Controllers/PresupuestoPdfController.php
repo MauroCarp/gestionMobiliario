@@ -21,7 +21,7 @@ class PresupuestoPdfController extends Controller
 
     public function show(Presupuesto $presupuesto)
     {
-        $this->authorize('export', $presupuesto);
+        $this->authorize('exportComercial', $presupuesto);
 
         $presupuesto->load([
             'agencia.proyecto.marca',
@@ -121,7 +121,7 @@ class PresupuestoPdfController extends Controller
      */
     public function viewer(Presupuesto $presupuesto)
     {
-        $this->authorize('export', $presupuesto);
+        $this->authorize('exportComercial', $presupuesto);
 
         $codigo      = $presupuesto->codigo;
         $precios     = request()->query('precios', '1');
@@ -157,7 +157,7 @@ class PresupuestoPdfController extends Controller
 
     public function produccionPdf(Presupuesto $presupuesto)
     {
-        $this->authorize('export', $presupuesto);
+        $this->authorize('exportProduccion', $presupuesto);
 
         $presupuesto->load([
             'agencia.proyecto.marca',
@@ -256,7 +256,7 @@ class PresupuestoPdfController extends Controller
 
     public function produccionViewer(Presupuesto $presupuesto)
     {
-        $this->authorize('export', $presupuesto);
+        $this->authorize('exportProduccion', $presupuesto);
 
         $presupuesto->load(['agencia.media']);
 

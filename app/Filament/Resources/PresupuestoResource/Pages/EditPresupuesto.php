@@ -30,6 +30,8 @@ class EditPresupuesto extends EditRecord
                 ->label('Produccion PDF')
                 ->icon('heroicon-o-cog-6-tooth')
                 ->color('warning')
+                ->visible(fn (): bool => PresupuestoAuthorization::canForRecord('exportProduccion', $this->record))
+                ->authorize('exportProduccion')
                 ->url(fn () => route('presupuesto.produccion.viewer', $this->record->id))
                 ->openUrlInNewTab(),
 
