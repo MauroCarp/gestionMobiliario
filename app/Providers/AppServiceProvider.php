@@ -9,6 +9,7 @@ use App\Models\LoteProcesoExterno;
 use App\Models\Marca;
 use App\Models\Mobiliario;
 use App\Models\OrdenCompra;
+use App\Models\OrdenProduccion;
 use App\Models\PlantillaFlujoExterno;
 use App\Models\Presupuesto;
 use App\Models\Proveedor;
@@ -26,6 +27,7 @@ use App\Policies\LoteProcesoExternoPolicy;
 use App\Policies\MarcaPolicy;
 use App\Policies\MobiliarioPolicy;
 use App\Policies\OrdenCompraPolicy;
+use App\Policies\OrdenProduccionPolicy;
 use App\Policies\PlantillaFlujoExternoPolicy;
 use App\Policies\PresupuestoPolicy;
 use App\Policies\ProveedorPolicy;
@@ -55,6 +57,7 @@ class AppServiceProvider extends AuthServiceProvider
         LoteProcesoExterno::class   => LoteProcesoExternoPolicy::class,
         UnidadMedida::class         => UnidadMedidaPolicy::class,
         OrdenCompra::class          => OrdenCompraPolicy::class,
+        OrdenProduccion::class      => OrdenProduccionPolicy::class,
     ];
 
     public function register(): void {}

@@ -362,7 +362,11 @@ class StockReservaService
                 }
             }
 
-            $ordenes = $this->persistirOrdenesDelPlan($presupuesto, $plan['ordenes_compra'] ?? []);
+            $ordenes = $this->persistirOrdenesDelPlan(
+                $plan['ordenes_compra'] ?? [],
+                presupuestoId: (int) $presupuesto->id,
+                observacion: "Generada automáticamente para presupuesto {$presupuesto->codigo}",
+            );
 
             return [
                 'lotes'   => $lotes,
@@ -547,7 +551,7 @@ class StockReservaService
             }
 
             $reservadoAjeno = (float) ($reservas->get($insumoId) ?? collect())
-                ->where('presupuesto_id', '!=', $presupuesto->id)
+                ->filter(fn (ReservaStock $reserva): bool => (int) $reserva->presupuesto_id !== (int) $presupuesto->id)
                 ->sum('cantidad_reservada');
 
             $plantilla = $plantillas->get($insumoId);
@@ -599,8 +603,12 @@ class StockReservaService
      * @param  list<array<string, mixed>>  $ordenesPlan
      * @return list<OrdenCompra>
      */
-    private function persistirOrdenesDelPlan(Presupuesto $presupuesto, array $ordenesPlan): array
-    {
+    public function persistirOrdenesDelPlan(
+        array $ordenesPlan,
+        ?int $presupuestoId = null,
+        ?int $ordenProduccionId = null,
+        string $observacion = '',
+    ): array {
         $ordenes = [];
 
         foreach ($ordenesPlan as $ocPlan) {
@@ -619,9 +627,10 @@ class StockReservaService
                     'estado'                   => 'sugerida',
                     'prioridad'                => $ocPlan['prioridad'] ?? 'alta',
                     'generado_automaticamente' => true,
-                    'presupuesto_id'           => $presupuesto->id,
+                    'presupuesto_id'           => $presupuestoId,
+                    'orden_produccion_id'      => $ordenProduccionId,
                     'proveedor_id'             => $ocPlan['proveedor_id'] ?? null,
-                    'observaciones'            => "Generada automáticamente para presupuesto {$presupuesto->codigo}",
+                    'observaciones'            => $observacion,
                 ]);
             }
 
@@ -659,6 +668,26 @@ class StockReservaService
         string $observaciones,
         ?int $plantillaId = null
     ): ?LoteProcesoExterno {
+        return $this->crearLoteDesdeOrigen(
+            'manual',
+            (int) $presupuesto->id,
+            $entidadTipo,
+            $entidadId,
+            $cantidad,
+            $observaciones,
+            $plantillaId,
+        );
+    }
+
+    public function crearLoteDesdeOrigen(
+        string $origenTipo,
+        int $origenId,
+        string $entidadTipo,
+        int $entidadId,
+        float $cantidad,
+        string $observaciones,
+        ?int $plantillaId = null
+    ): ?LoteProcesoExterno {
         if ($cantidad <= 0) {
             return null;
         }
@@ -682,8 +711,8 @@ class StockReservaService
             'entidad_tipo'  => $entidadTipo,
             'entidad_id'    => $entidadId,
             'cantidad'      => $cantidad,
-            'origen_tipo'   => 'manual',
-            'origen_id'     => $presupuesto->id,
+            'origen_tipo'   => $origenTipo,
+            'origen_id'     => $origenId,
             'estado'        => 'pendiente',
             'fecha_inicio'  => now()->toDateString(),
             'observaciones' => $observaciones,
@@ -692,6 +721,14 @@ class StockReservaService
         $lote->crearEtapasDesde($plantilla);
 
         return $lote;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function snapshotOrdenesPendientesParaPlan(): array
+    {
+        return $this->snapshotOrdenesPendientes();
     }
 
     // ─── Internals ────────────────────────────────────────────────────────────

@@ -49,6 +49,7 @@ class OrdenCompra extends Model
         'generado_automaticamente',
         'observaciones',
         'presupuesto_id',
+        'orden_produccion_id',
         'proveedor_id',
         'fecha_pactada_entrega',
     ];
@@ -82,6 +83,11 @@ class OrdenCompra extends Model
     public function presupuesto(): BelongsTo
     {
         return $this->belongsTo(Presupuesto::class);
+    }
+
+    public function ordenProduccion(): BelongsTo
+    {
+        return $this->belongsTo(OrdenProduccion::class);
     }
 
     public function proveedor(): BelongsTo

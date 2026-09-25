@@ -128,6 +128,15 @@ class Mobiliario extends Model implements HasMedia
             );
     }
 
+    public function composicionFabricable()
+    {
+        $this->loadMissing('composicionTecnica.insumo');
+
+        return $this->composicionTecnica
+            ->filter(fn (ComposicionTecnica $comp): bool => ! $comp->es_componente_casco && (float) $comp->cantidad > 0)
+            ->values();
+    }
+
     public function todasVersionesComposicion(): HasMany
     {
         return $this->hasMany(ComposicionTecnica::class, 'mobiliario_id');
@@ -175,6 +184,11 @@ class Mobiliario extends Model implements HasMedia
     public function presupuestoItems(): HasMany
     {
         return $this->hasMany(PresupuestoItem::class, 'mobiliario_id');
+    }
+
+    public function ordenProduccionItems(): HasMany
+    {
+        return $this->hasMany(OrdenProduccionItem::class, 'mobiliario_id');
     }
 
     public function presupuestoItemsPendientesEntrega(): HasMany

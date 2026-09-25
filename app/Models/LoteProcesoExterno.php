@@ -30,7 +30,8 @@ class LoteProcesoExterno extends Model
     const ORIGENES = [
         'orden_compra' => 'Orden de Compra',
         'proyecto'     => 'Proyecto',
-        'manual'       => 'Manual',
+        'manual'            => 'Manual',
+        'orden_produccion'  => 'Orden de Producción',
     ];
 
     protected $fillable = [

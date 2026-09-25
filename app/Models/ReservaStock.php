@@ -11,6 +11,7 @@ class ReservaStock extends Model
 
     protected $fillable = [
         'presupuesto_id',
+        'orden_produccion_id',
         'insumo_id',
         'cantidad_reservada',
         'estado',
@@ -23,6 +24,11 @@ class ReservaStock extends Model
     public function presupuesto(): BelongsTo
     {
         return $this->belongsTo(Presupuesto::class);
+    }
+
+    public function ordenProduccion(): BelongsTo
+    {
+        return $this->belongsTo(OrdenProduccion::class);
     }
 
     public function insumo(): BelongsTo

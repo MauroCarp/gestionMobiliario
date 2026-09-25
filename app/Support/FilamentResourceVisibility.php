@@ -14,6 +14,7 @@ use App\Filament\Resources\LoteProcesoExternoResource;
 use App\Filament\Resources\MarcaResource;
 use App\Filament\Resources\MobiliarioResource;
 use App\Filament\Resources\OrdenCompraResource;
+use App\Filament\Resources\OrdenProduccionResource;
 use App\Filament\Resources\PlantillaFlujoExternoResource;
 use App\Filament\Resources\PresupuestoResource;
 use App\Filament\Resources\ProveedorResource;
@@ -64,6 +65,12 @@ class FilamentResourceVisibility
                 'class' => OrdenCompraResource::class,
                 'model' => OrdenCompraResource::getModel(),
                 'label' => OrdenCompraResource::getPluralModelLabel(),
+            ],
+            'ordenes-produccion' => [
+                'type' => 'resource',
+                'class' => OrdenProduccionResource::class,
+                'model' => OrdenProduccionResource::getModel(),
+                'label' => OrdenProduccionResource::getPluralModelLabel(),
             ],
             'mobiliarios' => [
                 'type' => 'resource',
