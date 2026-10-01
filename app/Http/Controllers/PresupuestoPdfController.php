@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\PresupuestoExport;
 use App\Exports\PresupuestoProduccionExport;
 use App\Models\Presupuesto;
+use App\Services\PresupuestoPdfCache;
 use App\Services\PresupuestoProduccionExportService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -19,7 +20,7 @@ class PresupuestoPdfController extends Controller
         return ! in_array(request()->query('precios', '1'), ['0', 'false', 'no'], true);
     }
 
-    public function show(Presupuesto $presupuesto)
+    public function show(Presupuesto $presupuesto, PresupuestoPdfCache $cache)
     {
         $this->authorize('exportComercial', $presupuesto);
 
@@ -31,6 +32,7 @@ class PresupuestoPdfController extends Controller
             'aprobadoPor',
             'items' => fn ($q) => $q->reorder('sector_id')->orderBy('orden')->with([
                 'mobiliario.atributos',
+                'mobiliario.categoria',
                 'mobiliario.media',
                 'sector',
                 'insumo.media',
@@ -39,80 +41,25 @@ class PresupuestoPdfController extends Controller
             ]),
         ]);
 
-        // El proyecto y la marca se obtienen a través de la agencia
-        $agencia  = $presupuesto->agencia;
-        $proyecto = $agencia?->proyecto;
-        $marca    = $proyecto?->marca;
-
-        // Logo de la marca (se mantiene para uso secundario si fuera necesario)
-        $logoBase64 = null;
-        if ($marca && $marca->logo) {
-            $logoPath = public_path('storage/' . ltrim($marca->logo, '/'));
-            if (file_exists($logoPath)) {
-                $mime       = mime_content_type($logoPath);
-                $logoBase64 = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($logoPath));
-            }
-        }
-
-        // Logo de nuestra empresa (public/images/logo-empresa.png)
-        $logoEmpresaBase64 = null;
-        $logoEmpresaPath   = public_path('images/logo-empresa.png');
-        if (file_exists($logoEmpresaPath)) {
-            $mime              = mime_content_type($logoEmpresaPath);
-            $logoEmpresaBase64 = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($logoEmpresaPath));
-        }
-
-        $logisticaImagenBase64 = null;
-        $logisticaImagenPath = storage_path('app/public/logistica_instalacion/logistica_instalacion.png');
-        if (file_exists($logisticaImagenPath)) {
-            $mime = mime_content_type($logisticaImagenPath) ?: 'image/png';
-            $logisticaImagenBase64 = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($logisticaImagenPath));
-        }
-
-        // Items con imagen en base64, agrupados por sector
-        $items = $presupuesto->items->map(function ($item) {
-            $imagenBase64 = null;
-            try {
-                $media = $item->mobiliario
-                    ? $item->mobiliario->getFirstMedia('imagenes')
-                    : $item->insumo?->getFirstMedia('imagen');
-                if ($media) {
-                    $path = $media->getPath();
-                    if (file_exists($path)) {
-                        $imagenBase64 = 'data:' . $media->mime_type . ';base64,' . base64_encode(file_get_contents($path));
-                    }
-                }
-            } catch (\Throwable) {}
-
-            return [
-                'item'          => $item,
-                'mobiliario'    => $item->mobiliario,
-                'insumo'        => $item->insumo,
-                'sector'        => $item->sector,
-                'imagen_base64' => $imagenBase64,
-            ];
-        });
-
-        // Agrupar por sector (null = "Sin sector")
-        $itemsPorSector = $items->groupBy(function ($itemData) {
-            return $itemData['sector']?->nombre ?? '__sin_sector__';
-        });
-
         $mostrarPrecios = $this->mostrarPreciosEnPdf();
 
-        $pdf = Pdf::loadView('pdf.presupuesto', compact(
-            'presupuesto', 'proyecto', 'agencia', 'marca', 'logoBase64', 'logoEmpresaBase64', 'logisticaImagenBase64', 'items', 'itemsPorSector', 'mostrarPrecios'
-        ))
-        ->setPaper('a4', 'portrait')
-        ->setOptions([
-            'dpi'         => 150,
-            'defaultFont' => 'DejaVu Sans',
-            'isRemoteEnabled' => false,
-        ]);
-
-        $filename = "presupuesto-{$presupuesto->codigo}.pdf";
-
-        return $pdf->stream($filename);
+        return $this->responderPdf(
+            $cache,
+            $presupuesto,
+            'comercial',
+            $mostrarPrecios,
+            "presupuesto-{$presupuesto->codigo}.pdf",
+            fn () => Pdf::loadView('pdf.presupuesto', array_merge(
+                $this->datosVista($presupuesto, $cache, 0.15),
+                [
+                    'logisticaImagenBase64' => $cache->archivoABase64(
+                        storage_path('app/public/logistica_instalacion/logistica_instalacion.png'),
+                        'image/png'
+                    ),
+                    'mostrarPrecios' => $mostrarPrecios,
+                ]
+            ))->setPaper('a4', 'portrait')->setOptions($this->opcionesPdf())->output()
+        );
     }
 
     /**
@@ -155,7 +102,7 @@ class PresupuestoPdfController extends Controller
         return Excel::download(new PresupuestoExport($presupuesto), $filename);
     }
 
-    public function produccionPdf(Presupuesto $presupuesto)
+    public function produccionPdf(Presupuesto $presupuesto, PresupuestoPdfCache $cache)
     {
         $this->authorize('exportProduccion', $presupuesto);
 
@@ -182,66 +129,17 @@ class PresupuestoPdfController extends Controller
                 ]),
         ]);
 
-        $agencia  = $presupuesto->agencia;
-        $proyecto = $agencia?->proyecto;
-        $marca    = $proyecto?->marca;
-
-        $logoBase64 = null;
-        if ($marca && $marca->logo) {
-            $logoPath = public_path('storage/' . ltrim($marca->logo, '/'));
-            if (file_exists($logoPath)) {
-                $mime       = mime_content_type($logoPath);
-                $logoBase64 = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($logoPath));
-            }
-        }
-
-        $logoEmpresaBase64 = null;
-        $logoEmpresaPath   = public_path('images/logo-empresa.png');
-        if (file_exists($logoEmpresaPath)) {
-            $mime              = mime_content_type($logoEmpresaPath);
-            $logoEmpresaBase64 = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($logoEmpresaPath));
-        }
-
-        $items = $presupuesto->items->map(function ($item) {
-            $imagenBase64 = null;
-            try {
-                $media = $item->mobiliario
-                    ? $item->mobiliario->getFirstMedia('imagenes')
-                    : $item->insumo?->getFirstMedia('imagen');
-                if ($media) {
-                    $path = $media->getPath();
-                    if (file_exists($path)) {
-                        $imagenBase64 = 'data:' . $media->mime_type . ';base64,' . base64_encode(file_get_contents($path));
-                    }
-                }
-            } catch (\Throwable) {}
-
-            return [
-                'item'          => $item,
-                'mobiliario'    => $item->mobiliario,
-                'insumo'        => $item->insumo,
-                'sector'        => $item->sector,
-                'imagen_base64' => $imagenBase64,
-            ];
-        });
-
-        $itemsPorSector = $items->groupBy(function ($itemData) {
-            return $itemData['sector']?->nombre ?? '__sin_sector__';
-        });
-
-        $pdf = Pdf::loadView('pdf.produccion', compact(
-            'presupuesto', 'proyecto', 'agencia', 'marca', 'logoBase64', 'logoEmpresaBase64', 'items', 'itemsPorSector'
-        ))
-        ->setPaper('a4', 'portrait')
-        ->setOptions([
-            'dpi'             => 150,
-            'defaultFont'     => 'DejaVu Sans',
-            'isRemoteEnabled' => false,
-        ]);
-
-        $filename = "produccion-{$presupuesto->codigo}.pdf";
-
-        return $pdf->stream($filename);
+        return $this->responderPdf(
+            $cache,
+            $presupuesto,
+            'produccion',
+            null,
+            "produccion-{$presupuesto->codigo}.pdf",
+            fn () => Pdf::loadView(
+                'pdf.produccion',
+                $this->datosVista($presupuesto, $cache, 0.08)
+            )->setPaper('a4', 'portrait')->setOptions($this->opcionesPdf())->output()
+        );
     }
 
     public function produccionExcel(Presupuesto $presupuesto, PresupuestoProduccionExportService $exportService)
@@ -287,5 +185,69 @@ class PresupuestoPdfController extends Controller
         }
 
         return redirect($url);
+    }
+
+    /**
+     * @param  callable(): string  $generar
+     */
+    private function responderPdf(
+        PresupuestoPdfCache $cache,
+        Presupuesto $presupuesto,
+        string $tipo,
+        ?bool $conPrecios,
+        string $filename,
+        callable $generar,
+    ) {
+        $opciones = $this->opcionesPdf();
+        $huella = $cache->huella($presupuesto, $tipo, $conPrecios, $opciones);
+        $clave = $cache->clave($presupuesto, $tipo, $conPrecios);
+        $path = $cache->rutaSiCoincide($clave, $huella) ?? $cache->guardar($clave, $huella, $generar());
+
+        return response()->file($path, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$filename.'"',
+            'Cache-Control' => 'private, no-cache, must-revalidate',
+        ]);
+    }
+
+    private function datosVista(Presupuesto $presupuesto, PresupuestoPdfCache $cache, float $opacidadMarcaDeAgua): array
+    {
+        $agencia = $presupuesto->agencia;
+        $proyecto = $agencia?->proyecto;
+        $marca = $proyecto?->marca;
+
+        $logoBase64 = null;
+        if ($marca?->logo) {
+            $logoBase64 = $cache->archivoABase64(public_path('storage/'.ltrim($marca->logo, '/')));
+        }
+
+        $items = $presupuesto->items->map(fn ($item) => [
+            'item' => $item,
+            'mobiliario' => $item->mobiliario,
+            'insumo' => $item->insumo,
+            'sector' => $item->sector,
+            'imagen_base64' => $cache->imagenItemBase64($item),
+        ]);
+
+        return [
+            'presupuesto' => $presupuesto,
+            'proyecto' => $proyecto,
+            'agencia' => $agencia,
+            'marca' => $marca,
+            'logoBase64' => $logoBase64,
+            'logoEmpresaBase64' => $cache->archivoABase64(public_path('images/logo-empresa.png')),
+            'marcaDeAguaBase64' => $cache->marcaDeAguaBase64($opacidadMarcaDeAgua),
+            'items' => $items,
+            'itemsPorSector' => $items->groupBy(fn ($itemData) => $itemData['sector']?->nombre ?? '__sin_sector__'),
+        ];
+    }
+
+    private function opcionesPdf(): array
+    {
+        return [
+            'dpi' => 150,
+            'defaultFont' => 'DejaVu Sans',
+            'isRemoteEnabled' => false,
+        ];
     }
 }

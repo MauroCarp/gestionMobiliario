@@ -52,11 +52,11 @@
 
         /* ── TABLA DE ITEMS ───────────────────────────────────── */
         .items-table { width: 100%; border-collapse: collapse; margin-bottom: 0; border: 1px solid #3a3a3a; }
-        .items-table thead tr { background: rgba(61, 104, 219, 0.5); color: #FFFFFF; }
+        .items-table thead tr { background: #9EB4ED; color: #000000; }
         .items-table thead th {
             padding: 7px 8px; text-align: left; font-size: 12px;
             text-transform: uppercase; letter-spacing: 0.4px;
-            border: 1px solid rgba(61, 104, 219, 0.5);
+            border: 1px solid #9EB4ED;
         }
         .items-table thead th.center { text-align: center; }
         .items-table tbody td { padding: 7px 8px; vertical-align: top; font-size: 12px; border: 1px solid #86898d; }
@@ -168,9 +168,8 @@
             z-index: -1000; overflow: visible;
         }
         .watermark {
-            position: absolute; top: 500px; left: 50%;
-            width: 1000px; margin-left: -500px;
-            opacity: 0.08; transform: rotate(-25deg);
+            position: absolute; top: 360px; left: 50%;
+            width: 420px; margin-left: -210px;
         }
 
         /* ── PIE FIJO ────────────────────────────────────────── */
@@ -188,9 +187,9 @@
 <body>
 
 {{-- ── MARCA DE AGUA ───────────────────────────────────────────── --}}
-@if(!empty($logoEmpresaBase64))
+@if(!empty($marcaDeAguaBase64))
 <div class="watermark-wrapper">
-    <img src="{{ $logoEmpresaBase64 }}" class="watermark">
+    <img src="{{ $marcaDeAguaBase64 }}" class="watermark">
 </div>
 @endif
 
