@@ -176,6 +176,37 @@ class OrdenProduccionServiceTest extends OrdenProduccionIsolatedTestCase
     }
 
     #[Test]
+    public function demanda_pendiente_omite_finalizados_y_usa_snapshot_restante(): void
+    {
+        $marca = $this->crearMarca();
+        $mobiliario = $this->crearMobiliario();
+        $this->asociarMarca($mobiliario, $marca);
+        $insumo = $this->crearInsumo(['stock_actual' => 40]);
+        $this->agregarComposicion($mobiliario, $insumo, 2);
+
+        [$orden, $itemParcial] = $this->crearOrdenConItem($mobiliario, $marca, 4);
+        $itemFinalizado = OrdenProduccionItem::query()->create([
+            'orden_produccion_id' => $orden->id,
+            'marca_id' => $marca->id,
+            'mobiliario_id' => $mobiliario->id,
+            'cantidad' => 3,
+            'cantidad_ingresada' => 0,
+            'estado' => 'pendiente',
+        ]);
+
+        $orden = $this->service->iniciar($orden->fresh('items'));
+
+        $this->service->registrarIngreso($itemParcial->fresh(), 1);
+        $this->service->registrarIngreso($itemFinalizado->fresh(), 3);
+
+        $demanda = $this->service->calcularDemandaPendiente($orden->fresh(['items.insumos']));
+
+        $this->assertEquals(6.0, $demanda[$insumo->id] ?? 0);
+        $this->assertNotNull($itemFinalizado->fresh()->finalizado_at);
+        $this->assertNull($itemParcial->fresh()->finalizado_at);
+    }
+
+    #[Test]
     public function ingreso_parcial_consume_proporcional_e_incrementa_stock(): void
     {
         [$orden, $item, $insumo, $mobiliario] = $this->ordenIniciada(

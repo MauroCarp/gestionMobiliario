@@ -34,12 +34,13 @@ Los comandos con `--dry-run` **no guardan cambios**: muestran qué harían. Conv
 |---|---|---|
 | `backup:database` | Backup MySQL en `storage/app/backups` | No (solo archivos) |
 | `presupuestos:congelar-precios-lista` | Copia precio de lista a ítems **sin** precio unitario | Sí |
-| `stock:recalcular-reservado` | Regenera reservas de stock de insumos | Sí |
+| `stock:recalcular-reservado` | Regenera reservas de stock (presupuestos y OP iniciadas) | Sí |
 | `cascos:sincronizar` | Crea lotes de cascos y recalcula reservas | Sí |
 | `cascos:simular` | Analiza stock/fabricación de cascos de un mobiliario | No |
 | `presupuesto:simular-confirmacion` | Muestra lotes y OC que saldrían al confirmar | No |
 | `informe:presupuestos-insumos` | Informe de presupuestos que usan ciertos insumos | No |
 | `informe:pendientes-entrega` | Mobiliarios pendientes de entrega según un insumo en la BOM | No |
+| `stock:verificar-reserva` | Mobiliarios no finalizados de un insumo vs reservas activas | No |
 
 ---
 
@@ -108,15 +109,18 @@ Reconstruye la tabla `reservas_stock` desde cero:
 
 1. Borra todas las reservas actuales.
 2. Recorre presupuestos en estado `confirmado`, `pagado` o `entregado_parcial`.
-3. Toma ítems **no finalizados** y **no entregados**.
+3. Toma ítems de presupuesto **no finalizados** y **no entregados**.
 4. Calcula la demanda de insumos (BOM del mobiliario o silla directa).
 5. Crea una reserva activa por insumo y presupuesto.
+6. Recorre órdenes de producción en `en_proceso` o `pausada`.
+7. Toma ítems de OP **no finalizados** y usa el snapshot pendiente (`cantidad_total − cantidad_consumida`).
+8. Crea una reserva activa por insumo y orden de producción.
 
-Muestra un resumen (reservas anteriores, presupuestos, ítems) y una tabla con el total reservado por insumo.
+Muestra un resumen (reservas anteriores, presupuestos, órdenes, ítems) y una tabla con el total reservado por insumo.
 
 Con `--dry-run` hace el cálculo y después revierte la transacción.
 
-Usalo si las reservas quedaron desfasadas respecto de los presupuestos activos.
+Usalo si las reservas quedaron desfasadas respecto de los presupuestos activos o de las órdenes de producción iniciadas.
 
 ---
 
@@ -239,9 +243,38 @@ Si no pasás código, usa `INS-0062`.
 
 ---
 
+## 9. Verificar reserva de un insumo
+
+```bash
+php artisan stock:verificar-reserva INS-0062
+```
+
+**Qué hace (solo lectura)**
+
+Lista ítems de **mobiliario no finalizados** de presupuestos activos (`confirmado`, `pagado`, `entregado_parcial`) y de órdenes de producción iniciadas (`en_proceso`, `pausada`) que usan el insumo, y compara esa demanda con `reservas_stock`.
+
+Usa el mismo criterio que `stock:recalcular-reservado`:
+
+- presupuesto: ítem sin `finalizado_at` y aún no entregado completo; cantidad = BOM × cantidad a fabricar; no cuenta componentes de casco
+- orden de producción: ítem sin `finalizado_at`; cantidad = snapshot pendiente (`cantidad_total − cantidad_consumida`)
+
+Muestra:
+
+- cada línea de presupuesto: presupuesto, estado, mobiliario, cantidad del ítem, a fabricar, cantidad en BOM y demanda
+- por presupuesto: demanda de esos mobiliarios vs reserva activa (OK / NO COINCIDE)
+- cada línea de OP: orden, estado, mobiliario, cantidad, pendiente, cantidad en BOM y demanda
+- por orden: demanda de esos mobiliarios vs reserva activa
+- totales: demanda de presupuesto + OP contra reservas de ambos orígenes
+
+Si la reserva del presupuesto es mayor, avisa que puede haber otras líneas (silla/insumo directo o casco) que también reservan. Esas no se listan como mobiliario.
+
+Hay que pasar el código del insumo.
+
+---
+
 ## Notas
 
-- Los comandos de **simulación** e **informe** no escriben en la base.
+- Los comandos de **simulación**, **informe** y `stock:verificar-reserva` no escriben en la base.
 - `backup:database`, `cascos:sincronizar`, `stock:recalcular-reservado` y `presupuestos:congelar-precios-lista` sí tienen efecto (salvo `--dry-run`).
 - Si un comando pide confirmación (`yes/no`), en scripts no interactivos se puede saltar con `--no-interaction` (en congelar precios, eso **cancela** el guardado porque no hay confirmación afirmativa).
 - Para listar solo los comandos de esta app: `php artisan list` y buscar los grupos `backup`, `cascos`, `informe`, `presupuesto(s)` y `stock`.

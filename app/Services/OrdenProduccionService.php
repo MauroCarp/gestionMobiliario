@@ -342,6 +342,36 @@ class OrdenProduccionService
         return $demanda;
     }
 
+    /**
+     * Demanda aún reservable: ítems no finalizados y snapshot pendiente.
+     *
+     * @return array<int, float>
+     */
+    public function calcularDemandaPendiente(OrdenProduccion $orden): array
+    {
+        $orden->loadMissing('items.insumos');
+
+        $demanda = [];
+
+        foreach ($orden->items as $item) {
+            if ($item->finalizado_at !== null) {
+                continue;
+            }
+
+            foreach ($item->insumos as $snapshot) {
+                $pendiente = $snapshot->cantidadPendiente();
+
+                if ($pendiente <= 0) {
+                    continue;
+                }
+
+                $demanda[$snapshot->insumo_id] = ($demanda[$snapshot->insumo_id] ?? 0) + $pendiente;
+            }
+        }
+
+        return $demanda;
+    }
+
     private function validarLineas(OrdenProduccion $orden): void
     {
         foreach ($orden->items as $item) {

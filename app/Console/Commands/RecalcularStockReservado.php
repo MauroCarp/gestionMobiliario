@@ -3,8 +3,10 @@
 namespace App\Console\Commands;
 
 use App\Models\Insumo;
+use App\Models\OrdenProduccion;
 use App\Models\Presupuesto;
 use App\Models\ReservaStock;
+use App\Services\OrdenProduccionService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -13,9 +15,11 @@ class RecalcularStockReservado extends Command
 {
     protected $signature = 'stock:recalcular-reservado {--dry-run : Solo mostrar sin persistir}';
 
-    protected $description = 'Recalcula reservas_stock desde items no finalizados y no entregados de presupuestos activos';
+    protected $description = 'Recalcula reservas_stock desde presupuestos activos y órdenes de producción iniciadas';
 
     private const ESTADOS_ACTIVOS = ['confirmado', 'pagado', 'entregado_parcial'];
+
+    private const ESTADOS_OP_INICIADAS = ['en_proceso', 'pausada'];
 
     public function handle(): int
     {
@@ -35,9 +39,18 @@ class RecalcularStockReservado extends Command
                 ->with('mobiliario.composicionTecnica')])
             ->get();
 
+        $ordenes = OrdenProduccion::query()
+            ->whereIn('estado', self::ESTADOS_OP_INICIADAS)
+            ->with(['items' => fn ($q) => $q
+                ->whereNull('finalizado_at')
+                ->with('insumos')])
+            ->get();
+
         $itemsConsiderados = 0;
-        $filasCreadas      = 0;
-        $totalesPorInsumo  = [];
+        $itemsOpConsiderados = 0;
+        $filasCreadas = 0;
+        $totalesPorInsumo = [];
+        $opService = app(OrdenProduccionService::class);
 
         DB::beginTransaction();
 
@@ -65,10 +78,32 @@ class RecalcularStockReservado extends Command
                     }
 
                     ReservaStock::create([
-                        'presupuesto_id'     => $presupuesto->id,
-                        'insumo_id'          => $insumoId,
+                        'presupuesto_id' => $presupuesto->id,
+                        'insumo_id' => $insumoId,
                         'cantidad_reservada' => $cantidad,
-                        'estado'             => 'activa',
+                        'estado' => 'activa',
+                    ]);
+
+                    $filasCreadas++;
+                    $totalesPorInsumo[$insumoId] = ($totalesPorInsumo[$insumoId] ?? 0) + $cantidad;
+                }
+            }
+
+            foreach ($ordenes as $orden) {
+                $itemsOpConsiderados += $orden->items->count();
+                $demandaOrden = $opService->calcularDemandaPendiente($orden);
+
+                foreach ($demandaOrden as $insumoId => $cantidad) {
+                    if ($cantidad <= 0) {
+                        continue;
+                    }
+
+                    ReservaStock::create([
+                        'orden_produccion_id' => $orden->id,
+                        'presupuesto_id' => null,
+                        'insumo_id' => $insumoId,
+                        'cantidad_reservada' => $cantidad,
+                        'estado' => 'activa',
                     ]);
 
                     $filasCreadas++;
@@ -86,7 +121,7 @@ class RecalcularStockReservado extends Command
         } catch (Throwable $e) {
             DB::rollBack();
 
-            $this->error('Error al recalcular: ' . $e->getMessage());
+            $this->error('Error al recalcular: '.$e->getMessage());
 
             return self::FAILURE;
         }
@@ -94,8 +129,10 @@ class RecalcularStockReservado extends Command
         $this->newLine();
         $this->info('Resumen:');
         $this->line("  Reservas anteriores eliminadas: {$reservasAnteriores}");
-        $this->line('  Presupuestos procesados: ' . $presupuestos->count());
-        $this->line("  Items considerados: {$itemsConsiderados}");
+        $this->line('  Presupuestos procesados: '.$presupuestos->count());
+        $this->line("  Items de presupuesto considerados: {$itemsConsiderados}");
+        $this->line('  Órdenes de producción procesadas: '.$ordenes->count());
+        $this->line("  Items de OP considerados: {$itemsOpConsiderados}");
         $this->line("  Filas de reserva creadas: {$filasCreadas}");
 
         $this->mostrarTotalesPorInsumo($totalesPorInsumo);
