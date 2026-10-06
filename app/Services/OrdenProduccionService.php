@@ -457,17 +457,7 @@ class OrdenProduccionService
         $idsFabricables = $fabricables->pluck('insumo_id')->map(fn ($id): int => (int) $id)->all();
         $seleccionados = $item->idsInsumosSeleccionados();
 
-        if ($fabricables->isEmpty()) {
-            return;
-        }
-
-        if ($seleccionados === []) {
-            throw new OrdenProduccionException(
-                "La línea de {$mobiliario->nombre} debe tener al menos un insumo seleccionado."
-            );
-        }
-
-        if ($seleccionados === null) {
+        if ($fabricables->isEmpty() || $seleccionados === [] || $seleccionados === null) {
             return;
         }
 

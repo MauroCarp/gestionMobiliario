@@ -30,6 +30,7 @@ class Insumo extends Model implements HasMedia
         'stock_minimo',
         'stock_actual',
         'precio_costo',
+        'fecha_ultimo_precio',
         'ubicacion',
         'tag',
         'observaciones',
@@ -43,8 +44,9 @@ class Insumo extends Model implements HasMedia
         'tag'          => 'array',
         'stock_minimo' => 'float',
         'stock_actual' => 'float',
-        'precio_costo' => 'float',
-        'activo'       => 'boolean',
+        'precio_costo'         => 'float',
+        'fecha_ultimo_precio'  => 'date',
+        'activo'               => 'boolean',
     ];
 
     protected static function boot(): void
@@ -149,6 +151,53 @@ class Insumo extends Model implements HasMedia
     public function ordenCompraItems(): HasMany
     {
         return $this->hasMany(OrdenCompraItem::class, 'insumo_id');
+    }
+
+    /**
+     * Recepciones y órdenes de compra no canceladas, para el historial de costo.
+     *
+     * @return \Illuminate\Support\Collection<int, array{orden: OrdenCompra, codigo: string, fecha: mixed, costo: ?float, cantidad: ?float, estado: string, proveedor: ?string}>
+     */
+    public function historialCompras(): \Illuminate\Support\Collection
+    {
+        $this->loadMissing([
+            'ordenCompraItems.ordenCompra.proveedor',
+            'ordenCompraItems.recepciones',
+        ]);
+
+        return $this->ordenCompraItems
+            ->filter(fn (OrdenCompraItem $item): bool =>
+                $item->ordenCompra !== null && $item->ordenCompra->estado !== 'cancelada'
+            )
+            ->flatMap(function (OrdenCompraItem $item) {
+                $orden = $item->ordenCompra;
+                $base = [
+                    'orden'     => $orden,
+                    'codigo'    => $orden->codigo,
+                    'estado'    => $orden->estado,
+                    'proveedor' => $orden->proveedor?->razon_social,
+                ];
+
+                if ($item->recepciones->isNotEmpty()) {
+                    return $item->recepciones->map(fn (OrdenCompraItemRecepcion $recepcion): array => array_merge($base, [
+                        'fecha'    => $recepcion->fecha_recepcion,
+                        'costo'    => $recepcion->costo_unitario,
+                        'cantidad' => $recepcion->cantidad,
+                    ]));
+                }
+
+                return [array_merge($base, [
+                    'fecha'    => null,
+                    'costo'    => $item->precio_unitario,
+                    'cantidad' => $item->cantidad_solicitada,
+                ])];
+            })
+            ->sortByDesc(function (array $fila): int {
+                return optional($fila['fecha'])->getTimestamp()
+                    ?? optional($fila['orden']->created_at)->getTimestamp()
+                    ?? 0;
+            })
+            ->values();
     }
 
     public function tipoSilla(): BelongsTo

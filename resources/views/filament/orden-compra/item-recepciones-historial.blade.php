@@ -7,6 +7,7 @@
                 <tr class="border-b border-gray-200 dark:border-gray-700">
                     <th class="py-2 pr-4 font-medium">Fecha</th>
                     <th class="py-2 pr-4 font-medium">Cantidad</th>
+                    <th class="py-2 pr-4 font-medium">Costo unitario</th>
                     <th class="py-2 font-medium">Notas</th>
                 </tr>
             </thead>
@@ -15,6 +16,9 @@
                     <tr class="border-b border-gray-100 dark:border-gray-800">
                         <td class="py-2 pr-4">{{ $recepcion->fecha_recepcion?->format('d/m/Y') }}</td>
                         <td class="py-2 pr-4">{{ number_format($recepcion->cantidad, 2, ',', '.') }}</td>
+                        <td class="py-2 pr-4">
+                            {{ $recepcion->costo_unitario !== null ? '$' . number_format((float) $recepcion->costo_unitario, 2, ',', '.') : '—' }}
+                        </td>
                         <td class="py-2">{{ $recepcion->notas ?: '—' }}</td>
                     </tr>
                 @endforeach

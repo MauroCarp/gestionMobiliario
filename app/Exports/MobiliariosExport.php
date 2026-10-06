@@ -15,7 +15,13 @@ class MobiliariosExport implements FromQuery, WithHeadings, WithMapping, ShouldA
 
     public function query(): Builder
     {
-        return $this->query->with(['categoria', 'marcas', 'atributos']);
+        return $this->query->with([
+            'categoria',
+            'marcas',
+            'atributos',
+            'composicionTecnica.insumo',
+            'plantillaFlujos.etapas',
+        ]);
     }
 
     public function headings(): array
@@ -29,6 +35,7 @@ class MobiliariosExport implements FromQuery, WithHeadings, WithMapping, ShouldA
             'Estado',
             'Versión',
             'Precio',
+            'Costo Directo',
             'Descripción',
             'Observaciones',
         ];
@@ -50,6 +57,7 @@ class MobiliariosExport implements FromQuery, WithHeadings, WithMapping, ShouldA
             Mobiliario::ESTADOS[$mobiliario->estado] ?? $mobiliario->estado,
             $mobiliario->version_actual,
             $mobiliario->precio,
+            $mobiliario->costoDirecto(),
             $mobiliario->descripcion,
             $mobiliario->observaciones,
         ];

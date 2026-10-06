@@ -80,6 +80,8 @@ abstract class IsolatedSqliteTestCase extends TestCase
             $table->boolean('logistica_instalacion_propia')->default(false);
             $table->string('logistica_leyenda')->nullable();
             $table->decimal('logistica_costo', 12, 2)->nullable();
+            $table->boolean('armado')->default(false);
+            $table->decimal('armado_costo', 12, 2)->nullable();
             $table->text('observaciones')->nullable();
             $table->text('notas_internas')->nullable();
             $table->unsignedBigInteger('aprobado_por')->nullable();

@@ -137,6 +137,85 @@ class Mobiliario extends Model implements HasMedia
             ->values();
     }
 
+    /**
+     * @return array{
+     *     insumos: list<array{codigo: ?string, nombre: ?string, cantidad: float, unidad: ?string, precio_costo: float, subtotal: float, es_casco: bool}>,
+     *     etapas: list<array{plantilla: ?string, orden: ?int, tipo_proceso: ?string, tercero: ?string, ultimo_precio: float}>,
+     *     plantillas_inactivas: list<string>,
+     *     subtotal_insumos: float,
+     *     subtotal_etapas: float,
+     *     total: float
+     * }
+     */
+    public function desgloseCostoDirecto(): array
+    {
+        $this->loadMissing([
+            'composicionTecnica.insumo.unidadMedida',
+            'plantillaFlujos.etapas.tipoProceso',
+            'plantillaFlujos.etapas.tercero',
+        ]);
+
+        $insumos = [];
+        $sumaInsumos = 0.0;
+
+        foreach ($this->composicionTecnica as $comp) {
+            $cantidad = (float) $comp->cantidad;
+            $precioCosto = (float) ($comp->insumo?->precio_costo ?? 0);
+            $subtotal = $cantidad * $precioCosto;
+            $sumaInsumos += $subtotal;
+
+            $insumos[] = [
+                'codigo' => $comp->insumo?->codigo,
+                'nombre' => $comp->insumo?->nombre,
+                'cantidad' => $cantidad,
+                'unidad' => $comp->insumo?->unidadMedida?->abreviatura
+                    ?? $comp->insumo?->unidadMedida?->nombre,
+                'precio_costo' => $precioCosto,
+                'subtotal' => round($subtotal, 2),
+                'es_casco' => (bool) $comp->es_componente_casco,
+            ];
+        }
+
+        $etapas = [];
+        $plantillasInactivas = [];
+        $sumaEtapas = 0.0;
+
+        foreach ($this->plantillaFlujos as $plantilla) {
+            if (! $plantilla->activo) {
+                $plantillasInactivas[] = $plantilla->nombre ?: '—';
+
+                continue;
+            }
+
+            foreach ($plantilla->etapas as $etapa) {
+                $precio = (float) ($etapa->ultimo_precio ?? 0);
+                $sumaEtapas += $precio;
+
+                $etapas[] = [
+                    'plantilla' => $plantilla->nombre,
+                    'orden' => $etapa->orden,
+                    'tipo_proceso' => $etapa->tipoProceso?->nombre,
+                    'tercero' => $etapa->tercero?->nombre,
+                    'ultimo_precio' => $precio,
+                ];
+            }
+        }
+
+        return [
+            'insumos' => $insumos,
+            'etapas' => $etapas,
+            'plantillas_inactivas' => $plantillasInactivas,
+            'subtotal_insumos' => round($sumaInsumos, 2),
+            'subtotal_etapas' => round($sumaEtapas, 2),
+            'total' => round($sumaInsumos + $sumaEtapas, 2),
+        ];
+    }
+
+    public function costoDirecto(): float
+    {
+        return $this->desgloseCostoDirecto()['total'];
+    }
+
     public function todasVersionesComposicion(): HasMany
     {
         return $this->hasMany(ComposicionTecnica::class, 'mobiliario_id');

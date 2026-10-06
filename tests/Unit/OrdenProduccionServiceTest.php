@@ -475,7 +475,27 @@ class OrdenProduccionServiceTest extends OrdenProduccionIsolatedTestCase
     }
 
     #[Test]
-    public function rechaza_seleccion_vacia_o_ajena_cuando_hay_composicion(): void
+    public function inicia_sin_reservar_cuando_la_seleccion_de_insumos_esta_vacia(): void
+    {
+        $marca = $this->crearMarca();
+        $mobiliario = $this->crearMobiliario();
+        $this->asociarMarca($mobiliario, $marca);
+        $insumo = $this->crearInsumo(['stock_actual' => 10]);
+        $this->agregarComposicion($mobiliario, $insumo, 1);
+
+        [$orden, $item] = $this->crearOrdenConItem($mobiliario, $marca, 1, [], [
+            'insumos_seleccionados' => [],
+        ]);
+
+        $iniciada = $this->service->iniciar($orden);
+
+        $this->assertSame('en_proceso', $iniciada->estado);
+        $this->assertSame(0, $item->fresh()->insumos()->count());
+        $this->assertEquals(0.0, (float) $insumo->fresh()->stock_reservado);
+    }
+
+    #[Test]
+    public function rechaza_insumo_ajeno_cuando_hay_composicion(): void
     {
         $marca = $this->crearMarca();
         $mobiliario = $this->crearMobiliario();
@@ -483,17 +503,6 @@ class OrdenProduccionServiceTest extends OrdenProduccionIsolatedTestCase
         $insumo = $this->crearInsumo(['stock_actual' => 10]);
         $ajeno = $this->crearInsumo(['nombre' => 'Ajeno', 'stock_actual' => 10]);
         $this->agregarComposicion($mobiliario, $insumo, 1);
-
-        [$vacia] = $this->crearOrdenConItem($mobiliario, $marca, 1, [], [
-            'insumos_seleccionados' => [],
-        ]);
-
-        try {
-            $this->service->iniciar($vacia);
-            $this->fail('Debió exigir al menos un insumo.');
-        } catch (OrdenProduccionException $e) {
-            $this->assertStringContainsString('al menos un insumo', $e->getMessage());
-        }
 
         [$ajena] = $this->crearOrdenConItem($mobiliario, $marca, 1, [], [
             'insumos_seleccionados' => [$ajeno->id],

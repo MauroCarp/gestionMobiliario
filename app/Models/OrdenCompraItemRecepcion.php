@@ -12,12 +12,14 @@ class OrdenCompraItemRecepcion extends Model
     protected $fillable = [
         'orden_compra_item_id',
         'cantidad',
+        'costo_unitario',
         'fecha_recepcion',
         'notas',
     ];
 
     protected $casts = [
         'cantidad'         => 'float',
+        'costo_unitario'   => 'float',
         'fecha_recepcion'  => 'date',
     ];
 

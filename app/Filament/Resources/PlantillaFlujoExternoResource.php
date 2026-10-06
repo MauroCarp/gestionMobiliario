@@ -116,6 +116,17 @@ class PlantillaFlujoExternoResource extends BaseResource
                                 ->minValue(1)
                                 ->nullable()
                                 ->columnSpan(1),
+                            Forms\Components\TextInput::make('ultimo_precio')
+                                ->label('Último precio')
+                                ->numeric()
+                                ->minValue(0)
+                                ->prefix('$')
+                                ->nullable()
+                                ->columnSpan(2),
+                            Forms\Components\DatePicker::make('fecha_ultimo_precio')
+                                ->label('Fecha último precio')
+                                ->nullable()
+                                ->columnSpan(2),
                             Forms\Components\Textarea::make('observaciones')
                                 ->label('Observaciones')
                                 ->rows(1)

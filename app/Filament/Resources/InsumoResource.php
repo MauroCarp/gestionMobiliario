@@ -17,6 +17,7 @@ use Filament\Infolists\Infolist;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\HtmlString;
 
 class InsumoResource extends BaseResource
 {
@@ -59,6 +60,48 @@ class InsumoResource extends BaseResource
             ->url(fn (Insumo $record): string => $record->planoUrl())
             ->openUrlInNewTab()
             ->visible(fn (Insumo $record): bool => $record->tienePlano());
+    }
+
+    public static function historialComprasPageAction(\Closure $getRecord): \Filament\Actions\Action
+    {
+        return \Filament\Actions\Action::make('historial_compras')
+            ->label('Historial')
+            ->icon('heroicon-o-clock')
+            ->color('gray')
+            ->modalHeading(fn (): string => 'Historial de compras — '.$getRecord()->nombre)
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel('Cerrar')
+            ->modalContent(fn (): HtmlString => static::contenidoHistorialCompras($getRecord()));
+    }
+
+    public static function historialComprasTableAction(): Tables\Actions\Action
+    {
+        return Tables\Actions\Action::make('historial_compras')
+            ->label('Historial')
+            ->icon('heroicon-o-clock')
+            ->color('gray')
+            ->modalHeading(fn (Insumo $record): string => "Historial de compras — {$record->nombre}")
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel('Cerrar')
+            ->modalContent(fn (Insumo $record): HtmlString => static::contenidoHistorialCompras($record));
+    }
+
+    public static function contenidoHistorialCompras(Insumo $record): HtmlString
+    {
+        $filas = $record->historialCompras()->map(function (array $fila): array {
+            $orden = $fila['orden'];
+            $fila['estado_label'] = \App\Models\OrdenCompra::ESTADOS[$fila['estado']] ?? $fila['estado'];
+            $fila['url'] = (auth()->user()?->can('view', $orden) ?? false)
+                ? OrdenCompraResource::getUrl('view', ['record' => $orden])
+                : null;
+            unset($fila['orden']);
+
+            return $fila;
+        });
+
+        return new HtmlString(
+            view('filament.insumo.historial-compras', ['filas' => $filas])->render()
+        );
     }
 
     public static function form(Form $form): Form
@@ -113,8 +156,11 @@ class InsumoResource extends BaseResource
                     ->label('Stock mínimo')
                     ->numeric()->minValue(0)->default(0),
                 Forms\Components\TextInput::make('precio_costo')
-                    ->label('Precio de costo')
+                    ->label('Último precio')
                     ->numeric()->minValue(0)->prefix('$')->nullable(),
+                Forms\Components\DatePicker::make('fecha_ultimo_precio')
+                    ->label('Fecha último precio')
+                    ->nullable(),
                 Forms\Components\TextInput::make('ubicacion')
                     ->label('Ubicación')->maxLength(255),
                 Forms\Components\Select::make('categoriasInsumo')
@@ -304,8 +350,13 @@ class InsumoResource extends BaseResource
                     ->placeholder('—'),
 
                 Infolists\Components\TextEntry::make('precio_costo')
-                    ->label('Precio de costo')
+                    ->label('Último precio')
                     ->money('ARS')
+                    ->placeholder('—'),
+
+                Infolists\Components\TextEntry::make('fecha_ultimo_precio')
+                    ->label('Fecha último precio')
+                    ->date('d/m/Y')
                     ->placeholder('—'),
 
                 Infolists\Components\TextEntry::make('observaciones')
@@ -432,7 +483,11 @@ class InsumoResource extends BaseResource
                     ->color(fn ($state): string => $state < 0 ? 'danger' : 'success')
                     ->numeric(0),
                 Tables\Columns\TextColumn::make('precio_costo')
-                    ->label('Ultimo Precio')->numeric(0),
+                    ->label('Último precio')->numeric(2)->prefix('$ '),
+                Tables\Columns\TextColumn::make('fecha_ultimo_precio')
+                    ->label('Fecha último precio')
+                    ->date('d/m/Y')
+                    ->placeholder('—'),
                 Tables\Columns\TextColumn::make('ubicacion')->label('Ubicación'),
             ])
             ->filters([
@@ -443,6 +498,8 @@ class InsumoResource extends BaseResource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
+
+                static::historialComprasTableAction(),
 
                 static::verPlanoTableAction(),
 

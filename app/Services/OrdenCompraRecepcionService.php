@@ -16,18 +16,23 @@ class OrdenCompraRecepcionService
     /**
      * Registra la recepción total de un ítem de la orden de compra.
      */
-    public function registrarRecepcionTotal(OrdenCompraItem $item, ?Carbon $fecha = null): void
-    {
+    public function registrarRecepcionTotal(
+        OrdenCompraItem $item,
+        float $costoUnitario,
+        ?Carbon $fecha = null
+    ): void {
         $pendiente = max(0, $item->cantidad_solicitada - $item->cantidad_recibida);
 
         if ($pendiente <= 0) {
             throw new InvalidArgumentException('El ítem ya fue recibido en su totalidad.');
         }
 
+        $this->assertCostoUnitario($costoUnitario);
+
         $fecha = $fecha ?? now();
 
-        DB::transaction(function () use ($item, $pendiente, $fecha): void {
-            $this->registrarRecepcion($item, $pendiente, $fecha, 'Recepción total');
+        DB::transaction(function () use ($item, $pendiente, $fecha, $costoUnitario): void {
+            $this->registrarRecepcion($item, $pendiente, $fecha, $costoUnitario, 'Recepción total');
             $this->procesarStockYLotes($item, $pendiente, esRecepcionTotal: true);
             $this->actualizarEstadoOrden($item->ordenCompra);
         });
@@ -40,6 +45,7 @@ class OrdenCompraRecepcionService
         OrdenCompraItem $item,
         float $cantidad,
         Carbon $fecha,
+        float $costoUnitario,
         ?string $notas = null
     ): void {
         $pendiente = max(0, $item->cantidad_solicitada - $item->cantidad_recibida);
@@ -56,8 +62,10 @@ class OrdenCompraRecepcionService
             throw new InvalidArgumentException('La cantidad recibida supera la cantidad pendiente.');
         }
 
-        DB::transaction(function () use ($item, $cantidad, $fecha, $notas): void {
-            $this->registrarRecepcion($item, $cantidad, $fecha, $notas);
+        $this->assertCostoUnitario($costoUnitario);
+
+        DB::transaction(function () use ($item, $cantidad, $fecha, $costoUnitario, $notas): void {
+            $this->registrarRecepcion($item, $cantidad, $fecha, $costoUnitario, $notas);
             $this->procesarStockYLotes($item, $cantidad, esRecepcionTotal: false);
             $this->actualizarEstadoOrden($item->ordenCompra);
         });
@@ -87,11 +95,13 @@ class OrdenCompraRecepcionService
         OrdenCompraItem $item,
         float $cantidad,
         Carbon $fecha,
+        float $costoUnitario,
         ?string $notas = null
     ): void {
         OrdenCompraItemRecepcion::create([
             'orden_compra_item_id' => $item->id,
             'cantidad'             => $cantidad,
+            'costo_unitario'       => $costoUnitario,
             'fecha_recepcion'      => $fecha->toDateString(),
             'notas'                => $notas,
         ]);
@@ -100,7 +110,20 @@ class OrdenCompraRecepcionService
             'cantidad_recibida' => $item->cantidad_recibida + $cantidad,
         ]);
 
+        $item->loadMissing('insumo');
+        $item->insumo?->update([
+            'precio_costo'        => $costoUnitario,
+            'fecha_ultimo_precio' => $fecha->toDateString(),
+        ]);
+
         $item->refresh();
+    }
+
+    private function assertCostoUnitario(float $costoUnitario): void
+    {
+        if ($costoUnitario < 0) {
+            throw new InvalidArgumentException('El costo unitario no puede ser negativo.');
+        }
     }
 
     /**

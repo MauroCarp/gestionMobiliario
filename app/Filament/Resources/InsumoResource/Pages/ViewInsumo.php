@@ -15,6 +15,7 @@ class ViewInsumo extends ViewRecord
     {
         return [
             Actions\EditAction::make(),
+            InsumoResource::historialComprasPageAction(fn () => $this->record),
             InsumoResource::verImagenPageAction(fn () => $this->record),
             InsumoResource::verPlanoPageAction(fn () => $this->record),
             Actions\DeleteAction::make(),

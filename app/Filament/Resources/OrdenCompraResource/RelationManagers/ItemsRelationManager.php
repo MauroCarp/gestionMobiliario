@@ -66,14 +66,18 @@ class ItemsRelationManager extends RelationManager
                         $record->cantidad_recibida < $record->cantidad_solicitada
                         && in_array($this->getOwnerRecord()->estado, ['aprobada', 'recibida_parcial'], true)
                     )
-                    ->requiresConfirmation()
+                    ->form(fn (OrdenCompraItem $record): array => $this->formularioRecepcion($record, incluirCantidad: false))
                     ->modalHeading('Confirmar recepción total')
                     ->modalDescription(fn (OrdenCompraItem $record): string =>
-                        "Se registrará la recepción total de {$record->insumo?->nombre} con fecha de hoy."
+                        "Se registrará la recepción total de {$record->insumo?->nombre}."
                     )
-                    ->action(function (OrdenCompraItem $record): void {
+                    ->action(function (OrdenCompraItem $record, array $data): void {
                         try {
-                            app(OrdenCompraRecepcionService::class)->registrarRecepcionTotal($record);
+                            app(OrdenCompraRecepcionService::class)->registrarRecepcionTotal(
+                                $record,
+                                (float) $data['costo_unitario'],
+                                \Carbon\Carbon::parse($data['fecha_recepcion']),
+                            );
 
                             Notification::make()
                                 ->title('Recepción total registrada')
@@ -98,30 +102,14 @@ class ItemsRelationManager extends RelationManager
                         $record->cantidad_recibida < $record->cantidad_solicitada
                         && in_array($this->getOwnerRecord()->estado, ['aprobada', 'recibida_parcial'], true)
                     )
-                    ->form(fn (OrdenCompraItem $record): array => [
-                        Forms\Components\TextInput::make('cantidad')
-                            ->label('Cantidad recibida')
-                            ->numeric()
-                            ->required()
-                            ->minValue(0.01)
-                            ->maxValue($record->pendiente)
-                            ->default($record->pendiente),
-
-                        Forms\Components\DatePicker::make('fecha_recepcion')
-                            ->label('Fecha de recepción')
-                            ->required()
-                            ->default(now()),
-
-                        Forms\Components\Textarea::make('notas')
-                            ->label('Notas')
-                            ->rows(2),
-                    ])
+                    ->form(fn (OrdenCompraItem $record): array => $this->formularioRecepcion($record, incluirCantidad: true))
                     ->action(function (OrdenCompraItem $record, array $data): void {
                         try {
                             app(OrdenCompraRecepcionService::class)->registrarRecepcionParcial(
                                 $record,
                                 (float) $data['cantidad'],
                                 \Carbon\Carbon::parse($data['fecha_recepcion']),
+                                (float) $data['costo_unitario'],
                                 $data['notas'] ?? null,
                             );
 
@@ -156,5 +144,46 @@ class ItemsRelationManager extends RelationManager
                     )),
             ])
             ->bulkActions([]);
+    }
+
+    /**
+     * @return array<int, Forms\Components\Component>
+     */
+    private function formularioRecepcion(OrdenCompraItem $record, bool $incluirCantidad): array
+    {
+        $costoDefault = $record->precio_unitario ?? $record->insumo?->precio_costo;
+
+        $campos = [];
+
+        if ($incluirCantidad) {
+            $campos[] = Forms\Components\TextInput::make('cantidad')
+                ->label('Cantidad recibida')
+                ->numeric()
+                ->required()
+                ->minValue(0.01)
+                ->maxValue($record->pendiente)
+                ->default($record->pendiente);
+        }
+
+        $campos[] = Forms\Components\TextInput::make('costo_unitario')
+            ->label('Costo unitario')
+            ->numeric()
+            ->required()
+            ->minValue(0)
+            ->prefix('$')
+            ->default($costoDefault);
+
+        $campos[] = Forms\Components\DatePicker::make('fecha_recepcion')
+            ->label('Fecha de recepción')
+            ->required()
+            ->default(now());
+
+        if ($incluirCantidad) {
+            $campos[] = Forms\Components\Textarea::make('notas')
+                ->label('Notas')
+                ->rows(2);
+        }
+
+        return $campos;
     }
 }

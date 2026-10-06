@@ -15,12 +15,16 @@ class PlantillaEtapa extends Model
         'tipo_proceso_id',
         'tercero_id',
         'dias_estimados',
+        'ultimo_precio',
+        'fecha_ultimo_precio',
         'observaciones',
     ];
 
     protected $casts = [
-        'orden'          => 'integer',
-        'dias_estimados' => 'integer',
+        'orden'                => 'integer',
+        'dias_estimados'       => 'integer',
+        'ultimo_precio'        => 'float',
+        'fecha_ultimo_precio'  => 'date',
     ];
 
     public function plantilla(): BelongsTo

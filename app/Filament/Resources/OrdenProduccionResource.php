@@ -121,7 +121,7 @@ class OrdenProduccionResource extends BaseResource
 
                         Forms\Components\CheckboxList::make('insumos_seleccionados')
                             ->label('Insumos a utilizar')
-                            ->helperText('Destildá los insumos que no se van a usar en esta fabricación. Si el mobiliario tiene composición, debe quedar al menos uno.')
+                            ->helperText('Destildá los insumos que no se van a usar. Podés dejarlos todos destildados si esta fabricación no consume insumos.')
                             ->options(fn (Get $get): array => static::opcionesInsumosFabricables($get('mobiliario_id')))
                             ->descriptions(fn (Get $get): array => static::descripcionesInsumosFabricables($get('mobiliario_id')))
                             ->afterStateHydrated(function (Forms\Components\CheckboxList $component, $state, Get $get): void {
@@ -132,8 +132,6 @@ class OrdenProduccionResource extends BaseResource
                                 $component->state(array_keys(static::opcionesInsumosFabricables($get('mobiliario_id'))));
                             })
                             ->visible(fn (Get $get): bool => filled($get('mobiliario_id')))
-                            ->required(fn (Get $get): bool => static::opcionesInsumosFabricables($get('mobiliario_id')) !== [])
-                            ->minItems(fn (Get $get): int => static::opcionesInsumosFabricables($get('mobiliario_id')) !== [] ? 1 : 0)
                             ->bulkToggleable()
                             ->columns(1)
                             ->columnSpanFull(),
