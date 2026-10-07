@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Insumo;
-use App\Models\PlantillaEtapa;
 use App\Models\PlantillaFlujoExterno;
+use App\Services\PrecioCostoDesdeFlujoResult;
+use App\Services\PrecioCostoDesdeFlujoService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -16,7 +16,7 @@ class RecalcularPrecioCostoDesdeFlujo extends Command
 
     protected $description = 'Actualiza precio_costo de insumos con una sola plantilla de flujo externo (suma de ultimo_precio de etapas)';
 
-    public function handle(): int
+    public function handle(PrecioCostoDesdeFlujoService $service): int
     {
         $dryRun = (bool) $this->option('dry-run');
 
@@ -26,7 +26,6 @@ class RecalcularPrecioCostoDesdeFlujo extends Command
 
         $plantillas = PlantillaFlujoExterno::query()
             ->where('entidad_tipo', 'insumo')
-            ->with('etapas')
             ->orderBy('id')
             ->get()
             ->groupBy('entidad_id');
@@ -37,74 +36,57 @@ class RecalcularPrecioCostoDesdeFlujo extends Command
             return self::SUCCESS;
         }
 
-        $insumos = Insumo::query()
-            ->whereIn('id', $plantillas->keys())
-            ->get()
-            ->keyBy('id');
-
         $actualizados = 0;
         $sinCambio = 0;
         $sinPrecios = 0;
         $revisionManual = 0;
         $filasCambio = [];
         $filasManual = [];
-        $insumosAActualizar = [];
+        $resultadosAAplicar = [];
 
-        foreach ($plantillas as $entidadId => $grupo) {
-            $insumo = $insumos->get((int) $entidadId);
+        foreach ($plantillas->keys() as $entidadId) {
+            $resultado = $service->evaluar((int) $entidadId);
 
-            if (! $insumo) {
+            if ($resultado->estado === PrecioCostoDesdeFlujoResult::INSUMO_NO_ENCONTRADO) {
                 $this->warn("Insumo #{$entidadId} no encontrado; se omite.");
 
                 continue;
             }
 
-            if ($grupo->count() > 1) {
+            if ($resultado->estado === PrecioCostoDesdeFlujoResult::REVISION_MANUAL) {
                 $revisionManual++;
                 $filasManual[] = [
-                    $insumo->codigo,
-                    $insumo->nombre,
-                    $grupo->pluck('nombre')->implode(', '),
+                    $resultado->insumo->codigo,
+                    $resultado->insumo->nombre,
+                    implode(', ', $resultado->plantillaNombres),
                 ];
 
                 continue;
             }
 
-            /** @var PlantillaFlujoExterno $plantilla */
-            $plantilla = $grupo->first();
-            $etapas = $plantilla->etapas;
-            $tienePrecio = $etapas->contains(
-                fn (PlantillaEtapa $etapa): bool => $etapa->ultimo_precio !== null
-            );
-
-            if (! $tienePrecio) {
+            if (in_array($resultado->estado, [
+                PrecioCostoDesdeFlujoResult::SIN_PRECIOS,
+                PrecioCostoDesdeFlujoResult::SIN_PLANTILLAS,
+            ], true)) {
                 $sinPrecios++;
 
                 continue;
             }
 
-            $nuevoCosto = round(
-                (float) $etapas->sum(fn (PlantillaEtapa $etapa): float => (float) ($etapa->ultimo_precio ?? 0)),
-                2
-            );
-            $actual = $insumo->precio_costo === null
-                ? null
-                : round((float) $insumo->precio_costo, 2);
-
-            if ($actual === $nuevoCosto) {
+            if ($resultado->estado === PrecioCostoDesdeFlujoResult::SIN_CAMBIO) {
                 $sinCambio++;
 
                 continue;
             }
 
             $actualizados++;
-            $insumosAActualizar[] = [$insumo, $nuevoCosto];
+            $resultadosAAplicar[] = $resultado;
             $filasCambio[] = [
-                $insumo->codigo,
-                $insumo->nombre,
-                $plantilla->nombre,
-                $actual === null ? '—' : number_format($actual, 2, '.', ''),
-                number_format($nuevoCosto, 2, '.', ''),
+                $resultado->insumo->codigo,
+                $resultado->insumo->nombre,
+                $resultado->plantillaNombre,
+                $resultado->precioActual === null ? '—' : number_format($resultado->precioActual, 2, '.', ''),
+                number_format($resultado->nuevoPrecio, 2, '.', ''),
             ];
         }
 
@@ -152,8 +134,8 @@ class RecalcularPrecioCostoDesdeFlujo extends Command
         DB::beginTransaction();
 
         try {
-            foreach ($insumosAActualizar as [$insumo, $nuevoCosto]) {
-                $insumo->update(['precio_costo' => $nuevoCosto]);
+            foreach ($resultadosAAplicar as $resultado) {
+                $service->aplicar($resultado);
             }
 
             DB::commit();

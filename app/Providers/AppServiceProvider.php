@@ -10,6 +10,7 @@ use App\Models\Marca;
 use App\Models\Mobiliario;
 use App\Models\OrdenCompra;
 use App\Models\OrdenProduccion;
+use App\Models\PlantillaEtapa;
 use App\Models\PlantillaFlujoExterno;
 use App\Models\Presupuesto;
 use App\Models\Proveedor;
@@ -19,6 +20,8 @@ use App\Models\TipoProcesoExterno;
 use App\Models\UnidadMedida;
 use App\Models\User;
 use App\Observers\MobiliarioObserver;
+use App\Observers\PlantillaEtapaObserver;
+use App\Observers\PlantillaFlujoExternoObserver;
 use App\Observers\PresupuestoObserver;
 use App\Policies\AgenciaPolicy;
 use App\Policies\CategoriaMobiliarioPolicy;
@@ -38,26 +41,27 @@ use App\Policies\UnidadMedidaPolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Schema;
 
 class AppServiceProvider extends AuthServiceProvider
 {
     protected $policies = [
-        Marca::class                => MarcaPolicy::class,
-        Agencia::class              => AgenciaPolicy::class,
-        Mobiliario::class           => MobiliarioPolicy::class,
-        Insumo::class               => InsumoPolicy::class,
-        Presupuesto::class          => PresupuestoPolicy::class,
-        User::class                 => UserPolicy::class,
-        Proyecto::class             => ProyectoPolicy::class,
-        Proveedor::class            => ProveedorPolicy::class,
-        CategoriaMobiliario::class  => CategoriaMobiliarioPolicy::class,
-        Tercero::class              => TerceroPolicy::class,
-        TipoProcesoExterno::class   => TipoProcesoExternoPolicy::class,
-        PlantillaFlujoExterno::class  => PlantillaFlujoExternoPolicy::class,
-        LoteProcesoExterno::class   => LoteProcesoExternoPolicy::class,
-        UnidadMedida::class         => UnidadMedidaPolicy::class,
-        OrdenCompra::class          => OrdenCompraPolicy::class,
-        OrdenProduccion::class      => OrdenProduccionPolicy::class,
+        Marca::class => MarcaPolicy::class,
+        Agencia::class => AgenciaPolicy::class,
+        Mobiliario::class => MobiliarioPolicy::class,
+        Insumo::class => InsumoPolicy::class,
+        Presupuesto::class => PresupuestoPolicy::class,
+        User::class => UserPolicy::class,
+        Proyecto::class => ProyectoPolicy::class,
+        Proveedor::class => ProveedorPolicy::class,
+        CategoriaMobiliario::class => CategoriaMobiliarioPolicy::class,
+        Tercero::class => TerceroPolicy::class,
+        TipoProcesoExterno::class => TipoProcesoExternoPolicy::class,
+        PlantillaFlujoExterno::class => PlantillaFlujoExternoPolicy::class,
+        LoteProcesoExterno::class => LoteProcesoExternoPolicy::class,
+        UnidadMedida::class => UnidadMedidaPolicy::class,
+        OrdenCompra::class => OrdenCompraPolicy::class,
+        OrdenProduccion::class => OrdenProduccionPolicy::class,
     ];
 
     public function register(): void {}
@@ -67,7 +71,7 @@ class AppServiceProvider extends AuthServiceProvider
         $this->registerPolicies();
 
         // Fix for MySQL < 5.7.7 or utf8mb4 key length issues
-        \Illuminate\Support\Facades\Schema::defaultStringLength(191);
+        Schema::defaultStringLength(191);
 
         // Super-admin gate: bypass all policies
         Gate::before(function (User $user, string $ability) {
@@ -79,5 +83,7 @@ class AppServiceProvider extends AuthServiceProvider
         // Observers
         Presupuesto::observe(PresupuestoObserver::class);
         Mobiliario::observe(MobiliarioObserver::class);
+        PlantillaEtapa::observe(PlantillaEtapaObserver::class);
+        PlantillaFlujoExterno::observe(PlantillaFlujoExternoObserver::class);
     }
 }
