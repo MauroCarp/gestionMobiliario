@@ -40,7 +40,8 @@ class PresupuestoPdfCache
             'logistica' => $this->mtime(storage_path('app/public/logistica_instalacion/logistica_instalacion.png')),
             'presupuesto' => $this->sello($presupuesto, [
                 'codigo', 'estado', 'fecha_emision', 'fecha_vencimiento', 'metodo_pago',
-                'logistica_instalacion_propia', 'logistica_leyenda', 'logistica_costo', 'observaciones', 'version',
+                'logistica_instalacion_propia', 'logistica_leyenda', 'logistica_costo',
+                'armado', 'armado_costo', 'observaciones', 'version',
             ]),
             'agencia' => $this->sello($agencia, ['nombre', 'direccion', 'responsable']),
             'ciudad' => $agencia?->relationLoaded('ciudad') ? $agencia->ciudad?->nombre : null,

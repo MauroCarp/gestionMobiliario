@@ -87,12 +87,16 @@
     @endforeach
 
     @php
-        $costoLogistica = $presupuesto->logistica_costo_numerico;
+        $incluyeLogistica = (bool) $presupuesto->logistica_instalacion_propia;
+        $costoLogistica = $incluyeLogistica ? $presupuesto->logistica_costo_numerico : 0;
         $leyendaLogistica = $presupuesto->leyenda_logistica_efectiva;
-        $indiceLogistica = $presupuesto->items->count() + 1;
+        $indiceExtra = $presupuesto->items->count();
+        $incluyeArmado = (bool) $presupuesto->armado;
+        $costoArmado = $incluyeArmado ? $presupuesto->armado_costo_numerico : 0;
     @endphp
+    @if($incluyeLogistica)
     <tr>
-        <td>{{ $indiceLogistica }}</td>
+        <td>{{ ++$indiceExtra }}</td>
         <td></td>
         <td>{{ $leyendaLogistica }}</td>
         <td></td>
@@ -102,9 +106,23 @@
         <td></td>
         <td></td>
     </tr>
+    @endif
+    @if($incluyeArmado)
+    <tr>
+        <td>{{ ++$indiceExtra }}</td>
+        <td></td>
+        <td>{{ \App\Models\Presupuesto::LEYENDA_ARMADO }}</td>
+        <td></td>
+        <td>1</td>
+        <td>{{ $costoArmado > 0 ? $costoArmado : '' }}</td>
+        <td>{{ $costoArmado > 0 ? $costoArmado : '' }}</td>
+        <td></td>
+        <td></td>
+    </tr>
+    @endif
 
     {{-- ── TOTAL ──────────────────────────────────────────────────── --}}
-    @php $total = $presupuesto->items->sum(fn($i) => $i->subtotalEfectivo() ?? 0) + $costoLogistica; @endphp
+    @php $total = $presupuesto->items->sum(fn($i) => $i->subtotalEfectivo() ?? 0) + $costoLogistica + $costoArmado; @endphp
     @if($total > 0)
     <tr>
         <td colspan="6" style="font-weight: bold; text-align: right;">Total estimado:</td>

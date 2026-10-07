@@ -337,7 +337,11 @@ class PresupuestoResource extends BaseResource
                         ->rows(8)
                         ->required()
                         ->columnSpanFull(),
+                ])
+                ->columns(3),
 
+            Forms\Components\Section::make('Logística e instalación')
+                ->schema([
                     Forms\Components\Checkbox::make('logistica_instalacion_propia')
                         ->label('Logística e instalación propia')
                         ->default(true)
@@ -345,20 +349,30 @@ class PresupuestoResource extends BaseResource
                         ->columnSpan(1),
 
                     Forms\Components\TextInput::make('logistica_costo')
-                        ->label('Costo')
+                        ->label('Costo Logistica')
                         ->numeric()
                         ->minValue(0)
                         ->default(0)
-                        ->required(),
+                        ->required()
+                        ->visible(fn (Get $get): bool => (bool) $get('logistica_instalacion_propia')),
 
-                    Forms\Components\Textarea::make('logistica_leyenda')
-                        ->label('Leyenda para planilla impresa')
-                        ->rows(3)
-                        ->nullable()
-                        ->required(fn (Get $get): bool => ! $get('logistica_instalacion_propia'))
-                        ->visible(fn (Get $get): bool => ! $get('logistica_instalacion_propia')),
+
+                    Forms\Components\Checkbox::make('armado')
+                        ->label('Armado con personal propio')
+                        ->default(false)
+                        ->live()
+                        ->columnSpan(1),
+
+                    Forms\Components\TextInput::make('armado_costo')
+                        ->label('Costo Armado')
+                        ->numeric()
+                        ->minValue(0)
+                        ->default(0)
+                        ->required()
+                        ->visible(fn (Get $get): bool => (bool) $get('armado'))
+                        ->columnSpan(1),
                 ])
-                ->columns(3),
+                ->columns(4),
 
             Forms\Components\Section::make('Items del Presupuesto')
                 ->description('Arrastrá los ítems (o usá los botones subir/bajar) para definir el orden global. El PDF agrupa por sector y, dentro de cada uno, los muestra de menor a mayor según este orden.')
@@ -609,10 +623,19 @@ class PresupuestoResource extends BaseResource
                     ->label('Logística e instalación propia')
                     ->boolean(),
                 Infolists\Components\TextEntry::make('leyenda_logistica_efectiva')
-                    ->label('Leyenda logística'),
+                    ->label('Leyenda logística')
+                    ->visible(fn (Presupuesto $record): bool => (bool) $record->logistica_instalacion_propia),
                 Infolists\Components\TextEntry::make('logistica_costo')
                     ->label('Costo logística')
-                    ->money('ARS'),
+                    ->money('ARS')
+                    ->visible(fn (Presupuesto $record): bool => (bool) $record->logistica_instalacion_propia),
+                Infolists\Components\IconEntry::make('armado')
+                    ->label('Armado con personal propio')
+                    ->boolean(),
+                Infolists\Components\TextEntry::make('armado_costo')
+                    ->label('Costo armado')
+                    ->money('ARS')
+                    ->visible(fn (Presupuesto $record): bool => (bool) $record->armado),
                 Infolists\Components\TextEntry::make('aprobadoPor.name')
                     ->label('Aprobado por')
                     ->placeholder('—'),

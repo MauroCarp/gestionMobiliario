@@ -66,6 +66,7 @@ class PresupuestoItemPrecioEfectivoTest extends TestCase
             'logoBase64' => null,
             'logoEmpresaBase64' => null,
             'logisticaImagenBase64' => null,
+            'armadoImagenBase64' => null,
             'itemsPorSector' => collect([
                 '__sin_sector__' => collect([
                     [
@@ -151,6 +152,7 @@ class PresupuestoItemPrecioEfectivoTest extends TestCase
             'logoBase64' => null,
             'logoEmpresaBase64' => null,
             'logisticaImagenBase64' => null,
+            'armadoImagenBase64' => null,
             'itemsPorSector' => collect([
                 '__sin_sector__' => collect([
                     [

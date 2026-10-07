@@ -42,4 +42,14 @@ class PresupuestoLogisticaTest extends TestCase
 
         $this->assertSame(123.46, $presupuesto->logistica_costo_numerico);
     }
+
+    #[Test]
+    public function normaliza_el_costo_de_armado(): void
+    {
+        $presupuesto = new Presupuesto([
+            'armado_costo' => '123.456',
+        ]);
+
+        $this->assertSame(123.46, $presupuesto->armado_costo_numerico);
+    }
 }

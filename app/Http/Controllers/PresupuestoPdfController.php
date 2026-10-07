@@ -56,6 +56,10 @@ class PresupuestoPdfController extends Controller
                         storage_path('app/public/logistica_instalacion/logistica_instalacion.png'),
                         'image/png'
                     ),
+                    'armadoImagenBase64' => $cache->archivoABase64(
+                        storage_path('app/public/logistica_instalacion/armado.jpg'),
+                        'image/jpg'
+                    ),
                     'mostrarPrecios' => $mostrarPrecios,
                 ]
             ))->setPaper('a4', 'portrait')->setOptions($this->opcionesPdf())->output()

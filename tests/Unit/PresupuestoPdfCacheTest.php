@@ -59,6 +59,23 @@ class PresupuestoPdfCacheTest extends TestCase
         $this->assertNotSame($original, $cache->huella($presupuesto, 'produccion', true, ['dpi' => 150]));
     }
 
+    #[Test]
+    public function la_huella_cambia_si_cambia_armado(): void
+    {
+        $cache = new PresupuestoPdfCache($this->directorio);
+        $presupuesto = $this->presupuestoConMobiliario('Mesa');
+        $presupuesto->armado = false;
+        $presupuesto->armado_costo = 0;
+
+        $original = $cache->huella($presupuesto, 'comercial', true);
+
+        $presupuesto->armado = true;
+        $presupuesto->armado_costo = 800;
+        $actualizada = $cache->huella($presupuesto, 'comercial', true);
+
+        $this->assertNotSame($original, $actualizada);
+    }
+
     private function presupuestoConMobiliario(string $nombre): Presupuesto
     {
         $mobiliario = new Mobiliario(['nombre' => $nombre, 'codigo_interno' => 'M-1']);

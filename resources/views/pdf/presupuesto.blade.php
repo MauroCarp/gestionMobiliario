@@ -332,7 +332,7 @@
 
             <td class="center item-img-cell">
                 @if($imgBase64)
-                    <img src="{{ $imgBase64 }}" class="item-img">
+                    <img src="{{ $imgBase64 }}" class="item-img" style="width:75px!important;">
                 @else
                     <div class="item-no-img">Sin imagen</div>
                 @endif
@@ -410,18 +410,23 @@
 @endforeach
 
 @php
-    $costoLogistica = $presupuesto->logistica_costo_numerico;
+    $incluyeLogistica = (bool) $presupuesto->logistica_instalacion_propia;
+    $costoLogistica = $incluyeLogistica ? $presupuesto->logistica_costo_numerico : 0;
     $leyendaLogistica = $presupuesto->leyenda_logistica_efectiva;
+    $incluyeArmado = (bool) $presupuesto->armado;
+    $costoArmado = $incluyeArmado ? $presupuesto->armado_costo_numerico : 0;
     if ($mostrarPrecios) {
-        $grandTotal += $costoLogistica;
-        if ($costoLogistica > 0) {
+        $grandTotal += $costoLogistica + $costoArmado;
+        if ($costoLogistica > 0 || $costoArmado > 0) {
             $hayPrecios = true;
         }
     }
 @endphp
 
+@if($incluyeLogistica || $incluyeArmado)
 <table class="items-table" cellpadding="0" cellspacing="0" style="margin-top: 0;padding-top: 0;">
     <tbody>
+        @if($incluyeLogistica)
         <tr>
             <td class="center" style="width:18px;">
                 <span class="item-num">{{ $globalIndex++ }}</span>
@@ -454,8 +459,40 @@
             </td>
             @endif
         </tr>
+        @endif
+        @if($incluyeArmado)
+        <tr>
+            <td class="center" style="width:18px;">
+                <span class="item-num">{{ $globalIndex++ }}</span>
+            </td>
+            <td class="center item-img-cell" style="width:122px;">
+                <img src="{{ $armadoImagenBase64 }}" class="item-img">
+            </td>
+            <td>
+                <strong>{{ \App\Models\Presupuesto::LEYENDA_ARMADO }}</strong>
+            </td>
+            <td style="width:400px;"></td>
+            <td class="center" style="width:36px;">
+                <span class="item-qty">1</span>
+            </td>
+            <td style="width:90px;"></td>
+            @if($mostrarPrecios)
+            <td class="right item-price" style="width:72px;">
+                @if($costoArmado > 0)
+                    ${{ number_format($costoArmado, 0, ',', '.') }}
+                @endif
+            </td>
+            <td class="right item-price" style="width:78px;">
+                @if($costoArmado > 0)
+                    ${{ number_format($costoArmado, 0, ',', '.') }}
+                @endif
+            </td>
+            @endif
+        </tr>
+        @endif
     </tbody>
 </table>
+@endif
 
 {{-- ── SUB-TOTAL, IVA Y TOTAL GENERAL ─────────────────────────── --}}
 @if($mostrarPrecios && $hayPrecios && $grandTotal > 0)

@@ -46,6 +46,8 @@ class Presupuesto extends Model
 
     const LEYENDA_LOGISTICA_PROPIA = 'Logística e instalación propia';
 
+    const LEYENDA_ARMADO = 'Armado con personal propio';
+
     protected $fillable = [
         'codigo',
         'agencia_id',
@@ -58,6 +60,8 @@ class Presupuesto extends Model
         'logistica_instalacion_propia',
         'logistica_leyenda',
         'logistica_costo',
+        'armado',
+        'armado_costo',
         'observaciones',
         'notas_internas',
         'aprobado_por',
@@ -73,6 +77,8 @@ class Presupuesto extends Model
         'version'           => 'integer',
         'logistica_instalacion_propia' => 'boolean',
         'logistica_costo'   => 'decimal:2',
+        'armado'            => 'boolean',
+        'armado_costo'      => 'decimal:2',
     ];
 
     public function getActivitylogOptions(): LogOptions
@@ -178,6 +184,8 @@ class Presupuesto extends Model
                 'logistica_instalacion_propia' => $this->logistica_instalacion_propia,
                 'logistica_leyenda'  => $this->logistica_leyenda,
                 'logistica_costo'    => $this->logistica_costo,
+                'armado'             => $this->armado,
+                'armado_costo'       => $this->armado_costo,
                 'observaciones'      => $this->observaciones,
                 'notas_internas'     => $this->notas_internas,
                 'datos_adicionales'  => $this->datos_adicionales,
@@ -427,5 +435,10 @@ class Presupuesto extends Model
     public function getLogisticaCostoNumericoAttribute(): float
     {
         return round((float) ($this->logistica_costo ?? 0), 2);
+    }
+
+    public function getArmadoCostoNumericoAttribute(): float
+    {
+        return round((float) ($this->armado_costo ?? 0), 2);
     }
 }
