@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\CategoriaInsumo;
+use App\Models\Insumo;
 use App\Models\Presupuesto;
+use App\Models\PresupuestoItem;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use PHPUnit\Framework\Attributes\Test;
@@ -226,5 +229,47 @@ class PresupuestoLogisticaViewsTest extends TestCase
         $this->assertStringNotContainsString(Presupuesto::LEYENDA_LOGISTICA_PROPIA, $html);
         $this->assertStringNotContainsString('Logística externa', $html);
         $this->assertStringNotContainsString('$1.000,00', $html);
+    }
+
+    #[Test]
+    public function excel_muestra_costo_directo_de_silla_como_precio_del_insumo(): void
+    {
+        $insumo = new Insumo([
+            'nombre' => 'Silla operativa',
+            'codigo' => 'INS-SILLA',
+            'precio_costo' => 1234.5,
+        ]);
+        $insumo->setRelation('categoriasInsumo', collect([
+            new CategoriaInsumo(['nombre' => 'Sillas']),
+        ]));
+        $insumo->setRelation('marcasSilla', collect());
+
+        $item = new PresupuestoItem([
+            'cantidad' => 2,
+            'precio_unitario' => 2000,
+        ]);
+        $item->setRelation('mobiliario', null);
+        $item->setRelation('insumo', $insumo);
+
+        $presupuesto = new Presupuesto([
+            'codigo' => 'PRES-2026-0009',
+            'version' => 1,
+            'estado' => 'borrador',
+            'fecha_emision' => Carbon::parse('2026-10-07'),
+            'logistica_instalacion_propia' => false,
+            'armado' => false,
+        ]);
+        $presupuesto->setRelation('items', collect([$item]));
+        $presupuesto->setRelation('agencia', null);
+        $presupuesto->setRelation('proyecto', null);
+        $presupuesto->setRelation('responsable', null);
+
+        $html = view('exports.presupuesto_excel', [
+            'presupuesto' => $presupuesto,
+        ])->render();
+
+        $this->assertStringContainsString('Costo Directo', $html);
+        $this->assertStringContainsString('1234.5', $html);
+        $this->assertStringContainsString('Silla operativa', $html);
     }
 }

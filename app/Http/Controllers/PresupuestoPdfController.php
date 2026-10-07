@@ -74,10 +74,10 @@ class PresupuestoPdfController extends Controller
     {
         $this->authorize('exportComercial', $presupuesto);
 
-        $codigo      = $presupuesto->codigo;
-        $precios     = request()->query('precios', '1');
+        $codigo = $presupuesto->codigo;
+        $precios = request()->query('precios', '1');
         $autoguardar = in_array(request()->query('autoguardar', '0'), ['1', 'true', 'si'], true);
-        $pdfUrl      = route('presupuesto.pdf', [
+        $pdfUrl = route('presupuesto.pdf', [
             'presupuesto' => $presupuesto,
             'precios' => $precios,
         ]);
@@ -97,6 +97,8 @@ class PresupuestoPdfController extends Controller
             'responsable',
             'items' => fn ($q) => $q->orderBy('orden')->with([
                 'mobiliario.categoria',
+                'mobiliario.composicionTecnica.insumo',
+                'mobiliario.plantillaFlujos.etapas',
                 'insumo.marcasSilla',
                 'insumo.categoriasInsumo',
             ]),
@@ -150,7 +152,7 @@ class PresupuestoPdfController extends Controller
     {
         $this->authorize('export', $presupuesto);
 
-        $data     = $exportService->prepare($presupuesto);
+        $data = $exportService->prepare($presupuesto);
         $filename = "produccion-{$presupuesto->codigo}.xlsx";
 
         return Excel::download(new PresupuestoProduccionExport($data), $filename);
@@ -162,19 +164,19 @@ class PresupuestoPdfController extends Controller
 
         $presupuesto->load(['agencia.media']);
 
-        $codigo   = $presupuesto->codigo;
-        $pdfUrl   = route('presupuesto.produccion.pdf', $presupuesto);
+        $codigo = $presupuesto->codigo;
+        $pdfUrl = route('presupuesto.produccion.pdf', $presupuesto);
         $filename = "produccion-{$codigo}.pdf";
         $planoUrl = $presupuesto->layoutUrl();
 
-        $agencia    = $presupuesto->agencia;
+        $agencia = $presupuesto->agencia;
         $planoDebug = [
-            'agencia_id'         => $agencia?->id,
-            'agencia_nombre'     => $agencia?->nombre,
-            'total_media'        => $agencia?->media->count(),
-            'media_collections'  => $agencia?->media->pluck('collection_name', 'id'),
-            'media_filenames'    => $agencia?->media->pluck('file_name', 'id'),
-            'plano_found'        => $planoUrl !== null,
+            'agencia_id' => $agencia?->id,
+            'agencia_nombre' => $agencia?->nombre,
+            'total_media' => $agencia?->media->count(),
+            'media_collections' => $agencia?->media->pluck('collection_name', 'id'),
+            'media_filenames' => $agencia?->media->pluck('file_name', 'id'),
+            'plano_found' => $planoUrl !== null,
         ];
 
         return view('pdf.produccion_viewer', compact('codigo', 'pdfUrl', 'filename', 'planoUrl', 'planoDebug'));

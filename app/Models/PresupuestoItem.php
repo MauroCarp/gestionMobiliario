@@ -35,22 +35,22 @@ class PresupuestoItem extends Model
     ];
 
     protected $attributes = [
-        'orden'              => 0,
-        'cantidad'           => 1,
+        'orden' => 0,
+        'cantidad' => 1,
         'cantidad_entregada' => 0,
     ];
 
     protected $casts = [
-        'cantidad'              => 'integer',
-        'cantidad_entregada'    => 'integer',
-        'cantidad_desde_stock'  => 'integer',
-        'cantidad_a_fabricar'   => 'integer',
-        'precio_unitario'       => 'decimal:2',
-        'orden'                 => 'integer',
-        'stock_descontado_at'   => 'datetime',
-        'stock_reintegrado_at'  => 'datetime',
-        'finalizado_at'         => 'datetime',
-        'entregado_at'          => 'datetime',
+        'cantidad' => 'integer',
+        'cantidad_entregada' => 'integer',
+        'cantidad_desde_stock' => 'integer',
+        'cantidad_a_fabricar' => 'integer',
+        'precio_unitario' => 'decimal:2',
+        'orden' => 'integer',
+        'stock_descontado_at' => 'datetime',
+        'stock_reintegrado_at' => 'datetime',
+        'finalizado_at' => 'datetime',
+        'entregado_at' => 'datetime',
     ];
 
     public function getSubtotalAttribute(): ?float
@@ -58,6 +58,7 @@ class PresupuestoItem extends Model
         if ($this->precio_unitario === null) {
             return null;
         }
+
         return round((float) $this->cantidad * (float) $this->precio_unitario, 2);
     }
 
@@ -97,6 +98,23 @@ class PresupuestoItem extends Model
         }
 
         return round((float) $this->cantidad * $precio, 2);
+    }
+
+    public function costoDirectoUnitario(): ?float
+    {
+        if ($this->mobiliario) {
+            return $this->mobiliario->costoDirecto();
+        }
+
+        if ($this->insumo) {
+            if ($this->insumo->precio_costo === null) {
+                return null;
+            }
+
+            return round((float) $this->insumo->precio_costo, 2);
+        }
+
+        return null;
     }
 
     public function presupuesto(): BelongsTo
@@ -239,9 +257,9 @@ class PresupuestoItem extends Model
     public function getEstadoEntregaColorAttribute(): string
     {
         return match (true) {
-            $this->estaEntregado()      => 'success',
+            $this->estaEntregado() => 'success',
             $this->estaEntregaParcial() => 'warning',
-            default                     => 'gray',
+            default => 'gray',
         };
     }
 
@@ -259,7 +277,7 @@ class PresupuestoItem extends Model
             return '0/0';
         }
 
-        return $etapas->where('estado', 'completado')->count() . '/' . $etapas->count();
+        return $etapas->where('estado', 'completado')->count().'/'.$etapas->count();
     }
 
     public function getEtapaActualProduccionAttribute(): string

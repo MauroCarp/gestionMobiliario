@@ -4,9 +4,12 @@ namespace Tests\Unit;
 
 use App\Models\Agencia;
 use App\Models\CategoriaInsumo;
+use App\Models\ComposicionTecnica;
 use App\Models\Insumo;
 use App\Models\InsumoMarcaSilla;
 use App\Models\Mobiliario;
+use App\Models\PlantillaEtapa;
+use App\Models\PlantillaFlujoExterno;
 use App\Models\Presupuesto;
 use App\Models\PresupuestoItem;
 use App\Models\Proyecto;
@@ -54,7 +57,7 @@ class PresupuestoItemPrecioEfectivoTest extends TestCase
         $item->setRelation('insumo', null);
 
         $html = view('pdf.presupuesto', [
-            'presupuesto' => new \App\Models\Presupuesto([
+            'presupuesto' => new Presupuesto([
                 'codigo' => 'PRES-TEST',
                 'fecha_emision' => now(),
                 'metodo_pago' => Presupuesto::textoBasesCondicionesDefault(),
@@ -94,10 +97,10 @@ class PresupuestoItemPrecioEfectivoTest extends TestCase
         ]));
 
         $proyecto = new Proyecto(['marca_id' => 5]);
-        $agencia = new Agencia();
+        $agencia = new Agencia;
         $agencia->setRelation('proyecto', $proyecto);
 
-        $presupuesto = new Presupuesto();
+        $presupuesto = new Presupuesto;
         $presupuesto->setRelation('agencia', $agencia);
 
         $item = new PresupuestoItem([
@@ -125,7 +128,7 @@ class PresupuestoItemPrecioEfectivoTest extends TestCase
         $insumo->setRelation('atributos', collect());
 
         $proyecto = new Proyecto(['marca_id' => 5]);
-        $agencia = new Agencia();
+        $agencia = new Agencia;
         $agencia->setRelation('proyecto', $proyecto);
 
         $presupuesto = new Presupuesto([
@@ -169,5 +172,49 @@ class PresupuestoItemPrecioEfectivoTest extends TestCase
         $this->assertStringContainsString('$1.500,00', $html);
         $this->assertStringContainsString('$3.000,00', $html);
         $this->assertStringContainsString('SUB-TOTAL GENERAL:', $html);
+    }
+
+    #[Test]
+    public function costo_directo_de_insumo_es_su_precio_costo(): void
+    {
+        $item = new PresupuestoItem(['cantidad' => 3]);
+        $item->setRelation('mobiliario', null);
+        $item->setRelation('insumo', new Insumo(['precio_costo' => 2450.5]));
+
+        $this->assertSame(2450.5, $item->costoDirectoUnitario());
+    }
+
+    #[Test]
+    public function costo_directo_de_insumo_sin_precio_es_nulo(): void
+    {
+        $item = new PresupuestoItem(['cantidad' => 1]);
+        $item->setRelation('mobiliario', null);
+        $item->setRelation('insumo', new Insumo(['precio_costo' => null]));
+
+        $this->assertNull($item->costoDirectoUnitario());
+    }
+
+    #[Test]
+    public function costo_directo_de_mobiliario_usa_composicion_y_etapas(): void
+    {
+        $composicion = new ComposicionTecnica(['cantidad' => 2, 'es_componente_casco' => false]);
+        $composicion->setRelation('insumo', new Insumo(['precio_costo' => 10]));
+
+        $etapa = new PlantillaEtapa(['orden' => 1, 'ultimo_precio' => 5]);
+        $etapa->setRelation('tipoProceso', null);
+        $etapa->setRelation('tercero', null);
+
+        $plantilla = new PlantillaFlujoExterno(['nombre' => 'Flujo', 'activo' => true]);
+        $plantilla->setRelation('etapas', collect([$etapa]));
+
+        $mobiliario = new Mobiliario(['nombre' => 'Escritorio']);
+        $mobiliario->setRelation('composicionTecnica', collect([$composicion]));
+        $mobiliario->setRelation('plantillaFlujos', collect([$plantilla]));
+
+        $item = new PresupuestoItem(['cantidad' => 4]);
+        $item->setRelation('mobiliario', $mobiliario);
+        $item->setRelation('insumo', null);
+
+        $this->assertSame(25.0, $item->costoDirectoUnitario());
     }
 }
