@@ -2,16 +2,14 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Forms\PresupuestoEntregaParcialForm;
 use App\Filament\Resources\PresupuestoResource\Pages;
 use App\Filament\Resources\PresupuestoResource\RelationManagers;
 use App\Models\Agencia;
 use App\Models\Insumo;
 use App\Models\Mobiliario;
-use App\Models\CategoriaInsumo;
 use App\Models\Presupuesto;
-use App\Models\PresupuestoItem;
 use App\Models\Sector;
-use App\Filament\Forms\PresupuestoEntregaParcialForm;
 use App\Services\PresupuestoEntregaService;
 use App\Services\StockReservaService;
 use App\Support\PresupuestoAuthorization;
@@ -25,17 +23,21 @@ use Filament\Notifications\Actions\Action as NotificationAction;
 use Filament\Notifications\Notification;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class PresupuestoResource extends BaseResource
 {
     protected static ?string $model = Presupuesto::class;
-    protected static ?string $navigationIcon   = 'heroicon-o-document-text';
-    protected static ?string $navigationGroup  = 'Operaciones';
-    protected static ?int    $navigationSort   = 2;
-    protected static ?string $modelLabel       = 'Presupuesto';
+
+    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+
+    protected static ?string $navigationGroup = 'Operaciones';
+
+    protected static ?int $navigationSort = 2;
+
+    protected static ?string $modelLabel = 'Presupuesto';
+
     protected static ?string $pluralModelLabel = 'Presupuestos';
 
     public static function clonarTableAction(): Tables\Actions\Action
@@ -131,7 +133,7 @@ class PresupuestoResource extends BaseResource
             return;
         }
 
-        $action->getLivewire()->js('window.open(' . json_encode(url($media->getUrl())) . ", '_blank')");
+        $action->getLivewire()->js('window.open('.json_encode(url($media->getUrl())).", '_blank')");
     }
 
     public static function layoutPageAction(\Closure $getRecord): Actions\Action
@@ -196,7 +198,7 @@ class PresupuestoResource extends BaseResource
                     'precios' => (int) $data['mostrar_precios'],
                 ]);
 
-                $action->getLivewire()->js('window.open(' . json_encode($url) . ", '_blank')");
+                $action->getLivewire()->js('window.open('.json_encode($url).", '_blank')");
             });
     }
 
@@ -215,7 +217,7 @@ class PresupuestoResource extends BaseResource
                     'precios' => (int) $data['mostrar_precios'],
                 ]);
 
-                $action->getLivewire()->js('window.open(' . json_encode($url) . ", '_blank')");
+                $action->getLivewire()->js('window.open('.json_encode($url).", '_blank')");
             });
     }
 
@@ -238,7 +240,7 @@ class PresupuestoResource extends BaseResource
     public static function abrirPdfComercialConPrecios(Presupuesto $record, $livewire): string
     {
         $url = static::pdfComercialViewerUrl($record, autoguardar: true);
-        $livewire->js('window.open(' . json_encode($url) . ", '_blank')");
+        $livewire->js('window.open('.json_encode($url).", '_blank')");
 
         return $url;
     }
@@ -275,8 +277,7 @@ class PresupuestoResource extends BaseResource
 
                     Forms\Components\Placeholder::make('estado_display')
                         ->label('Estado actual')
-                        ->content(fn (?Presupuesto $record): string =>
-                            $record
+                        ->content(fn (?Presupuesto $record): string => $record
                                 ? (Presupuesto::ESTADOS[$record->estado] ?? $record->estado)
                                 : 'Borrador'
                         )
@@ -285,8 +286,7 @@ class PresupuestoResource extends BaseResource
 
                     Forms\Components\Placeholder::make('version_display')
                         ->label('Versión')
-                        ->content(fn (?Presupuesto $record): string =>
-                            $record ? 'v' . $record->version : 'v1'
+                        ->content(fn (?Presupuesto $record): string => $record ? 'v'.$record->version : 'v1'
                         )
                         ->visibleOn('edit')
                         ->columnSpan(1),
@@ -300,8 +300,8 @@ class PresupuestoResource extends BaseResource
                                 ->get()
                                 ->mapWithKeys(fn ($a) => [
                                     $a->id => $a->nombre
-                                        . ' — ' . ($a->proyecto?->codigo_interno ?? '—')
-                                        . ' (' . ($a->proyecto?->marca?->nombre ?? '—') . ')',
+                                        .' — '.($a->proyecto?->codigo_interno ?? '—')
+                                        .' ('.($a->proyecto?->marca?->nombre ?? '—').')',
                                 ]);
                         })
                         ->searchable()
@@ -356,7 +356,6 @@ class PresupuestoResource extends BaseResource
                         ->required()
                         ->visible(fn (Get $get): bool => (bool) $get('logistica_instalacion_propia')),
 
-
                     Forms\Components\Checkbox::make('armado')
                         ->label('Armado con personal propio')
                         ->default(false)
@@ -409,15 +408,15 @@ class PresupuestoResource extends BaseResource
                                             ->orderBy('nombre')
                                             ->get()
                                             ->mapWithKeys(fn ($m) => [
-                                                'mob_' . $m->id => "[{$m->codigo_interno}] {$m->nombre}",
+                                                'mob_'.$m->id => "[{$m->codigo_interno}] {$m->nombre}",
                                             ])
                                             ->toArray();
                                     } elseif (! $agenciaId) {
-                                        $mobiliarios = \App\Models\Mobiliario::where('estado', 'activo')
+                                        $mobiliarios = Mobiliario::where('estado', 'activo')
                                             ->orderBy('nombre')
                                             ->get()
                                             ->mapWithKeys(fn ($m) => [
-                                                'mob_' . $m->id => "[{$m->codigo_interno}] {$m->nombre}",
+                                                'mob_'.$m->id => "[{$m->codigo_interno}] {$m->nombre}",
                                             ])
                                             ->toArray();
                                     } else {
@@ -428,8 +427,7 @@ class PresupuestoResource extends BaseResource
 
                                     if ($marcaId) {
                                         $sillas = Insumo::query()
-                                            ->whereHas('categoriasInsumo', fn ($q) =>
-                                                $q->where('nombre', 'like', '%silla%')
+                                            ->whereHas('categoriasInsumo', fn ($q) => $q->where('nombre', 'like', '%silla%')
                                             )
                                             ->where('activo', true)
                                             ->whereHas('marcasSilla', fn ($q) => $q->where('marca_id', $marcaId))
@@ -442,7 +440,7 @@ class PresupuestoResource extends BaseResource
                                                     ? "[SILLA] [{$datos['codigo']}] {$datos['nombre']}"
                                                     : "[SILLA] {$datos['nombre']}";
 
-                                                return ['ins_' . $insumo->id => $label];
+                                                return ['ins_'.$insumo->id => $label];
                                             })
                                             ->toArray();
                                     }
@@ -458,12 +456,19 @@ class PresupuestoResource extends BaseResource
                                     $component->state($state);
                                 })
                                 ->formatStateUsing(function ($state, $record): ?string {
-                                    if ($record?->mobiliario_id) return 'mob_' . $record->mobiliario_id;
-                                    if ($record?->insumo_id)     return 'ins_' . $record->insumo_id;
+                                    if ($record?->mobiliario_id) {
+                                        return 'mob_'.$record->mobiliario_id;
+                                    }
+                                    if ($record?->insumo_id) {
+                                        return 'ins_'.$record->insumo_id;
+                                    }
+
                                     return $state;
                                 })
                                 ->afterStateUpdated(function ($state, Forms\Set $set): void {
-                                    if (!$state) return;
+                                    if (! $state) {
+                                        return;
+                                    }
                                     if (str_starts_with($state, 'mob_')) {
                                         $set('mobiliario_id', (int) substr($state, 4));
                                         $set('insumo_id', null);
@@ -508,15 +513,15 @@ class PresupuestoResource extends BaseResource
                                 ->label('Stock / Fabricación estimada')
                                 ->content(function (Get $get): string {
                                     $mobiliarioId = $get('mobiliario_id');
-                                    $cantidad     = max(1, (int) ($get('cantidad') ?? 1));
+                                    $cantidad = max(1, (int) ($get('cantidad') ?? 1));
 
                                     if (! $mobiliarioId) {
                                         return '—';
                                     }
 
-                                    $stock      = (int) (Mobiliario::find($mobiliarioId)?->stock_actual ?? 0);
+                                    $stock = (int) (Mobiliario::find($mobiliarioId)?->stock_actual ?? 0);
                                     $desdeStock = min($cantidad, $stock);
-                                    $aFabricar  = $cantidad - $desdeStock;
+                                    $aFabricar = $cantidad - $desdeStock;
 
                                     return "Stock disponible: {$stock} · Desde stock: {$desdeStock} · A fabricar: {$aFabricar}";
                                 })
@@ -597,7 +602,7 @@ class PresupuestoResource extends BaseResource
                     ->formatStateUsing(fn (string $state): string => Presupuesto::ESTADOS[$state] ?? $state),
                 Infolists\Components\TextEntry::make('version')
                     ->label('Versión')
-                    ->formatStateUsing(fn (int $state): string => 'v' . $state),
+                    ->formatStateUsing(fn (int $state): string => 'v'.$state),
                 Infolists\Components\TextEntry::make('agencia.nombre')
                     ->label('Agencia'),
                 Infolists\Components\TextEntry::make('proyecto.codigo_interno')
@@ -759,17 +764,17 @@ class PresupuestoResource extends BaseResource
             ->actions([
                 // ── Botones de estado visibles directamente en la fila ──────
                 Tables\Actions\Action::make('enviarRevision')
-                ->label('Enviar a Revisión')
-                ->icon('heroicon-o-arrow-right-circle')
-                ->color('warning')
-                ->button()
-                ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('changeState', $record) && $record->puedeEnviarARevision())
-                ->authorize('changeState')
-                ->requiresConfirmation()
-                ->action(function (Presupuesto $record): void {
-                    $record->cambiarEstado('en_revision');
-                    Notification::make()->success()->title('Enviado a revisión')->send();
-                }),
+                    ->label('Enviar a Revisión')
+                    ->icon('heroicon-o-arrow-right-circle')
+                    ->color('warning')
+                    ->button()
+                    ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('changeState', $record) && $record->puedeEnviarARevision())
+                    ->authorize('changeState')
+                    ->requiresConfirmation()
+                    ->action(function (Presupuesto $record): void {
+                        $record->cambiarEstado('en_revision');
+                        Notification::make()->success()->title('Enviado a revisión')->send();
+                    }),
 
                 Tables\Actions\Action::make('enviarACliente')
                     ->label('Enviar a Cliente')
@@ -822,8 +827,7 @@ class PresupuestoResource extends BaseResource
                     ->icon('heroicon-o-truck')
                     ->color('success')
                     ->button()
-                    ->visible(fn (Presupuesto $record): bool =>
-                        PresupuestoAuthorization::canForRecord('registerDelivery', $record)
+                    ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('registerDelivery', $record)
                         && $record->puedeRegistrarEntrega()
                         && $record->tieneItemsPendientesEntrega()
                     )
@@ -849,8 +853,7 @@ class PresupuestoResource extends BaseResource
                     ->icon('heroicon-o-clipboard-document-list')
                     ->color('gray')
                     ->button()
-                    ->visible(fn (Presupuesto $record): bool =>
-                        PresupuestoAuthorization::canForRecord('registerDelivery', $record)
+                    ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('registerDelivery', $record)
                         && $record->puedeRegistrarEntrega()
                         && $record->tieneItemsPendientesEntrega()
                     )
@@ -867,9 +870,9 @@ class PresupuestoResource extends BaseResource
                             Notification::make()
                                 ->success()
                                 ->title(match ($record->fresh()->estado) {
-                                    'entregado'         => 'Presupuesto entregado completamente',
+                                    'entregado' => 'Presupuesto entregado completamente',
                                     'entregado_parcial' => 'Entrega parcial registrada',
-                                    default             => 'Entrega actualizada',
+                                    default => 'Entrega actualizada',
                                 })
                                 ->send();
                         } catch (\Throwable $e) {
@@ -901,7 +904,7 @@ class PresupuestoResource extends BaseResource
                         ->color('success')
                         ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('export', $record))
                         ->authorize('export')
-                        ->url(fn (Presupuesto $record) => route('presupuesto.excel', $record->id))
+                        ->url(fn (Presupuesto $record) => route('presupuesto.excel.viewer', $record->id))
                         ->openUrlInNewTab(),
 
                     Tables\Actions\Action::make('produccionExcel')
@@ -957,8 +960,7 @@ class PresupuestoResource extends BaseResource
                         ->label('Nueva Versión')
                         ->icon('heroicon-o-document-duplicate')
                         ->color('info')
-                        ->visible(fn (Presupuesto $record): bool =>
-                            PresupuestoAuthorization::canForRecord('changeState', $record)
+                        ->visible(fn (Presupuesto $record): bool => PresupuestoAuthorization::canForRecord('changeState', $record)
                             && in_array($record->estado, ['confirmado', 'rechazado'])
                         )
                         ->authorize('changeState')
@@ -972,7 +974,7 @@ class PresupuestoResource extends BaseResource
                             $record->crearVersion($data['motivo'] ?? null);
                             $nuevoNumero = $record->version + 1;
                             $record->update(['version' => $nuevoNumero]);
-                            $record->cambiarEstado('borrador', 'Nueva versión: v' . $nuevoNumero);
+                            $record->cambiarEstado('borrador', 'Nueva versión: v'.$nuevoNumero);
                             Notification::make()->success()
                                 ->title("Nueva versión creada: v{$nuevoNumero}")
                                 ->send();
@@ -1029,10 +1031,10 @@ class PresupuestoResource extends BaseResource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListPresupuestos::route('/'),
+            'index' => Pages\ListPresupuestos::route('/'),
             'create' => Pages\CreatePresupuesto::route('/create'),
-            'view'   => Pages\ViewPresupuesto::route('/{record}'),
-            'edit'   => Pages\EditPresupuesto::route('/{record}/edit'),
+            'view' => Pages\ViewPresupuesto::route('/{record}'),
+            'edit' => Pages\EditPresupuesto::route('/{record}/edit'),
         ];
     }
 
@@ -1093,5 +1095,4 @@ class PresupuestoResource extends BaseResource
 
         return filled($url) ? $url : null;
     }
-
 }

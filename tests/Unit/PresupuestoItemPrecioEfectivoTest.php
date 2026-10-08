@@ -216,5 +216,53 @@ class PresupuestoItemPrecioEfectivoTest extends TestCase
         $item->setRelation('insumo', null);
 
         $this->assertSame(25.0, $item->costoDirectoUnitario());
+        $this->assertSame(100.0, $item->costoDirectoTotal());
+    }
+
+    #[Test]
+    public function margen_bruto_directo_de_silla_usa_precio_costo_y_subtotal(): void
+    {
+        $item = new PresupuestoItem([
+            'cantidad' => 2,
+            'precio_unitario' => 2000,
+        ]);
+        $item->setRelation('mobiliario', null);
+        $item->setRelation('insumo', new Insumo(['precio_costo' => 1234.5]));
+
+        $this->assertSame(2469.0, $item->costoDirectoTotal());
+        $this->assertSame(1531.0, $item->margenBrutoDirecto());
+        $this->assertSame(38.28, $item->margenBrutoDirectoPorcentaje());
+    }
+
+    #[Test]
+    public function margen_bruto_directo_es_nulo_sin_costo(): void
+    {
+        $item = new PresupuestoItem([
+            'cantidad' => 2,
+            'precio_unitario' => 2000,
+        ]);
+        $item->setRelation('mobiliario', null);
+        $item->setRelation('insumo', new Insumo(['precio_costo' => null]));
+
+        $this->assertNull($item->costoDirectoTotal());
+        $this->assertNull($item->margenBrutoDirecto());
+        $this->assertNull($item->margenBrutoDirectoPorcentaje());
+    }
+
+    #[Test]
+    public function margen_ponderado_pesa_por_subtotal_de_venta(): void
+    {
+        $itemA = new PresupuestoItem(['cantidad' => 2, 'precio_unitario' => 2000]);
+        $itemA->setRelation('mobiliario', null);
+        $itemA->setRelation('insumo', new Insumo(['precio_costo' => 1234.5]));
+
+        $itemB = new PresupuestoItem(['cantidad' => 1, 'precio_unitario' => 1000]);
+        $itemB->setRelation('mobiliario', null);
+        $itemB->setRelation('insumo', new Insumo(['precio_costo' => 800]));
+
+        $presupuesto = new Presupuesto;
+        $presupuesto->setRelation('items', collect([$itemA, $itemB]));
+
+        $this->assertSame(34.62, $presupuesto->margenBrutoDirectoPorcentajePonderado());
     }
 }

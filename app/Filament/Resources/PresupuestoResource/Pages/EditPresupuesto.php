@@ -46,7 +46,7 @@ class EditPresupuesto extends EditRecord
                 ->label('Excel')
                 ->icon('heroicon-o-table-cells')
                 ->color('success')
-                ->url(fn () => route('presupuesto.excel', $this->record->id))
+                ->url(fn () => route('presupuesto.excel.viewer', $this->record->id))
                 ->openUrlInNewTab(),
 
             Actions\Action::make('enviarRevision')
@@ -155,7 +155,7 @@ class EditPresupuesto extends EditRecord
                     $this->record->crearVersion($data['motivo'] ?? null);
                     $nuevoNumero = $this->record->version + 1;
                     $this->record->update(['version' => $nuevoNumero]);
-                    $this->record->cambiarEstado('borrador', 'Nueva versión: v' . $nuevoNumero);
+                    $this->record->cambiarEstado('borrador', 'Nueva versión: v'.$nuevoNumero);
                     Notification::make()->success()
                         ->title("Nueva versión creada: v{$nuevoNumero}")
                         ->send();

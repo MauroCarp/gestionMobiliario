@@ -20,7 +20,7 @@ class ViewPresupuesto extends ViewRecord
     {
         return [
             Actions\EditAction::make(),
-                // ->visible(fn (): bool => $this->record->puedeEditar()),
+            // ->visible(fn (): bool => $this->record->puedeEditar()),
 
             PresupuestoResource::clonarPageAction(fn () => $this->record),
 
@@ -50,7 +50,7 @@ class ViewPresupuesto extends ViewRecord
                 ->color('success')
                 ->visible(fn (): bool => PresupuestoAuthorization::canForRecord('export', $this->record))
                 ->authorize('export')
-                ->url(fn () => route('presupuesto.excel', $this->record->id))
+                ->url(fn () => route('presupuesto.excel.viewer', $this->record->id))
                 ->openUrlInNewTab(),
 
             Actions\Action::make('enviarRevision')
@@ -129,8 +129,7 @@ class ViewPresupuesto extends ViewRecord
                 ->label('Entregar completo')
                 ->icon('heroicon-o-truck')
                 ->color('success')
-                ->visible(fn (): bool =>
-                    PresupuestoAuthorization::canForRecord('registerDelivery', $this->record)
+                ->visible(fn (): bool => PresupuestoAuthorization::canForRecord('registerDelivery', $this->record)
                     && $this->record->puedeRegistrarEntrega()
                     && $this->record->tieneItemsPendientesEntrega()
                 )
@@ -162,8 +161,7 @@ class ViewPresupuesto extends ViewRecord
                 ->label('Entregar parcial')
                 ->icon('heroicon-o-clipboard-document-list')
                 ->color('warning')
-                ->visible(fn (): bool =>
-                    PresupuestoAuthorization::canForRecord('registerDelivery', $this->record)
+                ->visible(fn (): bool => PresupuestoAuthorization::canForRecord('registerDelivery', $this->record)
                     && $this->record->puedeRegistrarEntrega()
                     && $this->record->tieneItemsPendientesEntrega()
                 )
@@ -182,9 +180,9 @@ class ViewPresupuesto extends ViewRecord
                         Notification::make()
                             ->success()
                             ->title(match ($this->record->estado) {
-                                'entregado'         => 'Presupuesto entregado completamente',
+                                'entregado' => 'Presupuesto entregado completamente',
                                 'entregado_parcial' => 'Entrega parcial registrada',
-                                default             => 'Entrega actualizada',
+                                default => 'Entrega actualizada',
                             })
                             ->send();
                     } catch (\Throwable $e) {

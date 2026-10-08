@@ -117,6 +117,41 @@ class PresupuestoItem extends Model
         return null;
     }
 
+    public function costoDirectoTotal(): ?float
+    {
+        $unitario = $this->costoDirectoUnitario();
+
+        if ($unitario === null) {
+            return null;
+        }
+
+        return round($unitario * (float) $this->cantidad, 2);
+    }
+
+    public function margenBrutoDirecto(): ?float
+    {
+        $subtotal = $this->subtotalEfectivo();
+        $costo = $this->costoDirectoTotal();
+
+        if ($subtotal === null || $costo === null) {
+            return null;
+        }
+
+        return round($subtotal - $costo, 2);
+    }
+
+    public function margenBrutoDirectoPorcentaje(): ?float
+    {
+        $subtotal = $this->subtotalEfectivo();
+        $margen = $this->margenBrutoDirecto();
+
+        if ($subtotal === null || $subtotal == 0.0 || $margen === null) {
+            return null;
+        }
+
+        return round($margen / $subtotal * 100, 2);
+    }
+
     public function presupuesto(): BelongsTo
     {
         return $this->belongsTo(Presupuesto::class);

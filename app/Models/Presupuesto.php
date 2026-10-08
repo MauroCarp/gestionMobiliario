@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Presupuesto extends Model
@@ -17,29 +17,29 @@ class Presupuesto extends Model
     use LogsActivity;
 
     const ESTADOS = [
-        'borrador'          => 'Borrador',
-        'en_revision'       => 'En Revisión',
+        'borrador' => 'Borrador',
+        'en_revision' => 'En Revisión',
         'enviado_a_cliente' => 'Enviado a Cliente',
-        'aprobado'          => 'Aprobado',
-        'confirmado'        => 'Confirmado',
-        'pagado'            => 'Pagado',
+        'aprobado' => 'Aprobado',
+        'confirmado' => 'Confirmado',
+        'pagado' => 'Pagado',
         'entregado_parcial' => 'Entregado parcial',
-        'entregado'         => 'Entregado',
-        'rechazado'         => 'Rechazado',
-        'cancelado'         => 'Cancelado',
+        'entregado' => 'Entregado',
+        'rechazado' => 'Rechazado',
+        'cancelado' => 'Cancelado',
     ];
 
     const ESTADO_COLORS = [
-        'borrador'          => 'gray',
-        'en_revision'       => 'warning',
+        'borrador' => 'gray',
+        'en_revision' => 'warning',
         'enviado_a_cliente' => 'info',
-        'aprobado'          => 'success',
-        'confirmado'        => 'info',
-        'pagado'            => 'success',
+        'aprobado' => 'success',
+        'confirmado' => 'info',
+        'pagado' => 'success',
         'entregado_parcial' => 'warning',
-        'entregado'         => 'success',
-        'rechazado'         => 'danger',
-        'cancelado'         => 'gray',
+        'entregado' => 'success',
+        'rechazado' => 'danger',
+        'cancelado' => 'gray',
     ];
 
     const TEXTO_PAGO_DEFECTO = '50% MEDIANTE TRANSFERENCIA AL CONFIRMAR EL PRESUPUESTO, SALDO CON E-CHEQ ANTICIPADOS AL CONFIRMAR 15-30-45-60-75-90 DÍAS F.F..';
@@ -70,15 +70,15 @@ class Presupuesto extends Model
     ];
 
     protected $casts = [
-        'fecha_emision'     => 'date',
+        'fecha_emision' => 'date',
         'fecha_vencimiento' => 'date',
-        'aprobado_at'       => 'datetime',
+        'aprobado_at' => 'datetime',
         'datos_adicionales' => 'array',
-        'version'           => 'integer',
+        'version' => 'integer',
         'logistica_instalacion_propia' => 'boolean',
-        'logistica_costo'   => 'decimal:2',
-        'armado'            => 'boolean',
-        'armado_costo'      => 'decimal:2',
+        'logistica_costo' => 'decimal:2',
+        'armado' => 'boolean',
+        'armado_costo' => 'decimal:2',
     ];
 
     public function getActivitylogOptions(): LogOptions
@@ -124,17 +124,17 @@ class Presupuesto extends Model
             $this->update(['estado' => $nuevoEstado]);
 
             PresupuestoHistorial::create([
-                'presupuesto_id'  => $this->id,
+                'presupuesto_id' => $this->id,
                 'estado_anterior' => $estadoAnterior,
-                'estado_nuevo'    => $nuevoEstado,
-                'comentario'      => $comentario,
-                'user_id'         => auth()->check() ? auth()->id() : null,
+                'estado_nuevo' => $nuevoEstado,
+                'comentario' => $comentario,
+                'user_id' => auth()->check() ? auth()->id() : null,
             ]);
 
             if ($nuevoEstado === 'aprobado') {
                 $this->update([
                     'aprobado_por' => auth()->check() ? auth()->id() : null,
-                    'aprobado_at'  => now(),
+                    'aprobado_at' => now(),
                 ]);
             }
         });
@@ -161,12 +161,12 @@ class Presupuesto extends Model
     {
         return $this->versiones()->create([
             'numero_version' => $this->version,
-            'snapshot'       => [
+            'snapshot' => [
                 'presupuesto' => $this->toArray(),
-                'items'       => $this->items->load('mobiliario')->toArray(),
+                'items' => $this->items->load('mobiliario')->toArray(),
             ],
-            'motivo_cambio'  => $motivo,
-            'creado_por'     => auth()->check() ? auth()->id() : null,
+            'motivo_cambio' => $motivo,
+            'creado_por' => auth()->check() ? auth()->id() : null,
         ]);
     }
 
@@ -174,21 +174,21 @@ class Presupuesto extends Model
     {
         return DB::transaction(function (): self {
             $clon = self::create([
-                'agencia_id'         => $this->agencia_id,
-                'responsable_id'     => $this->responsable_id,
-                'estado'             => 'borrador',
-                'version'            => 1,
-                'fecha_emision'      => $this->fecha_emision,
-                'fecha_vencimiento'  => $this->fecha_vencimiento,
-                'metodo_pago'        => $this->metodo_pago,
+                'agencia_id' => $this->agencia_id,
+                'responsable_id' => $this->responsable_id,
+                'estado' => 'borrador',
+                'version' => 1,
+                'fecha_emision' => $this->fecha_emision,
+                'fecha_vencimiento' => $this->fecha_vencimiento,
+                'metodo_pago' => $this->metodo_pago,
                 'logistica_instalacion_propia' => $this->logistica_instalacion_propia,
-                'logistica_leyenda'  => $this->logistica_leyenda,
-                'logistica_costo'    => $this->logistica_costo,
-                'armado'             => $this->armado,
-                'armado_costo'       => $this->armado_costo,
-                'observaciones'      => $this->observaciones,
-                'notas_internas'     => $this->notas_internas,
-                'datos_adicionales'  => $this->datos_adicionales,
+                'logistica_leyenda' => $this->logistica_leyenda,
+                'logistica_costo' => $this->logistica_costo,
+                'armado' => $this->armado,
+                'armado_costo' => $this->armado_costo,
+                'observaciones' => $this->observaciones,
+                'notas_internas' => $this->notas_internas,
+                'datos_adicionales' => $this->datos_adicionales,
             ]);
 
             $this->items()
@@ -196,15 +196,15 @@ class Presupuesto extends Model
                 ->get()
                 ->each(function (PresupuestoItem $item) use ($clon): void {
                     $clon->items()->create([
-                        'mobiliario_id'          => $item->mobiliario_id,
-                        'insumo_id'              => $item->insumo_id,
-                        'sector_id'              => $item->sector_id,
-                        'cantidad'               => $item->cantidad,
-                        'precio_unitario'        => $item->precio_unitario,
-                        'descripcion_override'   => $item->descripcion_override,
-                        'observaciones'          => $item->observaciones,
-                        'notas_manuales'         => $item->notas_manuales,
-                        'orden'                  => $item->orden,
+                        'mobiliario_id' => $item->mobiliario_id,
+                        'insumo_id' => $item->insumo_id,
+                        'sector_id' => $item->sector_id,
+                        'cantidad' => $item->cantidad,
+                        'precio_unitario' => $item->precio_unitario,
+                        'descripcion_override' => $item->descripcion_override,
+                        'observaciones' => $item->observaciones,
+                        'notas_manuales' => $item->notas_manuales,
+                        'orden' => $item->orden,
                     ]);
                 });
 
@@ -269,7 +269,7 @@ class Presupuesto extends Model
             return '0/0';
         }
 
-        return $this->unidades_entregadas . '/' . $total;
+        return $this->unidades_entregadas.'/'.$total;
     }
 
     public function getResumenEntregaAttribute(): string
@@ -303,7 +303,7 @@ class Presupuesto extends Model
 
     public function puedeEditar(): bool
     {
-        return in_array($this->estado, ['borrador','en_revision', 'rechazado']);
+        return in_array($this->estado, ['borrador', 'en_revision', 'rechazado']);
     }
 
     // ─── Relations ────────────────────────────────────────────────────────────
@@ -398,7 +398,7 @@ class Presupuesto extends Model
 
         return implode("\n", [
             'EL PRESUPUESTO TENDRÁ VALIDEZ DE 5 DÍAS.',
-            'FORMA DE PAGO: ' . $formaPago,
+            'FORMA DE PAGO: '.$formaPago,
             "PLAZO DE ENTREGA: {$diasEntrega} días de realizado el pago del mobiliario.",
             'LA TOTALIDAD DEL MOBILIARIO ESTA REALIZADO BAJO LOS REQUERIMIENTOS DE LA MARCA, TANTO EN LOS MATERIALES UTILIZADOS, COLORES, CALIDAD Y DISEÑO DE LOS MISMOS.',
             'EN EL SUPUESTO CASO QUE EL MOBILIARIO NO PUEDA INSTALARSE DEBERÁ SER DESEMBALADO Y CONTROLADO AL MOMENTO DE LA ENTREGA EN CONJUNTO CON LA PARTE VENDEDORA Y COMPRADORA. DE LO CONTRARIO LA EMPRESA NO SE RESPONSABILIZA POR LOS DAÑOS QUE SUFRA EL MISMO.',
@@ -440,5 +440,29 @@ class Presupuesto extends Model
     public function getArmadoCostoNumericoAttribute(): float
     {
         return round((float) ($this->armado_costo ?? 0), 2);
+    }
+
+    public function margenBrutoDirectoPorcentajePonderado(): ?float
+    {
+        $subtotalConMargen = 0.0;
+        $margenTotal = 0.0;
+
+        foreach ($this->items as $item) {
+            $margen = $item->margenBrutoDirecto();
+            $subtotal = $item->subtotalEfectivo();
+
+            if ($margen === null || $subtotal === null || $subtotal == 0.0) {
+                continue;
+            }
+
+            $subtotalConMargen += $subtotal;
+            $margenTotal += $margen;
+        }
+
+        if ($subtotalConMargen == 0.0) {
+            return null;
+        }
+
+        return round($margenTotal / $subtotalConMargen * 100, 2);
     }
 }

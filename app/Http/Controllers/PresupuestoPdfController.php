@@ -90,22 +90,22 @@ class PresupuestoPdfController extends Controller
     {
         $this->authorize('export', $presupuesto);
 
-        $presupuesto->load([
-            'proyecto.marca',
-            'agencia.proyecto.marca',
-            'agencia',
-            'responsable',
-            'items' => fn ($q) => $q->orderBy('orden')->with([
-                'mobiliario.categoria',
-                'mobiliario.composicionTecnica.insumo',
-                'mobiliario.plantillaFlujos.etapas',
-                'insumo.marcasSilla',
-                'insumo.categoriasInsumo',
-            ]),
-        ]);
+        $this->cargarRelacionesExcel($presupuesto);
         $filename = "presupuesto-{$presupuesto->codigo}.xlsx";
 
         return Excel::download(new PresupuestoExport($presupuesto), $filename);
+    }
+
+    public function excelViewer(Presupuesto $presupuesto)
+    {
+        $this->authorize('export', $presupuesto);
+
+        $this->cargarRelacionesExcel($presupuesto);
+
+        return view('exports.presupuesto_excel_viewer', [
+            'presupuesto' => $presupuesto,
+            'downloadUrl' => route('presupuesto.excel', $presupuesto),
+        ]);
     }
 
     public function produccionPdf(Presupuesto $presupuesto, PresupuestoPdfCache $cache)
@@ -246,6 +246,23 @@ class PresupuestoPdfController extends Controller
             'items' => $items,
             'itemsPorSector' => $items->groupBy(fn ($itemData) => $itemData['sector']?->nombre ?? '__sin_sector__'),
         ];
+    }
+
+    private function cargarRelacionesExcel(Presupuesto $presupuesto): void
+    {
+        $presupuesto->load([
+            'proyecto.marca',
+            'agencia.proyecto.marca',
+            'agencia',
+            'responsable',
+            'items' => fn ($q) => $q->orderBy('orden')->with([
+                'mobiliario.categoria',
+                'mobiliario.composicionTecnica.insumo',
+                'mobiliario.plantillaFlujos.etapas',
+                'insumo.marcasSilla',
+                'insumo.categoriasInsumo',
+            ]),
+        ]);
     }
 
     private function opcionesPdf(): array
