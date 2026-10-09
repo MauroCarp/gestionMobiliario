@@ -5,9 +5,13 @@ namespace App\Filament\Resources\InsumoResource\Pages;
 use App\Exports\InsumosExport;
 use App\Filament\Resources\InsumoResource;
 use App\Imports\InsumosStockImport;
+use App\Models\CategoriaInsumo;
 use App\Models\Insumo;
+use App\Models\Proveedor;
+use App\Services\ActualizarPreciosInsumosService;
 use Filament\Actions;
 use Filament\Forms;
+use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\Storage;
@@ -70,6 +74,102 @@ class ListInsumos extends ListRecords
                             ->danger()
                             ->send();
                     }
+                }),
+
+            Actions\Action::make('actualizarPrecios')
+                ->label('Actualizar precios')
+                ->icon('heroicon-o-arrow-trending-up')
+                ->color('success')
+                ->visible(fn (): bool => auth()->user()?->hasRole('Administrador') ?? false)
+                ->authorize(fn (): bool => auth()->user()?->hasRole('Administrador') ?? false)
+                ->requiresConfirmation()
+                ->modalHeading('Confirmar actualización de precios')
+                ->modalDescription('Se aplicará el porcentaje al último precio de los insumos coincidentes. La fecha de último precio pasará a hoy. Esta acción no se puede deshacer.')
+                ->modalSubmitActionLabel('Sí, actualizar')
+                ->modalCancelActionLabel('Cancelar')
+                ->form([
+                    Forms\Components\Select::make('actualizar_por')
+                        ->label('Actualizar por')
+                        ->options([
+                            ActualizarPreciosInsumosService::CRITERIO_CATEGORIA => 'Categoría',
+                            ActualizarPreciosInsumosService::CRITERIO_PROVEEDOR => 'Proveedor',
+                            ActualizarPreciosInsumosService::CRITERIO_FECHA => 'Fecha último precio',
+                        ])
+                        ->default(ActualizarPreciosInsumosService::CRITERIO_CATEGORIA)
+                        ->required()
+                        ->live(),
+
+                    Forms\Components\Select::make('categoria_id')
+                        ->label('Categoría')
+                        ->options(fn (): array => CategoriaInsumo::query()
+                            ->where('activo', true)
+                            ->orderBy('nombre')
+                            ->pluck('nombre', 'id')
+                            ->all())
+                        ->searchable()
+                        ->preload()
+                        ->default(fn (): mixed => CategoriaInsumo::query()
+                            ->whereRaw('LOWER(nombre) = ?', ['maderas'])
+                            ->value('id'))
+                        ->required(fn (Get $get): bool => $get('actualizar_por') === ActualizarPreciosInsumosService::CRITERIO_CATEGORIA)
+                        ->visible(fn (Get $get): bool => $get('actualizar_por') === ActualizarPreciosInsumosService::CRITERIO_CATEGORIA),
+
+                    Forms\Components\Select::make('proveedor_id')
+                        ->label('Proveedor')
+                        ->options(fn (): array => Proveedor::query()
+                            ->where('activo', true)
+                            ->orderBy('razon_social')
+                            ->pluck('razon_social', 'id')
+                            ->all())
+                        ->searchable()
+                        ->preload()
+                        ->required(fn (Get $get): bool => $get('actualizar_por') === ActualizarPreciosInsumosService::CRITERIO_PROVEEDOR)
+                        ->visible(fn (Get $get): bool => $get('actualizar_por') === ActualizarPreciosInsumosService::CRITERIO_PROVEEDOR),
+
+                        Forms\Components\DatePicker::make('mes_anio')
+                        ->label('Mes y año')
+                        ->native(false)
+                        ->displayFormat('m/Y')
+                        ->format('Y-m')
+                        ->placeholder('MM/AAAA')
+                        ->suffixIcon('heroicon-o-calendar')
+                        ->closeOnDateSelection()
+                        ->required(fn (Get $get): bool => $get('actualizar_por') === ActualizarPreciosInsumosService::CRITERIO_FECHA)
+                        ->visible(fn (Get $get): bool => $get('actualizar_por') === ActualizarPreciosInsumosService::CRITERIO_FECHA),
+                    Forms\Components\TextInput::make('porcentaje')
+                        ->label('Porcentaje')
+                        ->numeric()
+                        ->minValue(0.01)
+                        ->step(0.01)
+                        ->suffix('%')
+                        ->required(),
+                ])
+                ->action(function (array $data): void {
+                    $criterio = $data['actualizar_por'];
+                    $valor = match ($criterio) {
+                        ActualizarPreciosInsumosService::CRITERIO_CATEGORIA => $data['categoria_id'],
+                        ActualizarPreciosInsumosService::CRITERIO_PROVEEDOR => $data['proveedor_id'],
+                        ActualizarPreciosInsumosService::CRITERIO_FECHA => $data['mes_anio'],
+                    };
+
+                    $cantidad = app(ActualizarPreciosInsumosService::class)
+                        ->actualizar($criterio, $valor, (float) $data['porcentaje']);
+
+                    if ($cantidad === 0) {
+                        Notification::make()
+                            ->title('Ningún insumo coincidente')
+                            ->body('No se encontraron insumos para actualizar con el criterio seleccionado.')
+                            ->warning()
+                            ->send();
+
+                        return;
+                    }
+
+                    Notification::make()
+                        ->title('Precios actualizados')
+                        ->body("Se actualizó el último precio de {$cantidad} insumo(s).")
+                        ->success()
+                        ->send();
                 }),
 
             Actions\Action::make('exportarExcel')
