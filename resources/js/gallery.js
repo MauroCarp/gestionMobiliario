@@ -51,6 +51,10 @@ function initGalleries() {
     });
 }
 
+function scheduleInitGalleries() {
+    requestAnimationFrame(initGalleries);
+}
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initGalleries);
 } else {
@@ -58,3 +62,33 @@ if (document.readyState === 'loading') {
 }
 
 document.addEventListener('livewire:navigated', initGalleries);
+
+const observeGalleries = () => {
+    if (!document.body) {
+        return;
+    }
+
+    new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+            for (const node of mutation.addedNodes) {
+                if (!(node instanceof HTMLElement)) {
+                    continue;
+                }
+
+                if (
+                    node.matches('.mobiliario-galeria[data-splide-root]')
+                    || node.querySelector('.mobiliario-galeria[data-splide-root]')
+                ) {
+                    scheduleInitGalleries();
+                    return;
+                }
+            }
+        }
+    }).observe(document.body, { childList: true, subtree: true });
+};
+
+if (document.body) {
+    observeGalleries();
+} else {
+    document.addEventListener('DOMContentLoaded', observeGalleries);
+}

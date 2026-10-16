@@ -361,6 +361,11 @@ class Presupuesto extends Model
         return $this->hasMany(OrdenCompra::class);
     }
 
+    public function reclamos(): HasMany
+    {
+        return $this->hasMany(Reclamo::class);
+    }
+
     public function esConfirmado(): bool
     {
         return in_array($this->estado, ['confirmado', 'pagado', 'entregado_parcial', 'entregado'], true);

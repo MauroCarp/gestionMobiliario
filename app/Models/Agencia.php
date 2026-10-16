@@ -86,6 +86,11 @@ class Agencia extends Model implements HasMedia
         return $this->hasMany(Presupuesto::class, 'agencia_id');
     }
 
+    public function reclamos(): HasMany
+    {
+        return $this->hasMany(Reclamo::class, 'agencia_id');
+    }
+
     /** Marca heredada del proyecto al que pertenece la agencia. */
     public function getMarcaAttribute(): ?Marca
     {
