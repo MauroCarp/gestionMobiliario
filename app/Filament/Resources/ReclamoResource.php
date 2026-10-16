@@ -122,6 +122,60 @@ class ReclamoResource extends BaseResource
             ->columnSpanFull();
     }
 
+    /**
+     * @param  callable(Get): ?int  $presupuestoId
+     * @return array<int, Forms\Components\Component>
+     */
+    public static function camposSelectorItem(callable $presupuestoId): array
+    {
+        return [
+            Forms\Components\Select::make('_item_selector')
+                ->label('Mobiliario / Silla')
+                ->options(fn (Get $get): array => Reclamo::opcionesItemParaPresupuesto($presupuestoId($get)))
+                ->searchable()
+                ->required()
+                ->live()
+                ->dehydrated(false)
+                ->disabled(fn (Get $get): bool => ! $presupuestoId($get))
+                ->helperText(fn (Get $get): ?string => $presupuestoId($get)
+                    ? null
+                    : 'Elegí un presupuesto para listar los mobiliarios y sillas.')
+                ->formatStateUsing(function ($state, $record): ?string {
+                    if ($record?->mobiliario_id) {
+                        return 'mob_'.$record->mobiliario_id;
+                    }
+
+                    if ($record?->insumo_id) {
+                        return 'ins_'.$record->insumo_id;
+                    }
+
+                    return $state;
+                })
+                ->afterStateUpdated(function ($state, Set $set): void {
+                    if (! $state) {
+                        $set('mobiliario_id', null);
+                        $set('insumo_id', null);
+
+                        return;
+                    }
+
+                    if (str_starts_with((string) $state, 'mob_')) {
+                        $set('mobiliario_id', (int) substr((string) $state, 4));
+                        $set('insumo_id', null);
+
+                        return;
+                    }
+
+                    if (str_starts_with((string) $state, 'ins_')) {
+                        $set('insumo_id', (int) substr((string) $state, 4));
+                        $set('mobiliario_id', null);
+                    }
+                }),
+            Forms\Components\Hidden::make('mobiliario_id'),
+            Forms\Components\Hidden::make('insumo_id'),
+        ];
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema([
@@ -169,17 +223,9 @@ class ReclamoResource extends BaseResource
                     Forms\Components\Repeater::make('registros')
                         ->relationship()
                         ->schema([
-                            Forms\Components\Select::make('mobiliario_id')
-                                ->label('Mobiliario')
-                                ->options(fn (Get $get): array => Reclamo::opcionesMobiliarioParaPresupuesto(
-                                    $get('../../presupuesto_id') ? (int) $get('../../presupuesto_id') : null
-                                ))
-                                ->searchable()
-                                ->required()
-                                ->disabled(fn (Get $get): bool => ! $get('../../presupuesto_id'))
-                                ->helperText(fn (Get $get): ?string => $get('../../presupuesto_id')
-                                    ? null
-                                    : 'Elegí un presupuesto para listar los mobiliarios.'),
+                            ...static::camposSelectorItem(fn (Get $get): ?int => $get('../../presupuesto_id')
+                                ? (int) $get('../../presupuesto_id')
+                                : null),
                             Forms\Components\TextInput::make('observacion')
                                 ->label('Observación')
                                 ->maxLength(65535),
@@ -238,7 +284,13 @@ class ReclamoResource extends BaseResource
     {
         return $table
             ->modifyQueryUsing(fn (Builder $query): Builder => $query
-                ->with(['agencia.proyecto.marca', 'agencia.ciudad', 'presupuesto', 'registros.mobiliario'])
+                ->with([
+                    'agencia.proyecto.marca',
+                    'agencia.ciudad',
+                    'presupuesto',
+                    'registros.mobiliario',
+                    'registros.insumo.marcasSilla',
+                ])
                 ->withCount([
                     'registros as pendientes_count' => fn (Builder $q) => $q->where('estado', 'pendiente'),
                     'registros as resueltos_count' => fn (Builder $q) => $q->where('estado', 'resuelto'),
@@ -270,7 +322,7 @@ class ReclamoResource extends BaseResource
                     ->wrap()
                     ->placeholder('—')
                     ->getStateUsing(fn (Reclamo $record): array => $record->registros
-                        ->map(fn ($registro): string => $registro->etiquetaListado())
+                        ->map(fn ($registro): string => $registro->etiquetaListado($record->agencia?->proyecto?->marca_id))
                         ->values()
                         ->all())
                     ->searchable(query: function (Builder $query, string $search): Builder {
@@ -280,7 +332,11 @@ class ReclamoResource extends BaseResource
                                     ->where('observacion', 'like', "%{$search}%")
                                     ->orWhereHas('mobiliario', fn (Builder $mobiliario) => $mobiliario
                                         ->where('nombre', 'like', "%{$search}%")
-                                        ->orWhere('codigo_interno', 'like', "%{$search}%"));
+                                        ->orWhere('codigo_interno', 'like', "%{$search}%"))
+                                    ->orWhereHas('insumo', fn (Builder $insumo) => $insumo
+                                        ->where('nombre', 'like', "%{$search}%")
+                                        ->orWhereHas('marcasSilla', fn (Builder $marcaSilla) => $marcaSilla
+                                            ->where('nombre_fantasia', 'like', "%{$search}%")));
                             });
                         });
                     }),

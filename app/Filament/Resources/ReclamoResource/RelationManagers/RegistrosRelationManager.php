@@ -44,16 +44,29 @@ class RegistrosRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('id')
-            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['mobiliario', 'media']))
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['mobiliario', 'insumo.marcasSilla', 'media']))
             ->columns([
-                Tables\Columns\TextColumn::make('mobiliario.codigo_interno')
-                    ->label('Código')
-                    ->badge()
-                    ->placeholder('—'),
-                Tables\Columns\TextColumn::make('mobiliario.nombre')
-                    ->label('Mobiliario')
-                    ->searchable()
-                    ->wrap(),
+                Tables\Columns\TextColumn::make('item')
+                    ->label('Mobiliario / Silla')
+                    ->wrap()
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->where(function (Builder $item) use ($search): void {
+                            $item
+                                ->whereHas('mobiliario', fn (Builder $mobiliario) => $mobiliario
+                                    ->where('nombre', 'like', "%{$search}%")
+                                    ->orWhere('codigo_interno', 'like', "%{$search}%"))
+                                ->orWhereHas('insumo', fn (Builder $insumo) => $insumo
+                                    ->where('nombre', 'like', "%{$search}%"));
+                        });
+                    })
+                    ->getStateUsing(function (ReclamoRegistro $record): string {
+                        $reclamo = $this->getOwnerRecord();
+                        $marcaId = $reclamo instanceof Reclamo
+                            ? $reclamo->agencia?->proyecto?->marca_id
+                            : null;
+
+                        return $record->nombreItem($marcaId);
+                    }),
                 Tables\Columns\TextColumn::make('observacion')
                     ->label('Observación')
                     ->wrap()
@@ -84,15 +97,15 @@ class RegistrosRelationManager extends RelationManager
                 Tables\Actions\CreateAction::make()
                     ->label('Nuevo registro')
                     ->modalHeading('Nuevo registro')
-                    ->disabled(fn (): bool => $this->opcionesMobiliario() === [])
-                    ->tooltip(fn (): ?string => $this->opcionesMobiliario() === []
-                        ? 'Este presupuesto no tiene mobiliarios para reclamar.'
+                    ->disabled(fn (): bool => $this->opcionesItem() === [])
+                    ->tooltip(fn (): ?string => $this->opcionesItem() === []
+                        ? 'Este presupuesto no tiene mobiliarios ni sillas para reclamar.'
                         : null)
                     ->before(function (Tables\Actions\CreateAction $action): void {
-                        if ($this->opcionesMobiliario() === []) {
+                        if ($this->opcionesItem() === []) {
                             Notification::make()
                                 ->danger()
-                                ->title('Este presupuesto no tiene mobiliarios para reclamar.')
+                                ->title('Este presupuesto no tiene mobiliarios ni sillas para reclamar.')
                                 ->send();
 
                             $action->halt();
@@ -146,15 +159,9 @@ class RegistrosRelationManager extends RelationManager
     protected function camposAltaRegistro(): array
     {
         return [
-            Forms\Components\Select::make('mobiliario_id')
-                ->label('Mobiliario')
-                ->options(fn (): array => $this->opcionesMobiliario())
-                ->searchable()
-                ->preload()
-                ->required()
-                ->helperText(fn (): ?string => $this->opcionesMobiliario() === []
-                    ? 'Este presupuesto no tiene mobiliarios para reclamar.'
-                    : null),
+            ...ReclamoResource::camposSelectorItem(fn (): ?int => $this->getOwnerRecord() instanceof Reclamo
+                ? $this->getOwnerRecord()->presupuesto_id
+                : null),
             Forms\Components\Textarea::make('observacion')
                 ->label('Observación')
                 ->rows(3)
@@ -175,11 +182,16 @@ class RegistrosRelationManager extends RelationManager
     protected function registroInfolist(): array
     {
         return [
-            Infolists\Components\TextEntry::make('mobiliario.codigo_interno')
-                ->label('Código')
-                ->placeholder('—'),
-            Infolists\Components\TextEntry::make('mobiliario.nombre')
-                ->label('Mobiliario'),
+            Infolists\Components\TextEntry::make('item')
+                ->label('Mobiliario / Silla')
+                ->state(function (ReclamoRegistro $record): string {
+                    $reclamo = $this->getOwnerRecord();
+                    $marcaId = $reclamo instanceof Reclamo
+                        ? $reclamo->agencia?->proyecto?->marca_id
+                        : null;
+
+                    return $record->nombreItem($marcaId);
+                }),
             Infolists\Components\TextEntry::make('observacion')
                 ->label('Observación')
                 ->placeholder('—')
@@ -289,9 +301,9 @@ class RegistrosRelationManager extends RelationManager
     }
 
     /**
-     * @return array<int, string>
+     * @return array<string, string>
      */
-    protected function opcionesMobiliario(): array
+    protected function opcionesItem(): array
     {
         if ($this->opcionesMobiliarioCache !== null) {
             return $this->opcionesMobiliarioCache;
@@ -303,6 +315,6 @@ class RegistrosRelationManager extends RelationManager
             return $this->opcionesMobiliarioCache = [];
         }
 
-        return $this->opcionesMobiliarioCache = $reclamo->opcionesMobiliario();
+        return $this->opcionesMobiliarioCache = $reclamo->opcionesItem();
     }
 }

@@ -30,6 +30,7 @@ class ReclamoRegistro extends Model implements HasMedia
     protected $fillable = [
         'reclamo_id',
         'mobiliario_id',
+        'insumo_id',
         'observacion',
         'fecha',
         'estado',
@@ -91,12 +92,37 @@ class ReclamoRegistro extends Model implements HasMedia
         return $this->belongsTo(Mobiliario::class, 'mobiliario_id');
     }
 
-    public function etiquetaListado(): string
+    public function insumo(): BelongsTo
     {
-        $mobiliario = $this->mobiliario?->nombre ?? '—';
+        return $this->belongsTo(Insumo::class, 'insumo_id');
+    }
+
+    public function nombreItem(?int $marcaId = null): string
+    {
+        if ($this->mobiliario) {
+            return trim(($this->mobiliario->codigo_interno ? "{$this->mobiliario->codigo_interno} — " : '').$this->mobiliario->nombre);
+        }
+
+        if ($this->insumo) {
+            $this->loadMissing(['insumo.marcasSilla', 'reclamo.agencia.proyecto']);
+            $marcaId ??= $this->reclamo?->agencia?->proyecto?->marca_id;
+            $fantasia = $this->insumo->nombreParaMarca($marcaId);
+            $real = $this->insumo->nombre;
+
+            return filled($fantasia) && $fantasia !== $real
+                ? "{$fantasia} — {$real}"
+                : $real;
+        }
+
+        return '—';
+    }
+
+    public function etiquetaListado(?int $marcaId = null): string
+    {
+        $item = $this->nombreItem($marcaId);
         $motivo = trim((string) $this->observacion);
 
-        return $motivo === '' ? $mobiliario : "{$mobiliario} — {$motivo}";
+        return $motivo === '' ? $item : "{$item} — {$motivo}";
     }
 
     public function estaPendiente(): bool
