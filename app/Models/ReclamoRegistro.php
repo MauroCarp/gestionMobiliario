@@ -61,11 +61,21 @@ class ReclamoRegistro extends Model implements HasMedia
     {
         $this->addMediaCollection('imagenes')
             ->useDisk('public')
-            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp']);
+            ->acceptsMimeTypes([
+                'image/jpeg',
+                'image/png',
+                'image/webp',
+                'video/mp4',
+                'video/webm',
+            ]);
     }
 
     public function registerMediaConversions(?Media $media = null): void
     {
+        if ($media && ! str_starts_with((string) $media->mime_type, 'image/')) {
+            return;
+        }
+
         $this->addMediaConversion('thumb')
             ->fit(Fit::Contain, 300, 300)
             ->sharpen(10);

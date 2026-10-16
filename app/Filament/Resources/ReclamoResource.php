@@ -32,11 +32,6 @@ class ReclamoResource extends BaseResource
 
     protected static ?int $navigationSort = 5;
 
-    public static function canAccessAsAdministrador(): bool
-    {
-        return auth()->user()?->username === 'Administrador';
-    }
-
     public static function canViewAny(): bool
     {
         return auth()->check();
@@ -49,22 +44,22 @@ class ReclamoResource extends BaseResource
 
     public static function canCreate(): bool
     {
-        return static::canAccessAsAdministrador();
+        return auth()->check();
     }
 
     public static function canEdit(Model $record): bool
     {
-        return static::canAccessAsAdministrador();
+        return auth()->check();
     }
 
     public static function canDelete(Model $record): bool
     {
-        return static::canAccessAsAdministrador();
+        return auth()->check();
     }
 
     public static function canDeleteAny(): bool
     {
-        return static::canAccessAsAdministrador();
+        return auth()->check();
     }
 
     public static function shouldRegisterNavigation(): bool
@@ -108,16 +103,22 @@ class ReclamoResource extends BaseResource
     public static function campoImagenesRegistro(): Forms\Components\SpatieMediaLibraryFileUpload
     {
         return Forms\Components\SpatieMediaLibraryFileUpload::make('imagenes')
-            ->label('Imágenes')
+            ->label('Imágenes y videos')
             ->collection('imagenes')
-            ->image()
             ->multiple()
             ->reorderable()
             ->appendFiles()
             ->downloadable()
             ->openable()
-            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-            ->helperText('Fotos de lo sucedido. Podés cargar más de una.')
+            ->acceptedFileTypes([
+                'image/jpeg',
+                'image/png',
+                'image/webp',
+                'video/mp4',
+                'video/webm',
+            ])
+            ->maxSize(51200)
+            ->helperText('Fotos o videos de lo sucedido. Podés cargar más de uno (hasta 50 MB por archivo).')
             ->columnSpanFull();
     }
 
@@ -237,7 +238,7 @@ class ReclamoResource extends BaseResource
     {
         return $table
             ->modifyQueryUsing(fn (Builder $query): Builder => $query
-                ->with(['agencia.proyecto.marca', 'presupuesto', 'registros.mobiliario'])
+                ->with(['agencia.proyecto.marca', 'agencia.ciudad', 'presupuesto', 'registros.mobiliario'])
                 ->withCount([
                     'registros as pendientes_count' => fn (Builder $q) => $q->where('estado', 'pendiente'),
                     'registros as resueltos_count' => fn (Builder $q) => $q->where('estado', 'resuelto'),
@@ -247,6 +248,11 @@ class ReclamoResource extends BaseResource
                     ->label('Agencia')
                     ->searchable()
                     ->sortable(),
+                Tables\Columns\TextColumn::make('agencia.ciudad.nombre')
+                    ->label('Localidad')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('—'),
                 Tables\Columns\TextColumn::make('agencia.proyecto.marca.nombre')
                     ->label('Marca')
                     ->badge()

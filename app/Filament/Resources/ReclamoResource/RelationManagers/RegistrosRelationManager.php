@@ -122,17 +122,17 @@ class RegistrosRelationManager extends RelationManager
 
     protected function canCreate(): bool
     {
-        return ReclamoResource::canAccessAsAdministrador();
+        return auth()->check();
     }
 
     protected function canEdit(Model $record): bool
     {
-        return ReclamoResource::canAccessAsAdministrador();
+        return auth()->check();
     }
 
     protected function canDelete(Model $record): bool
     {
-        return ReclamoResource::canAccessAsAdministrador();
+        return auth()->check();
     }
 
     protected function canView(Model $record): bool
@@ -231,8 +231,6 @@ class RegistrosRelationManager extends RelationManager
         return Tables\Actions\Action::make($name)
             ->label('Cambiar estado')
             ->icon('heroicon-o-arrow-path')
-            ->visible(fn (): bool => ReclamoResource::canAccessAsAdministrador())
-            ->authorize(fn (): bool => ReclamoResource::canAccessAsAdministrador())
             ->color(fn (ReclamoRegistro $record): string => $record->estaPendiente() ? 'success' : 'warning')
             ->modalHeading(fn (ReclamoRegistro $record): string => $record->estaPendiente()
                 ? 'Marcar como resuelto'
@@ -265,10 +263,6 @@ class RegistrosRelationManager extends RelationManager
                 ]
                 : [])
             ->action(function (ReclamoRegistro $record, array $data): void {
-                if (! ReclamoResource::canAccessAsAdministrador()) {
-                    return;
-                }
-
                 if ($record->estaPendiente()) {
                     $record->update([
                         'estado' => 'resuelto',

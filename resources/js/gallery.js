@@ -14,12 +14,25 @@ function initGalleries() {
             return;
         }
 
+        const pauseInactiveVideos = () => {
+            mainEl.querySelectorAll('video').forEach((video) => {
+                const slide = video.closest('.splide__slide');
+
+                if (! slide?.classList.contains('is-active')) {
+                    video.pause();
+                }
+            });
+        };
+
         const main = new Splide(mainEl, {
             type: 'fade',
             rewind: true,
             pagination: false,
             height: '28rem',
         });
+
+        main.on('moved', pauseInactiveVideos);
+        main.on('move', pauseInactiveVideos);
 
         if (thumbsEl) {
             const thumbs = new Splide(thumbsEl, {
@@ -30,7 +43,6 @@ function initGalleries() {
                 pagination: false,
                 isNavigation: true,
                 arrows: false,
-                cover: true,
                 focus: 'center',
                 breakpoints: {
                     640: {
